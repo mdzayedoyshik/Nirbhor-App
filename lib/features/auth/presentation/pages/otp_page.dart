@@ -213,7 +213,7 @@ class _OtpBoxesRow extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                 borderSide:
-                    const BorderSide(color: AppColors.primary, width: 2),
+                    const BorderSide(color: AppColors.primary, width: AppSizing.borderWidthLg),
               ),
             ),
             onChanged: (v) => onChanged(v, i),

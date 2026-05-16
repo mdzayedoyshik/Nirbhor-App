@@ -29,10 +29,10 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = loading
         ? const SizedBox(
-            width: 20,
-            height: 20,
+            width: AppSizing.spinnerSize,
+            height: AppSizing.spinnerSize,
             child: CircularProgressIndicator(
-              strokeWidth: 2,
+              strokeWidth: AppSizing.borderWidthLg,
               color: AppColors.white,
             ),
           )

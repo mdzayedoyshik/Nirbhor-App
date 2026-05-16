@@ -20,6 +20,7 @@ class AppSizing {
   static const double iconSm = 16.0;
   static const double iconMd = 24.0;
   static const double iconLg = 32.0;
+  static const double iconXl = 64.0;
 
   // Button height
   static const double buttonHeight = 52.0;
@@ -37,4 +38,19 @@ class AppSizing {
 
   // Page horizontal padding
   static const double pagePadding = 24.0;
+
+  // Avatar
+  static const double avatarRadius = 40.0;
+
+  // Bottom sheet drag handle
+  static const double bottomSheetHandleWidth = 40.0;
+  static const double bottomSheetHandleHeight = 4.0;
+
+  // Loading spinner (inside buttons)
+  static const double spinnerSize = 20.0;
+
+  // Border widths
+  static const double borderWidth = 1.0;
+  static const double borderWidthMd = 1.5;
+  static const double borderWidthLg = 2.0;
 }

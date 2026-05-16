@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
@@ -37,13 +38,13 @@ class HomePage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.home_outlined,
-                    size: 64, color: AppColors.primary),
-                const SizedBox(height: 16),
+                    size: AppSizing.iconXl, color: AppColors.primary),
+                const SizedBox(height: AppSizing.md),
                 Text(
                   'Welcome${user != null ? ', ${user.name}' : ''}!',
                   style: AppTypography.headlineMedium,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSizing.sm),
                 Text(
                   'You are authenticated.',
                   style: AppTypography.bodyMedium.copyWith(

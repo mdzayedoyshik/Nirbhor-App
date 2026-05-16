@@ -102,7 +102,7 @@ class _AppTextFieldState extends State<AppTextField> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSizing.radiusMd),
               borderSide:
-                  const BorderSide(color: AppColors.primary, width: 1.5),
+                  const BorderSide(color: AppColors.primary, width: AppSizing.borderWidthMd),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSizing.radiusMd),
@@ -111,7 +111,7 @@ class _AppTextFieldState extends State<AppTextField> {
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSizing.radiusMd),
               borderSide:
-                  const BorderSide(color: AppColors.error, width: 1.5),
+                  const BorderSide(color: AppColors.error, width: AppSizing.borderWidthMd),
             ),
           ),
         ),

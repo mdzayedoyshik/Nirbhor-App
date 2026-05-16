@@ -10,7 +10,9 @@
       "Bash(gh api *)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:isaacadariku.medium.com)",
-      "WebFetch(domain:dev.to)"
+      "WebFetch(domain:dev.to)",
+      "Bash(Get-ChildItem -Path \"g:\\\\nirbhor_app\\\\nirbhor\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ]
   }
 }

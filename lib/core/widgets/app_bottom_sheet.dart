@@ -34,8 +34,8 @@ class AppBottomSheet {
             Center(
               child: Container(
                 margin: const EdgeInsets.only(top: AppSizing.sm),
-                width: 40,
-                height: 4,
+                width: AppSizing.bottomSheetHandleWidth,
+                height: AppSizing.bottomSheetHandleHeight,
                 decoration: BoxDecoration(
                   color: AppColors.border,
                   borderRadius: BorderRadius.circular(AppSizing.radiusFull),

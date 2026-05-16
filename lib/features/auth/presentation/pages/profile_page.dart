@@ -183,7 +183,7 @@ class _Avatar extends StatelessWidget {
       return CachedNetworkImage(
         imageUrl: avatarUrl!,
         imageBuilder: (context, imageProvider) => CircleAvatar(
-          radius: 40,
+          radius: AppSizing.avatarRadius,
           backgroundImage: imageProvider,
         ),
         placeholder: (context, url) => _fallback(),
@@ -194,7 +194,7 @@ class _Avatar extends StatelessWidget {
   }
 
   Widget _fallback() => CircleAvatar(
-        radius: 40,
+        radius: AppSizing.avatarRadius,
         backgroundColor: AppColors.primary,
         child: Text(
           name.isNotEmpty ? name[0].toUpperCase() : '?',
