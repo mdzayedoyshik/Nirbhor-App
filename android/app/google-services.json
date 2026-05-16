@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "940233733536",
+    "project_id": "nirbhor-9daa7",
+    "storage_bucket": "nirbhor-9daa7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:940233733536:android:dacb101aeb9a9ea72860c5",
+        "android_client_info": {
+          "package_name": "com.techorbit.nirbhor"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "940233733536-4vmsqod31ihgh9pllnrj46915pd8is8u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.techorbit.nirbhor",
+            "certificate_hash": "ccee53121dd66633e29fd79f9ccdb842ec614aa2"
+          }
+        },
+        {
+          "client_id": "940233733536-gu3lbsp4i9sqje3bius6ei14engv7ih2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.techorbit.nirbhor",
+            "certificate_hash": "4e1b25084175ce2456e2c0ace7262d2dbcee6a58"
+          }
+        },
+        {
+          "client_id": "940233733536-vt8k70te98j0ufqhg10llp30p95s43nv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSsqiqLITUn3qwBW1luR2wTZ7BOIOLZqs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "940233733536-vt8k70te98j0ufqhg10llp30p95s43nv.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "940233733536-pfk9jkikqltjf5cik18bljk1o377138s.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.techorbit.nirbhor"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
