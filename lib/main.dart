@@ -10,6 +10,7 @@ import 'core/env/app_env.dart';
 import 'core/router/app_router.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/profile_cubit.dart';
+import 'features/flat/presentation/bloc/flat_bloc.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -41,6 +42,7 @@ class NirbhorApp extends StatelessWidget {
       providers: [
         BlocProvider<AuthBloc>.value(value: sl<AuthBloc>()),
         BlocProvider<ProfileCubit>.value(value: sl<ProfileCubit>()),
+        BlocProvider<FlatBloc>.value(value: sl<FlatBloc>()),
       ],
       child: _AppView(router: router),
     );
@@ -56,10 +58,10 @@ class _AppView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
+        // FlatBloc check is triggered here; navigation is handled by the
+        // router's redirect + refreshListenable (via _AuthNotifier).
         if (state is AuthAuthenticated) {
-          router.go(AppRoutes.home);
-        } else if (state is AuthUnauthenticated) {
-          router.go(AppRoutes.email);
+          context.read<FlatBloc>().add(const FlatCheckRequested());
         }
       },
       child: MaterialApp.router(

@@ -73,6 +73,58 @@ class ApiClient {
         body: body,
       );
 
+  Future<Map<String, dynamic>> delete(
+    String path, {
+    bool auth = false,
+  }) =>
+      _execute(
+        () => _client.delete(
+          Uri.parse('$_base$path'),
+          headers: auth ? _authHeaders : _baseHeaders,
+        ),
+        method: 'DELETE',
+        path: path,
+        auth: auth,
+      );
+
+  Future<Map<String, dynamic>> uploadFile(String path, String filePath) async {
+    final url = '$_base$path';
+
+    Future<http.Response> doUpload() async {
+      final request = http.MultipartRequest('POST', Uri.parse(url));
+      if (_tokenService.accessToken != null) {
+        request.headers['Authorization'] =
+            'Bearer ${_tokenService.accessToken}';
+      }
+      request.files
+          .add(await http.MultipartFile.fromPath('image', filePath));
+      final streamed = await _client.send(request);
+      return http.Response.fromStream(streamed);
+    }
+
+    try {
+      var response = await doUpload();
+      if (response.statusCode == 401) {
+        final refreshed = await _tryRefresh();
+        if (!refreshed) throw const TokenExpiredException();
+        response = await doUpload();
+      }
+      ApiLogger.logResponse(
+        statusCode: response.statusCode,
+        url: url,
+        rawBody: response.body,
+      );
+      return _parse(response);
+    } on ServerException {
+      rethrow;
+    } on TokenExpiredException {
+      rethrow;
+    } catch (e) {
+      ApiLogger.logError(url: url, error: e);
+      throw const NetworkException();
+    }
+  }
+
   Future<Map<String, dynamic>> _execute(
     Future<http.Response> Function() fn, {
     required String method,

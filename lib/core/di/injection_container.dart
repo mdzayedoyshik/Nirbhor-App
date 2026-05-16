@@ -2,9 +2,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 
-import '../network/api_client.dart';
-import '../services/device_token_service.dart';
-import '../services/token_service.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
@@ -22,6 +19,33 @@ import '../../features/auth/domain/usecases/update_profile_usecase.dart';
 import '../../features/auth/domain/usecases/verify_otp_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/profile_cubit.dart';
+import '../../features/flat/data/datasources/flat_remote_datasource.dart';
+import '../../features/flat/data/repositories/flat_repository_impl.dart';
+import '../../features/flat/domain/repositories/flat_repository.dart';
+import '../../features/flat/domain/usecases/add_fixed_expense_usecase.dart';
+import '../../features/flat/domain/usecases/approve_join_request_usecase.dart';
+import '../../features/flat/domain/usecases/cancel_join_request_usecase.dart';
+import '../../features/flat/domain/usecases/create_flat_usecase.dart';
+import '../../features/flat/domain/usecases/decline_join_request_usecase.dart';
+import '../../features/flat/domain/usecases/delete_fixed_expense_usecase.dart';
+import '../../features/flat/domain/usecases/delete_flat_usecase.dart';
+import '../../features/flat/domain/usecases/get_fixed_expenses_usecase.dart';
+import '../../features/flat/domain/usecases/get_join_requests_usecase.dart';
+import '../../features/flat/domain/usecases/get_my_flat_usecase.dart';
+import '../../features/flat/domain/usecases/get_my_requests_usecase.dart';
+import '../../features/flat/domain/usecases/preview_flat_usecase.dart';
+import '../../features/flat/domain/usecases/redistribute_usecase.dart';
+import '../../features/flat/domain/usecases/send_join_request_usecase.dart';
+import '../../features/flat/domain/usecases/update_fixed_expense_usecase.dart';
+import '../../features/flat/domain/usecases/update_flat_usecase.dart';
+import '../../features/flat/presentation/bloc/flat_bloc.dart';
+import '../../features/flat/presentation/cubit/fixed_expenses_cubit.dart';
+import '../../features/flat/presentation/cubit/flat_preview_cubit.dart';
+import '../../features/flat/presentation/cubit/join_requests_cubit.dart';
+import '../network/api_client.dart';
+import '../services/device_token_service.dart';
+import '../services/image_upload_service.dart';
+import '../services/token_service.dart';
 
 final sl = GetIt.instance;
 
@@ -36,16 +60,15 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => TokenService(storage: sl()));
   sl.registerLazySingleton(() => ApiClient(client: sl(), tokenService: sl()));
   sl.registerLazySingleton(() => DeviceTokenService());
+  sl.registerLazySingleton(() => ImageUploadService(apiClient: sl()));
 
-  // Data
+  // ── Auth ──────────────────────────────────────────────
   sl.registerLazySingleton(
     () => AuthRemoteDataSource(apiClient: sl(), tokenService: sl()),
   );
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(dataSource: sl()),
   );
-
-  // Use cases
   sl.registerLazySingleton(() => CheckEmailUseCase(sl()));
   sl.registerLazySingleton(() => VerifyOtpUseCase(sl()));
   sl.registerLazySingleton(() => LoginUseCase(sl()));
@@ -58,8 +81,6 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
   sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
   sl.registerLazySingleton(() => SendDeviceTokenUseCase(sl()));
-
-  // Blocs (singletons — app-global state, live for the entire app lifetime)
   sl.registerLazySingleton(
     () => AuthBloc(
       checkEmail: sl(),
@@ -81,6 +102,57 @@ Future<void> configureDependencies() async {
       getProfile: sl(),
       updateProfile: sl(),
       changePassword: sl(),
+    ),
+  );
+
+  // ── Flat ──────────────────────────────────────────────
+  sl.registerLazySingleton(() => FlatRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton<FlatRepository>(
+    () => FlatRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetMyFlatUseCase(sl()));
+  sl.registerLazySingleton(() => CreateFlatUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateFlatUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteFlatUseCase(sl()));
+  sl.registerLazySingleton(() => PreviewFlatUseCase(sl()));
+  sl.registerLazySingleton(() => SendJoinRequestUseCase(sl()));
+  sl.registerLazySingleton(() => GetMyRequestsUseCase(sl()));
+  sl.registerLazySingleton(() => CancelJoinRequestUseCase(sl()));
+  sl.registerLazySingleton(() => GetJoinRequestsUseCase(sl()));
+  sl.registerLazySingleton(() => ApproveJoinRequestUseCase(sl()));
+  sl.registerLazySingleton(() => DeclineJoinRequestUseCase(sl()));
+  sl.registerLazySingleton(() => GetFixedExpensesUseCase(sl()));
+  sl.registerLazySingleton(() => AddFixedExpenseUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateFixedExpenseUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteFixedExpenseUseCase(sl()));
+  sl.registerLazySingleton(() => RedistributeUseCase(sl()));
+
+  // Flat blocs — global singletons
+  sl.registerLazySingleton(
+    () => FlatBloc(
+      getMyFlat: sl(),
+      createFlat: sl(),
+      updateFlat: sl(),
+      deleteFlat: sl(),
+      sendJoinRequest: sl(),
+      getMyRequests: sl(),
+      cancelJoinRequest: sl(),
+    ),
+  );
+
+  // Flat cubits — factories (new instance per usage)
+  sl.registerFactory(() => FlatPreviewCubit(preview: sl()));
+  sl.registerFactory(
+    () =>
+        JoinRequestsCubit(getJoinRequests: sl(), approve: sl(), decline: sl()),
+  );
+  sl.registerFactory(
+    () => FixedExpensesCubit(
+      getExpenses: sl(),
+      addExpense: sl(),
+      updateExpense: sl(),
+      deleteExpense: sl(),
+      redistribute: sl(),
     ),
   );
 }
