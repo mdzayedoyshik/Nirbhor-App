@@ -34,15 +34,8 @@ class AuthOtpSubmitted extends AuthEvent {
 class AuthLoginRequested extends AuthEvent {
   final String email;
   final String password;
-  final String? deviceToken;
-  final String? deviceType;
 
-  const AuthLoginRequested({
-    required this.email,
-    required this.password,
-    this.deviceToken,
-    this.deviceType,
-  });
+  const AuthLoginRequested({required this.email, required this.password});
 
   @override
   List<Object?> get props => [email, password];
@@ -52,15 +45,11 @@ class AuthCompleteSetupRequested extends AuthEvent {
   final String setupToken;
   final String name;
   final String password;
-  final String? deviceToken;
-  final String? deviceType;
 
   const AuthCompleteSetupRequested({
     required this.setupToken,
     required this.name,
     required this.password,
-    this.deviceToken,
-    this.deviceType,
   });
 
   @override
@@ -88,16 +77,19 @@ class AuthResetPasswordRequested extends AuthEvent {
 }
 
 class AuthGoogleSignInRequested extends AuthEvent {
-  final String? deviceToken;
-  final String? deviceType;
-  const AuthGoogleSignInRequested({this.deviceToken, this.deviceType});
+  const AuthGoogleSignInRequested();
 }
 
 class AuthLogoutRequested extends AuthEvent {
-  final String deviceToken;
-  const AuthLogoutRequested(this.deviceToken);
+  const AuthLogoutRequested();
+}
+
+// Fired internally when FCM refreshes the push token
+class AuthDeviceTokenRefreshed extends AuthEvent {
+  final String token;
+  const AuthDeviceTokenRefreshed(this.token);
   @override
-  List<Object?> get props => [deviceToken];
+  List<Object?> get props => [token];
 }
 
 // Triggered on app start to check for a stored session

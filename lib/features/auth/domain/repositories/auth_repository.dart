@@ -15,16 +15,12 @@ abstract class AuthRepository {
   Future<AuthResult> login({
     required String email,
     required String password,
-    String? deviceToken,
-    String? deviceType,
   });
 
   Future<AuthResult> completeSetup({
     required String setupToken,
     required String name,
     required String password,
-    String? deviceToken,
-    String? deviceType,
   });
 
   // Returns otp_verification_token for the OTP screen
@@ -35,10 +31,11 @@ abstract class AuthRepository {
     required String newPassword,
   });
 
-  Future<AuthResult> googleAuth({
-    required String idToken,
-    String? deviceToken,
-    String? deviceType,
+  Future<AuthResult> googleAuth({required String idToken});
+
+  Future<void> sendDeviceToken({
+    required String token,
+    required String deviceType,
   });
 
   Future<void> logout(String deviceToken);

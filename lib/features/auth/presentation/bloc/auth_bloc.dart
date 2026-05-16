@@ -1,10 +1,11 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../../../../core/env/app_env.dart';
 import '../../../../core/enums/auth_enums.dart';
 import '../../../../core/errors/exceptions.dart';
+import '../../../../core/services/device_token_service.dart';
 import '../../../../core/services/token_service.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/usecases/check_email_usecase.dart';
@@ -15,6 +16,7 @@ import '../../domain/usecases/google_auth_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_usecase.dart';
 import '../../domain/usecases/reset_password_usecase.dart';
+import '../../domain/usecases/send_device_token_usecase.dart';
 import '../../domain/usecases/verify_otp_usecase.dart';
 
 part 'auth_event.dart';
@@ -30,6 +32,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final GoogleAuthUseCase _googleAuth;
   final LogoutUseCase _logout;
   final GetProfileUseCase _getProfile;
+  final SendDeviceTokenUseCase _sendDeviceToken;
+  final DeviceTokenService _deviceTokenService;
   final TokenService _tokenService;
 
   AuthBloc({
@@ -42,6 +46,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required GoogleAuthUseCase googleAuth,
     required LogoutUseCase logout,
     required GetProfileUseCase getProfile,
+    required SendDeviceTokenUseCase sendDeviceToken,
+    required DeviceTokenService deviceTokenService,
     required TokenService tokenService,
   })  : _checkEmail = checkEmail,
         _verifyOtp = verifyOtp,
@@ -52,6 +58,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         _googleAuth = googleAuth,
         _logout = logout,
         _getProfile = getProfile,
+        _sendDeviceToken = sendDeviceToken,
+        _deviceTokenService = deviceTokenService,
         _tokenService = tokenService,
         super(const AuthInitial()) {
     on<AuthSessionCheckRequested>(_onSessionCheck);
@@ -63,6 +71,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthResetPasswordRequested>(_onResetPassword);
     on<AuthGoogleSignInRequested>(_onGoogleSignIn);
     on<AuthLogoutRequested>(_onLogout);
+    on<AuthDeviceTokenRefreshed>(_onDeviceTokenRefreshed);
+
+    // Sync device token whenever FCM rotates it
+    _deviceTokenService.onTokenRefresh.listen((token) {
+      add(AuthDeviceTokenRefreshed(token));
+    });
   }
 
   Future<void> _onSessionCheck(
@@ -78,6 +92,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final user = await _getProfile();
       emit(AuthAuthenticated(user));
+      await _syncDeviceToken();
     } catch (_) {
       await _tokenService.clearTokens();
       emit(const AuthUnauthenticated());
@@ -117,7 +132,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
 
       if (event.hint == null) {
-        // forgot-password flow
         emit(AuthPasswordResetReady(result.setupToken));
       } else if (event.hint == AuthHint.newUser) {
         emit(AuthSetupReady(
@@ -125,7 +139,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           email: event.email ?? '',
         ));
       } else {
-        // google_no_password
         emit(AuthSetPasswordReady(result.setupToken));
       }
     } catch (e) {
@@ -139,13 +152,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading(AuthLoadingSource.login));
     try {
-      final result = await _login(
-        email: event.email,
-        password: event.password,
-        deviceToken: event.deviceToken,
-        deviceType: event.deviceType,
-      );
+      final result = await _login(email: event.email, password: event.password);
       emit(AuthAuthenticated(result.user));
+      await _syncDeviceToken();
     } catch (e) {
       emit(AuthFailure(_message(e)));
     }
@@ -161,10 +170,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         setupToken: event.setupToken,
         name: event.name,
         password: event.password,
-        deviceToken: event.deviceToken,
-        deviceType: event.deviceType,
       );
       emit(AuthAuthenticated(result.user));
+      await _syncDeviceToken();
     } catch (e) {
       emit(AuthFailure(_message(e)));
     }
@@ -199,6 +207,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (result.isAutoLogin) {
         final user = await _getProfile();
         emit(AuthAuthenticated(user));
+        await _syncDeviceToken();
       } else {
         emit(const AuthPasswordResetSuccess());
       }
@@ -213,26 +222,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading(AuthLoadingSource.google));
     try {
-      final googleSignIn = GoogleSignIn(
-        serverClientId: AppEnv.googleClientId,
-      );
-      final account = await googleSignIn.signIn();
-      if (account == null) {
-        emit(const AuthInitial());
-        return;
-      }
-      final auth = await account.authentication;
-      final idToken = auth.idToken;
+      final account = await GoogleSignIn.instance.authenticate();
+      final idToken = account.authentication.idToken;
       if (idToken == null) {
         emit(const AuthFailure('Failed to get Google ID token.'));
         return;
       }
-      final result = await _googleAuth(
-        idToken: idToken,
-        deviceToken: event.deviceToken,
-        deviceType: event.deviceType,
-      );
+      final result = await _googleAuth(idToken: idToken);
       emit(AuthAuthenticated(result.user));
+      await _syncDeviceToken();
+    } on PlatformException catch (e) {
+      if (e.code == 'sign_in_canceled') {
+        emit(const AuthInitial());
+      } else {
+        emit(AuthFailure(_message(e)));
+      }
     } catch (e) {
       emit(AuthFailure(_message(e)));
     }
@@ -244,12 +248,38 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading(AuthLoadingSource.logout));
     try {
-      await _logout(event.deviceToken);
+      final token = await _deviceTokenService.getToken() ?? '';
+      await _logout(token);
     } catch (_) {
-      // Clear tokens locally even if server call fails
       await _tokenService.clearTokens();
     }
     emit(const AuthUnauthenticated());
+  }
+
+  Future<void> _onDeviceTokenRefreshed(
+    AuthDeviceTokenRefreshed event,
+    Emitter<AuthState> emit,
+  ) async {
+    if (state is! AuthAuthenticated) return;
+    try {
+      await _sendDeviceToken(
+        token: event.token,
+        deviceType: _deviceTokenService.deviceType,
+      );
+    } catch (_) {}
+  }
+
+  // Gets the FCM token and sends it to the backend. Failures are silently
+  // ignored — device token registration is non-critical.
+  Future<void> _syncDeviceToken() async {
+    try {
+      final token = await _deviceTokenService.getToken();
+      if (token == null) return;
+      await _sendDeviceToken(
+        token: token,
+        deviceType: _deviceTokenService.deviceType,
+      );
+    } catch (_) {}
   }
 
   String _message(Object e) {

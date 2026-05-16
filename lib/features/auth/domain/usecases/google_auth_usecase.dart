@@ -5,14 +5,6 @@ class GoogleAuthUseCase {
   final AuthRepository _repository;
   GoogleAuthUseCase(this._repository);
 
-  Future<AuthResult> call({
-    required String idToken,
-    String? deviceToken,
-    String? deviceType,
-  }) =>
-      _repository.googleAuth(
-        idToken: idToken,
-        deviceToken: deviceToken,
-        deviceType: deviceType,
-      );
+  Future<AuthResult> call({required String idToken}) =>
+      _repository.googleAuth(idToken: idToken);
 }

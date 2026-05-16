@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -24,7 +25,6 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
-  final _avatarCtrl = TextEditingController();
   bool _editing = false;
 
   @override
@@ -36,13 +36,11 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _avatarCtrl.dispose();
     super.dispose();
   }
 
-  void _startEdit(String name, String? avatarUrl) {
+  void _startEdit(String name) {
     _nameCtrl.text = name;
-    _avatarCtrl.text = avatarUrl ?? '';
     setState(() => _editing = true);
   }
 
@@ -50,8 +48,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (_formKey.currentState!.validate()) {
       context.read<ProfileCubit>().updateProfile(
             name: _nameCtrl.text.trim(),
-            avatarUrl:
-                _avatarCtrl.text.trim().isEmpty ? null : _avatarCtrl.text.trim(),
           );
     }
   }
@@ -87,7 +83,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 IconButton(
                   icon: const Icon(Icons.edit_outlined,
                       color: AppColors.textPrimary),
-                  onPressed: () => _startEdit(user.name, user.avatarUrl),
+                  onPressed: () => _startEdit(user.name),
                 ),
             ],
           ),
@@ -102,16 +98,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           const SizedBox(height: AppSizing.md),
                           Center(
-                            child: CircleAvatar(
-                              radius: 40,
-                              backgroundColor: AppColors.primary,
-                              child: Text(
-                                user.name.isNotEmpty
-                                    ? user.name[0].toUpperCase()
-                                    : '?',
-                                style: AppTypography.headlineLarge
-                                    .copyWith(color: AppColors.white),
-                              ),
+                            child: _Avatar(
+                              avatarUrl: user.avatarUrl,
+                              name: user.name,
                             ),
                           ),
                           const SizedBox(height: AppSizing.md),
@@ -124,18 +113,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                     controller: _nameCtrl,
                                     label: AppStrings.nameLabel,
                                     hint: AppStrings.nameHint,
-                                    textInputAction: TextInputAction.next,
+                                    textInputAction: TextInputAction.done,
                                     validator: (v) => v == null || v.trim().isEmpty
                                         ? 'Name is required'
                                         : null,
-                                  ),
-                                  const SizedBox(height: AppSizing.md),
-                                  AppTextField(
-                                    controller: _avatarCtrl,
-                                    label: 'Avatar URL (optional)',
-                                    hint: 'https://...',
-                                    keyboardType: TextInputType.url,
-                                    textInputAction: TextInputAction.done,
                                   ),
                                 ],
                               ),
@@ -177,7 +158,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 if (confirmed == true && context.mounted) {
                                   context
                                       .read<AuthBloc>()
-                                      .add(const AuthLogoutRequested(''));
+                                      .add(const AuthLogoutRequested());
                                 }
                               },
                             ),
@@ -189,6 +170,37 @@ class _ProfilePageState extends State<ProfilePage> {
       },
     );
   }
+}
+
+class _Avatar extends StatelessWidget {
+  final String? avatarUrl;
+  final String name;
+  const _Avatar({required this.avatarUrl, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    if (avatarUrl != null && avatarUrl!.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: avatarUrl!,
+        imageBuilder: (context, imageProvider) => CircleAvatar(
+          radius: 40,
+          backgroundImage: imageProvider,
+        ),
+        placeholder: (context, url) => _fallback(),
+        errorWidget: (context, url, error) => _fallback(),
+      );
+    }
+    return _fallback();
+  }
+
+  Widget _fallback() => CircleAvatar(
+        radius: 40,
+        backgroundColor: AppColors.primary,
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : '?',
+          style: AppTypography.headlineLarge.copyWith(color: AppColors.white),
+        ),
+      );
 }
 
 class _InfoTile extends StatelessWidget {

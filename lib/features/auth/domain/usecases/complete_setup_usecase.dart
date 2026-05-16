@@ -9,14 +9,10 @@ class CompleteSetupUseCase {
     required String setupToken,
     required String name,
     required String password,
-    String? deviceToken,
-    String? deviceType,
   }) =>
       _repository.completeSetup(
         setupToken: setupToken,
         name: name,
         password: password,
-        deviceToken: deviceToken,
-        deviceType: deviceType,
       );
 }

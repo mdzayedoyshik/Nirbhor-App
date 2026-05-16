@@ -60,15 +60,8 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<AuthResult> login({
     required String email,
     required String password,
-    String? deviceToken,
-    String? deviceType,
   }) async {
-    final response = await _dataSource.login(
-      email: email,
-      password: password,
-      deviceToken: deviceToken,
-      deviceType: deviceType,
-    );
+    final response = await _dataSource.login(email: email, password: password);
     return _parseAuthResult(response);
   }
 
@@ -77,15 +70,11 @@ class AuthRepositoryImpl implements AuthRepository {
     required String setupToken,
     required String name,
     required String password,
-    String? deviceToken,
-    String? deviceType,
   }) async {
     final response = await _dataSource.completeSetup(
       setupToken: setupToken,
       name: name,
       password: password,
-      deviceToken: deviceToken,
-      deviceType: deviceType,
     );
     return _parseAuthResult(response);
   }
@@ -118,18 +107,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<AuthResult> googleAuth({
-    required String idToken,
-    String? deviceToken,
-    String? deviceType,
-  }) async {
-    final response = await _dataSource.googleAuth(
-      idToken: idToken,
-      deviceToken: deviceToken,
-      deviceType: deviceType,
-    );
+  Future<AuthResult> googleAuth({required String idToken}) async {
+    final response = await _dataSource.googleAuth(idToken: idToken);
     return _parseAuthResult(response);
   }
+
+  @override
+  Future<void> sendDeviceToken({
+    required String token,
+    required String deviceType,
+  }) =>
+      _dataSource.sendDeviceToken(token: token, deviceType: deviceType);
 
   @override
   Future<void> logout(String deviceToken) async {

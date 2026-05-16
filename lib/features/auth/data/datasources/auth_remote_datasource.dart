@@ -28,31 +28,19 @@ class AuthRemoteDataSource {
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
-    String? deviceToken,
-    String? deviceType,
-  }) {
-    final body = <String, dynamic>{'email': email, 'password': password};
-    if (deviceToken != null) body['device_token'] = deviceToken;
-    if (deviceType != null) body['device_type'] = deviceType;
-    return _apiClient.post(ApiEndpoints.login, body);
-  }
+  }) =>
+      _apiClient.post(ApiEndpoints.login, {'email': email, 'password': password});
 
   Future<Map<String, dynamic>> completeSetup({
     required String setupToken,
     required String name,
     required String password,
-    String? deviceToken,
-    String? deviceType,
-  }) {
-    final body = <String, dynamic>{
-      'setup_token': setupToken,
-      'name': name,
-      'password': password,
-    };
-    if (deviceToken != null) body['device_token'] = deviceToken;
-    if (deviceType != null) body['device_type'] = deviceType;
-    return _apiClient.post(ApiEndpoints.completeSetup, body);
-  }
+  }) =>
+      _apiClient.post(ApiEndpoints.completeSetup, {
+        'setup_token': setupToken,
+        'name': name,
+        'password': password,
+      });
 
   Future<Map<String, dynamic>> forgotPassword(String email) =>
       _apiClient.post(ApiEndpoints.forgotPassword, {'email': email});
@@ -66,16 +54,18 @@ class AuthRemoteDataSource {
         'new_password': newPassword,
       });
 
-  Future<Map<String, dynamic>> googleAuth({
-    required String idToken,
-    String? deviceToken,
-    String? deviceType,
-  }) {
-    final body = <String, dynamic>{'id_token': idToken};
-    if (deviceToken != null) body['device_token'] = deviceToken;
-    if (deviceType != null) body['device_type'] = deviceType;
-    return _apiClient.post(ApiEndpoints.googleAuth, body);
-  }
+  Future<Map<String, dynamic>> googleAuth({required String idToken}) =>
+      _apiClient.post(ApiEndpoints.googleAuth, {'id_token': idToken});
+
+  Future<void> sendDeviceToken({
+    required String token,
+    required String deviceType,
+  }) =>
+      _apiClient.post(
+        ApiEndpoints.deviceToken,
+        {'device_token': token, 'device_type': deviceType},
+        auth: true,
+      );
 
   Future<void> logout(String deviceToken) => _apiClient.post(
         ApiEndpoints.logout,

@@ -13,4 +13,5 @@ class ApiEndpoints {
   static const String profile = '/auth/profile';
   static const String changePassword = '/auth/change-password';
   static const String logout = '/auth/logout';
+  static const String deviceToken = '/auth/device-token';
 }

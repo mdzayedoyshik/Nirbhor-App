@@ -5,16 +5,6 @@ class LoginUseCase {
   final AuthRepository _repository;
   LoginUseCase(this._repository);
 
-  Future<AuthResult> call({
-    required String email,
-    required String password,
-    String? deviceToken,
-    String? deviceType,
-  }) =>
-      _repository.login(
-        email: email,
-        password: password,
-        deviceToken: deviceToken,
-        deviceType: deviceType,
-      );
+  Future<AuthResult> call({required String email, required String password}) =>
+      _repository.login(email: email, password: password);
 }
