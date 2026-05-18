@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "940233733536-lv3n0urab88d8e7h35u0eh85095b9kd2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.techorbit.nirbhor",
+            "certificate_hash": "da9d40ee8cbe70472b4b1c300b7b27c35d2dfef0"
+          }
+        },
+        {
           "client_id": "940233733536-vt8k70te98j0ufqhg10llp30p95s43nv.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -43,7 +51,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "940233733536-vt8k70te98j0ufqhg10llp30p95s43nv.apps.googleusercontent.com",
+              "client_id": "940233733536-ekk140054on9mnd1e621b5c18gvege2q.apps.googleusercontent.com",
               "client_type": 3
             },
             {
