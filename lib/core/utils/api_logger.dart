@@ -14,7 +14,7 @@ class ApiLogger {
     required Map<String, String> headers,
     Map<String, dynamic>? body,
   }) {
-    if (!AppEnv.isDev) return;
+    // if (!AppEnv.isDev) return;
 
     final buf = StringBuffer()
       ..writeln('┌─ REQUEST ──────────────────────────────────────')
@@ -41,7 +41,7 @@ class ApiLogger {
     required String url,
     required String rawBody,
   }) {
-    if (!AppEnv.isDev) return;
+    // if (!AppEnv.isDev) return;
 
     final ok = statusCode >= 200 && statusCode < 300;
     final buf = StringBuffer()

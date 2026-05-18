@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/enums/auth_enums.dart';
 import '../../features/auth/presentation/args/complete_setup_page_args.dart';
 import '../../features/auth/presentation/args/otp_page_args.dart';
 import '../../features/auth/presentation/args/reset_password_page_args.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
-import '../../core/enums/auth_enums.dart';
 import '../../features/auth/presentation/pages/change_password_page.dart';
 import '../../features/auth/presentation/pages/complete_setup_page.dart';
 import '../../features/auth/presentation/pages/email_page.dart';
@@ -92,16 +92,21 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(path: AppRoutes.email, builder: (_, _) => const EmailPage()),
       GoRoute(
         path: AppRoutes.otp,
-        builder: (_, state) => OtpPage(args: state.extra as OtpPageArgs),
+        redirect: (_, state) =>
+            state.extra is OtpPageArgs ? null : AppRoutes.email,
+        builder: (_, state) => OtpPage(args: state.extra! as OtpPageArgs),
       ),
       GoRoute(
         path: AppRoutes.login,
-        builder: (_, state) => LoginPage(email: state.extra as String),
+        redirect: (_, state) => state.extra is String ? null : AppRoutes.email,
+        builder: (_, state) => LoginPage(email: state.extra! as String),
       ),
       GoRoute(
         path: AppRoutes.completeSetup,
+        redirect: (_, state) =>
+            state.extra is CompleteSetupPageArgs ? null : AppRoutes.email,
         builder: (_, state) =>
-            CompleteSetupPage(args: state.extra as CompleteSetupPageArgs),
+            CompleteSetupPage(args: state.extra! as CompleteSetupPageArgs),
       ),
       GoRoute(
         path: AppRoutes.forgotPassword,
@@ -109,8 +114,10 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: AppRoutes.resetPassword,
+        redirect: (_, state) =>
+            state.extra is ResetPasswordPageArgs ? null : AppRoutes.email,
         builder: (_, state) =>
-            ResetPasswordPage(args: state.extra as ResetPasswordPageArgs),
+            ResetPasswordPage(args: state.extra! as ResetPasswordPageArgs),
       ),
       GoRoute(path: AppRoutes.home, builder: (_, _) => const HomePage()),
       GoRoute(path: AppRoutes.profile, builder: (_, _) => const ProfilePage()),
@@ -133,13 +140,17 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: AppRoutes.flatPreview,
+        redirect: (_, state) =>
+            state.extra is FlatPreviewEntity ? null : AppRoutes.flatJoin,
         builder: (_, state) =>
-            FlatPreviewPage(preview: state.extra as FlatPreviewEntity),
+            FlatPreviewPage(preview: state.extra! as FlatPreviewEntity),
       ),
       GoRoute(
         path: AppRoutes.flatRequests,
+        redirect: (_, state) =>
+            state.extra is String ? null : AppRoutes.flatJoin,
         builder: (ctx, state) {
-          final flatId = state.extra as String;
+          final flatId = state.extra! as String;
           return BlocProvider(
             create: (_) => sl<JoinRequestsCubit>(),
             child: JoinRequestsPage(flatId: flatId),
@@ -148,8 +159,10 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: AppRoutes.flatExpenses,
+        redirect: (_, state) =>
+            state.extra is Map<String, dynamic> ? null : AppRoutes.flatJoin,
         builder: (ctx, state) {
-          final extra = state.extra as Map<String, dynamic>;
+          final extra = state.extra! as Map<String, dynamic>;
           return BlocProvider(
             create: (_) => sl<FixedExpensesCubit>(),
             child: FixedExpensesPage(
@@ -161,12 +174,17 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: AppRoutes.flatMembers,
-        builder: (_, state) => FlatMembersPage(flat: state.extra as FlatEntity),
+        redirect: (_, state) =>
+            state.extra is FlatEntity ? null : AppRoutes.flatJoin,
+        builder: (_, state) =>
+            FlatMembersPage(flat: state.extra! as FlatEntity),
       ),
       GoRoute(
         path: AppRoutes.flatSettings,
+        redirect: (_, state) =>
+            state.extra is FlatEntity ? null : AppRoutes.flatJoin,
         builder: (_, state) =>
-            FlatSettingsPage(flat: state.extra as FlatEntity),
+            FlatSettingsPage(flat: state.extra! as FlatEntity),
       ),
     ],
   );

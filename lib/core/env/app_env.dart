@@ -15,5 +15,7 @@ class AppEnv {
 
   static String get baseUrl => dotenv.env['BASE_URL'] ?? '';
   static String get googleClientId => dotenv.env['GOOGLE_CLIENT_ID'] ?? '';
+  static String get testMail => dotenv.env['TEST_MAIL'] ?? '';
+  static String get testPassword => dotenv.env['TEST_PASSWORD'] ?? '';
   static bool get isDev => _env == AppEnvironment.dev;
 }

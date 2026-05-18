@@ -7,11 +7,12 @@ import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/enums/auth_enums.dart';
+import '../../../../core/env/app_env.dart';
 import '../../../../core/router/app_router.dart';
-import '../args/otp_page_args.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../args/otp_page_args.dart';
 import '../bloc/auth_bloc.dart';
 
 class EmailPage extends StatefulWidget {
@@ -26,6 +27,12 @@ class _EmailPageState extends State<EmailPage> {
   final _emailCtrl = TextEditingController();
 
   @override
+  initState() {
+    super.initState();
+    _emailCtrl.text = AppEnv.testMail;
+  }
+
+  @override
   void dispose() {
     _emailCtrl.dispose();
     super.dispose();
@@ -33,9 +40,9 @@ class _EmailPageState extends State<EmailPage> {
 
   void _submit(BuildContext context) {
     if (_formKey.currentState!.validate()) {
-      context
-          .read<AuthBloc>()
-          .add(AuthEmailCheckRequested(_emailCtrl.text.trim()));
+      context.read<AuthBloc>().add(
+        AuthEmailCheckRequested(_emailCtrl.text.trim()),
+      );
     }
   }
 
@@ -75,13 +82,16 @@ class _EmailPageState extends State<EmailPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: AppSizing.xxl),
-                    Text(AppStrings.welcomeTitle,
-                        style: AppTypography.displayLarge),
+                    Text(
+                      AppStrings.welcomeTitle,
+                      style: AppTypography.displayLarge,
+                    ),
                     const SizedBox(height: AppSizing.xs),
                     Text(
                       AppStrings.emailSubtitle,
-                      style: AppTypography.bodyLarge
-                          .copyWith(color: AppColors.textSecondary),
+                      style: AppTypography.bodyLarge.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: AppSizing.xl),
                     AppTextField(
@@ -93,8 +103,9 @@ class _EmailPageState extends State<EmailPage> {
                       onSubmitted: (_) => _submit(context),
                       validator: (v) {
                         if (v == null || v.isEmpty) return 'Email is required';
-                        if (!RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$')
-                            .hasMatch(v)) {
+                        if (!RegExp(
+                          r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        ).hasMatch(v)) {
                           return 'Enter a valid email';
                         }
                         return null;
@@ -107,16 +118,21 @@ class _EmailPageState extends State<EmailPage> {
                       onPressed: anyLoading ? null : () => _submit(context),
                     ),
                     const SizedBox(height: AppSizing.md),
-                    Row(children: [
-                      const Expanded(child: Divider(color: AppColors.border)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizing.sm),
-                        child: Text(AppStrings.orDivider,
-                            style: AppTypography.bodySmall),
-                      ),
-                      const Expanded(child: Divider(color: AppColors.border)),
-                    ]),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider(color: AppColors.border)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizing.sm,
+                          ),
+                          child: Text(
+                            AppStrings.orDivider,
+                            style: AppTypography.bodySmall,
+                          ),
+                        ),
+                        const Expanded(child: Divider(color: AppColors.border)),
+                      ],
+                    ),
                     const SizedBox(height: AppSizing.md),
                     AppButton(
                       label: AppStrings.continueWithGoogle,
@@ -124,9 +140,9 @@ class _EmailPageState extends State<EmailPage> {
                       loading: googleLoading,
                       onPressed: anyLoading
                           ? null
-                          : () => context
-                              .read<AuthBloc>()
-                              .add(const AuthGoogleSignInRequested()),
+                          : () => context.read<AuthBloc>().add(
+                              const AuthGoogleSignInRequested(),
+                            ),
                     ),
                     const SizedBox(height: AppSizing.xxl),
                   ],

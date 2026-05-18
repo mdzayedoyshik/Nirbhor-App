@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/env/app_env.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_snackbar.dart';
@@ -23,6 +24,12 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _passwordCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    _passwordCtrl.text = AppEnv.testPassword;
+    super.initState();
+  }
 
   @override
   void dispose() {
