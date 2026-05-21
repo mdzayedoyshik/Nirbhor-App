@@ -26,11 +26,14 @@ import '../../features/flat/presentation/cubit/flat_preview_cubit.dart';
 import '../../features/flat/presentation/cubit/join_requests_cubit.dart';
 import '../../features/flat/presentation/pages/create_flat_page.dart';
 import '../../features/flat/presentation/pages/fixed_expenses_page.dart';
-import '../../features/flat/presentation/pages/flat_members_page.dart';
 import '../../features/flat/presentation/pages/flat_preview_page.dart';
 import '../../features/flat/presentation/pages/flat_settings_page.dart';
 import '../../features/flat/presentation/pages/join_flat_page.dart';
 import '../../features/flat/presentation/pages/join_requests_page.dart';
+import '../../features/member/presentation/args/settlement_page_args.dart';
+import '../../features/member/presentation/cubit/member_cubit.dart';
+import '../../features/member/presentation/pages/member_list_page.dart';
+import '../../features/member/presentation/pages/settlement_page.dart';
 import '../di/injection_container.dart';
 
 class AppRoutes {
@@ -54,6 +57,7 @@ class AppRoutes {
   static const flatRequests = '/flat/requests';
   static const flatExpenses = '/flat/expenses';
   static const flatMembers = '/flat/members';
+  static const flatSettlement = '/flat/settlement';
   static const flatSettings = '/flat/settings';
 }
 
@@ -176,8 +180,17 @@ GoRouter createRouter(AuthBloc authBloc) {
         path: AppRoutes.flatMembers,
         redirect: (_, state) =>
             state.extra is FlatEntity ? null : AppRoutes.flatJoin,
+        builder: (_, state) => BlocProvider(
+          create: (_) => sl<MemberCubit>(),
+          child: MemberListPage(flat: state.extra! as FlatEntity),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.flatSettlement,
+        redirect: (_, state) =>
+            state.extra is SettlementPageArgs ? null : AppRoutes.flatMembers,
         builder: (_, state) =>
-            FlatMembersPage(flat: state.extra! as FlatEntity),
+            SettlementPage(args: state.extra! as SettlementPageArgs),
       ),
       GoRoute(
         path: AppRoutes.flatSettings,

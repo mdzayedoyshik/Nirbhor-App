@@ -39,4 +39,19 @@ class ApiEndpoints {
       '/flats/$flatId/redistribute';
   static String flatContributions(String flatId) =>
       '/flats/$flatId/contributions';
+
+  // Member
+  static String flatMembers(String flatId) => '/flats/$flatId/members';
+  static String flatMemberRole(String flatId, String memberId) =>
+      '/flats/$flatId/members/$memberId/role';
+  static String flatTransferManager(String flatId) =>
+      '/flats/$flatId/transfer-manager';
+  static String flatMemberInitiateExit(String flatId, String memberId) =>
+      '/flats/$flatId/members/$memberId/initiate-exit';
+  static String flatMemberSettlement(String flatId, String memberId) =>
+      '/flats/$flatId/members/$memberId/settlement';
+  static String flatMemberFinalizeExit(String flatId, String memberId) =>
+      '/flats/$flatId/members/$memberId/finalize-exit';
+  static String flatMemberExit(String flatId, String memberId) =>
+      '/flats/$flatId/members/$memberId/exit';
 }

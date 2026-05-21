@@ -249,8 +249,9 @@ class FlatHomeView extends StatelessWidget {
                                       pendingCount = reqState.requests
                                           .where((r) => r.isPending)
                                           .length;
-                                      if (pendingCount == 0)
+                                      if (pendingCount == 0) {
                                         pendingCount = null;
+                                      }
                                     }
                                     return _ActionButton(
                                       label: AppStrings.joinRequestsLabel,

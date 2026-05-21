@@ -42,6 +42,17 @@ import '../../features/flat/presentation/bloc/flat_bloc.dart';
 import '../../features/flat/presentation/cubit/fixed_expenses_cubit.dart';
 import '../../features/flat/presentation/cubit/flat_preview_cubit.dart';
 import '../../features/flat/presentation/cubit/join_requests_cubit.dart';
+import '../../features/member/data/datasources/member_remote_datasource.dart';
+import '../../features/member/data/repositories/member_repository_impl.dart';
+import '../../features/member/domain/repositories/member_repository.dart';
+import '../../features/member/domain/usecases/cancel_exit_usecase.dart';
+import '../../features/member/domain/usecases/change_role_usecase.dart';
+import '../../features/member/domain/usecases/finalize_exit_usecase.dart';
+import '../../features/member/domain/usecases/get_members_usecase.dart';
+import '../../features/member/domain/usecases/get_settlement_usecase.dart';
+import '../../features/member/domain/usecases/initiate_exit_usecase.dart';
+import '../../features/member/domain/usecases/transfer_manager_usecase.dart';
+import '../../features/member/presentation/cubit/member_cubit.dart';
 import '../network/api_client.dart';
 import '../services/device_token_service.dart';
 import '../services/image_upload_service.dart';
@@ -153,6 +164,32 @@ Future<void> configureDependencies() async {
       updateExpense: sl(),
       deleteExpense: sl(),
       redistribute: sl(),
+    ),
+  );
+
+  // ── Member ────────────────────────────────────────────
+  sl.registerLazySingleton(() => MemberRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton<MemberRepository>(
+    () => MemberRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetMembersUseCase(sl()));
+  sl.registerLazySingleton(() => ChangeRoleUseCase(sl()));
+  sl.registerLazySingleton(() => TransferManagerUseCase(sl()));
+  sl.registerLazySingleton(() => InitiateExitUseCase(sl()));
+  sl.registerLazySingleton(() => GetSettlementUseCase(sl()));
+  sl.registerLazySingleton(() => FinalizeExitUseCase(sl()));
+  sl.registerLazySingleton(() => CancelExitUseCase(sl()));
+
+  // Member cubit — factory (new instance per page visit)
+  sl.registerFactory(
+    () => MemberCubit(
+      getMembers: sl(),
+      changeRole: sl(),
+      transferManager: sl(),
+      initiateExit: sl(),
+      getSettlement: sl(),
+      finalizeExit: sl(),
+      cancelExit: sl(),
     ),
   );
 }
