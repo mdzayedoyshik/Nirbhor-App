@@ -21,9 +21,9 @@ import '../../features/auth/presentation/pages/reset_password_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/flat/domain/entities/flat_entity.dart';
 import '../../features/flat/domain/entities/flat_preview_entity.dart';
-import '../../features/flat/presentation/cubit/fixed_expenses_cubit.dart';
-import '../../features/flat/presentation/cubit/flat_preview_cubit.dart';
-import '../../features/flat/presentation/cubit/join_requests_cubit.dart';
+import '../../features/flat/presentation/bloc/fixed_expenses_bloc.dart';
+import '../../features/flat/presentation/bloc/flat_preview_bloc.dart';
+import '../../features/flat/presentation/bloc/join_requests_bloc.dart';
 import '../../features/flat/presentation/pages/create_flat_page.dart';
 import '../../features/flat/presentation/pages/fixed_expenses_page.dart';
 import '../../features/flat/presentation/pages/flat_preview_page.dart';
@@ -31,7 +31,7 @@ import '../../features/flat/presentation/pages/flat_settings_page.dart';
 import '../../features/flat/presentation/pages/join_flat_page.dart';
 import '../../features/flat/presentation/pages/join_requests_page.dart';
 import '../../features/member/presentation/args/settlement_page_args.dart';
-import '../../features/member/presentation/cubit/member_cubit.dart';
+import '../../features/member/presentation/bloc/member_bloc.dart';
 import '../../features/member/presentation/pages/member_list_page.dart';
 import '../../features/member/presentation/pages/settlement_page.dart';
 import '../di/injection_container.dart';
@@ -71,17 +71,14 @@ GoRouter createRouter(AuthBloc authBloc) {
       final authState = authBloc.state;
       final isSplash = state.matchedLocation == AppRoutes.splash;
 
-      // While checking session: keep everything on splash
       if (authState is AuthInitial ||
           (authState is AuthLoading &&
               authState.source == AuthLoadingSource.session)) {
         return isSplash ? null : AppRoutes.splash;
       }
 
-      // Auth resolved but still on splash → SplashPage navigates with delay
       if (isSplash) return null;
 
-      // Normal guards for all other routes
       final isAuthenticated = authState is AuthAuthenticated;
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
       if (isAuthenticated && isAuthRoute) return AppRoutes.home;
@@ -102,7 +99,8 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: AppRoutes.login,
-        redirect: (_, state) => state.extra is String ? null : AppRoutes.email,
+        redirect: (_, state) =>
+            state.extra is String ? null : AppRoutes.email,
         builder: (_, state) => LoginPage(email: state.extra! as String),
       ),
       GoRoute(
@@ -124,7 +122,10 @@ GoRouter createRouter(AuthBloc authBloc) {
             ResetPasswordPage(args: state.extra! as ResetPasswordPageArgs),
       ),
       GoRoute(path: AppRoutes.home, builder: (_, _) => const HomePage()),
-      GoRoute(path: AppRoutes.profile, builder: (_, _) => const ProfilePage()),
+      GoRoute(
+        path: AppRoutes.profile,
+        builder: (_, _) => const ProfilePage(),
+      ),
       GoRoute(
         path: AppRoutes.changePassword,
         builder: (_, _) => const ChangePasswordPage(),
@@ -138,7 +139,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: AppRoutes.flatJoin,
         builder: (_, _) => BlocProvider(
-          create: (_) => sl<FlatPreviewCubit>(),
+          create: (_) => sl<FlatPreviewBloc>(),
           child: const JoinFlatPage(),
         ),
       ),
@@ -156,7 +157,7 @@ GoRouter createRouter(AuthBloc authBloc) {
         builder: (ctx, state) {
           final flatId = state.extra! as String;
           return BlocProvider(
-            create: (_) => sl<JoinRequestsCubit>(),
+            create: (_) => sl<JoinRequestsBloc>(),
             child: JoinRequestsPage(flatId: flatId),
           );
         },
@@ -168,7 +169,7 @@ GoRouter createRouter(AuthBloc authBloc) {
         builder: (ctx, state) {
           final extra = state.extra! as Map<String, dynamic>;
           return BlocProvider(
-            create: (_) => sl<FixedExpensesCubit>(),
+            create: (_) => sl<FixedExpensesBloc>(),
             child: FixedExpensesPage(
               flatId: extra['flatId'] as String,
               canManage: extra['canManage'] as bool,
@@ -181,7 +182,7 @@ GoRouter createRouter(AuthBloc authBloc) {
         redirect: (_, state) =>
             state.extra is FlatEntity ? null : AppRoutes.flatJoin,
         builder: (_, state) => BlocProvider(
-          create: (_) => sl<MemberCubit>(),
+          create: (_) => sl<MemberBloc>(),
           child: MemberListPage(flat: state.extra! as FlatEntity),
         ),
       ),

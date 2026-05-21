@@ -12,7 +12,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../cubit/flat_preview_cubit.dart';
+import '../bloc/flat_preview_bloc.dart';
 
 class JoinFlatPage extends StatefulWidget {
   const JoinFlatPage({super.key});
@@ -41,23 +41,11 @@ class _JoinFlatPageState extends State<JoinFlatPage>
     super.dispose();
   }
 
-  Future<void> _preview(BuildContext context, String code) async {
-    final cubit = context.read<FlatPreviewCubit>();
-    await cubit.loadPreview(code);
-
-    if (!context.mounted) return;
-    final state = cubit.state;
-    if (state is FlatPreviewLoaded) {
-      context.push(AppRoutes.flatPreview, extra: state.preview);
-      cubit.reset();
-    } else if (state is FlatPreviewError) {
-      AppSnackbar.error(context, state.message);
-    }
-  }
-
   void _submitCode(BuildContext context) {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    _preview(context, _codeCtrl.text.trim());
+    context.read<FlatPreviewBloc>().add(
+      FlatPreviewLoadRequested(_codeCtrl.text.trim()),
+    );
   }
 
   void _onQrDetect(BuildContext context, BarcodeCapture capture) {
@@ -67,7 +55,6 @@ class _JoinFlatPageState extends State<JoinFlatPage>
     final raw = barcode.rawValue ?? '';
     if (raw.isEmpty) return;
 
-    // Extract join code: either raw 6-char code or last path segment of URL
     String code;
     final uri = Uri.tryParse(raw);
     if (uri != null && uri.pathSegments.isNotEmpty) {
@@ -83,46 +70,69 @@ class _JoinFlatPageState extends State<JoinFlatPage>
 
     setState(() => _qrScanned = true);
     HapticFeedback.mediumImpact();
-    _preview(context, code).then((_) {
-      if (mounted) setState(() => _qrScanned = false);
-    });
+    context.read<FlatPreviewBloc>().add(FlatPreviewLoadRequested(code));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(AppStrings.joinFlatTitle, style: AppTypography.titleLarge),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: AppColors.textPrimary,
-          ),
-          onPressed: () => context.pop(),
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          indicatorColor: AppColors.primary,
-          labelStyle: AppTypography.titleMedium,
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.keyboard_outlined),
-              text: AppStrings.enterCodeTab,
-            ),
-            Tab(icon: Icon(Icons.qr_code_scanner), text: AppStrings.scanQrTab),
-          ],
-        ),
-      ),
-      body: BlocBuilder<FlatPreviewCubit, FlatPreviewState>(
-        builder: (context, state) {
-          final isLoading = state is FlatPreviewLoading;
+    return BlocConsumer<FlatPreviewBloc, FlatPreviewState>(
+      listenWhen: (_, curr) =>
+          curr is FlatPreviewLoaded || curr is FlatPreviewError,
+      listener: (context, state) {
+        if (state is FlatPreviewLoaded) {
+          context
+              .push(AppRoutes.flatPreview, extra: state.preview)
+              .then((_) {
+            if (context.mounted) {
+              context.read<FlatPreviewBloc>().add(
+                const FlatPreviewResetRequested(),
+              );
+              setState(() => _qrScanned = false);
+            }
+          });
+        } else if (state is FlatPreviewError) {
+          AppSnackbar.error(context, state.message);
+          setState(() => _qrScanned = false);
+        }
+      },
+      builder: (context, state) {
+        final isLoading = state is FlatPreviewLoading;
 
-          return TabBarView(
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            title: Text(
+              AppStrings.joinFlatTitle,
+              style: AppTypography.titleLarge,
+            ),
+            backgroundColor: AppColors.surface,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: AppColors.textPrimary,
+              ),
+              onPressed: () => context.pop(),
+            ),
+            bottom: TabBar(
+              controller: _tabController,
+              labelColor: AppColors.primary,
+              unselectedLabelColor: AppColors.textSecondary,
+              indicatorColor: AppColors.primary,
+              labelStyle: AppTypography.titleMedium,
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.keyboard_outlined),
+                  text: AppStrings.enterCodeTab,
+                ),
+                Tab(
+                  icon: Icon(Icons.qr_code_scanner),
+                  text: AppStrings.scanQrTab,
+                ),
+              ],
+            ),
+          ),
+          body: TabBarView(
             controller: _tabController,
             children: [
               // --- Manual code entry ---
@@ -134,7 +144,6 @@ class _JoinFlatPageState extends State<JoinFlatPage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: AppSizing.lg),
-                      // Icon
                       Center(
                         child: Container(
                           width: 80,
@@ -192,7 +201,10 @@ class _JoinFlatPageState extends State<JoinFlatPage>
                         onPressed: isLoading
                             ? null
                             : () => _submitCode(context),
-                        icon: const Icon(Icons.search, color: AppColors.white),
+                        icon: const Icon(
+                          Icons.search,
+                          color: AppColors.white,
+                        ),
                       ),
                     ],
                   ),
@@ -205,9 +217,9 @@ class _JoinFlatPageState extends State<JoinFlatPage>
                 isLoading: isLoading || _qrScanned,
               ),
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -236,9 +248,7 @@ class _QrScannerViewState extends State<_QrScannerView> {
     return Stack(
       children: [
         MobileScanner(controller: _controller, onDetect: widget.onDetect),
-        // Overlay
         Positioned.fill(child: CustomPaint(painter: _ScanOverlayPainter())),
-        // Prompt text
         Positioned(
           bottom: 60,
           left: 0,
@@ -262,7 +272,6 @@ class _QrScannerViewState extends State<_QrScannerView> {
             ),
           ),
         ),
-        // Loading overlay
         if (widget.isLoading)
           Positioned.fill(
             child: Container(
@@ -272,7 +281,6 @@ class _QrScannerViewState extends State<_QrScannerView> {
               ),
             ),
           ),
-        // Torch toggle
         Positioned(
           top: AppSizing.md,
           right: AppSizing.md,
@@ -305,7 +313,6 @@ class _ScanOverlayPainter extends CustomPainter {
     final top = cy - boxSize / 2;
     final rect = Rect.fromLTWH(left, top, boxSize, boxSize);
 
-    // dim everything outside the scan box
     final dimPaint = Paint()..color = Colors.black.withValues(alpha: 0.55);
     final path = Path()
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
@@ -313,7 +320,6 @@ class _ScanOverlayPainter extends CustomPainter {
       ..fillType = PathFillType.evenOdd;
     canvas.drawPath(path, dimPaint);
 
-    // corner brackets
     final bracketPaint = Paint()
       ..color = Colors.white
       ..strokeWidth = strokeW
@@ -321,7 +327,6 @@ class _ScanOverlayPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     const len = 32.0;
 
-    // top-left
     canvas.drawLine(
       Offset(left + corner, top),
       Offset(left + corner + len, top),
@@ -332,7 +337,6 @@ class _ScanOverlayPainter extends CustomPainter {
       Offset(left, top + corner + len),
       bracketPaint,
     );
-    // top-right
     canvas.drawLine(
       Offset(left + boxSize - corner - len, top),
       Offset(left + boxSize - corner, top),
@@ -343,7 +347,6 @@ class _ScanOverlayPainter extends CustomPainter {
       Offset(left + boxSize, top + corner + len),
       bracketPaint,
     );
-    // bottom-left
     canvas.drawLine(
       Offset(left, top + boxSize - corner - len),
       Offset(left, top + boxSize - corner),
@@ -354,7 +357,6 @@ class _ScanOverlayPainter extends CustomPainter {
       Offset(left + corner + len, top + boxSize),
       bracketPaint,
     );
-    // bottom-right
     canvas.drawLine(
       Offset(left + boxSize, top + boxSize - corner - len),
       Offset(left + boxSize, top + boxSize - corner),

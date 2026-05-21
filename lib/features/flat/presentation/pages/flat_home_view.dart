@@ -15,7 +15,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/flat_entity.dart';
 import '../../domain/entities/flat_member_entity.dart';
 import '../bloc/flat_bloc.dart';
-import '../cubit/join_requests_cubit.dart';
+import '../bloc/join_requests_bloc.dart';
 import '../widgets/expense_tile.dart';
 import '../widgets/member_tile.dart';
 
@@ -43,7 +43,6 @@ class FlatHomeView extends StatelessWidget {
         color: AppColors.primary,
         onRefresh: () async {
           context.read<FlatBloc>().add(FlatRefreshRequested(flat.id));
-          // Wait briefly for bloc to process
           await Future.delayed(const Duration(milliseconds: 600));
         },
         child: CustomScrollView(
@@ -96,9 +95,8 @@ class FlatHomeView extends StatelessWidget {
                             imageUrl: flat.photoUrl,
                             name: flat.name,
                             radius: 28,
-                            backgroundColor: AppColors.white.withValues(
-                              alpha: 0.2,
-                            ),
+                            backgroundColor:
+                                AppColors.white.withValues(alpha: 0.2),
                             textColor: AppColors.white,
                           ),
                           const SizedBox(width: AppSizing.md),
@@ -108,7 +106,8 @@ class FlatHomeView extends StatelessWidget {
                               children: [
                                 Text(
                                   flat.name,
-                                  style: AppTypography.headlineMedium.copyWith(
+                                  style:
+                                      AppTypography.headlineMedium.copyWith(
                                     color: AppColors.white,
                                   ),
                                   overflow: TextOverflow.ellipsis,
@@ -117,9 +116,8 @@ class FlatHomeView extends StatelessWidget {
                                   Text(
                                     flat.address!,
                                     style: AppTypography.bodySmall.copyWith(
-                                      color: AppColors.white.withValues(
-                                        alpha: 0.8,
-                                      ),
+                                      color: AppColors.white
+                                          .withValues(alpha: 0.8),
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -129,7 +127,6 @@ class FlatHomeView extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: AppSizing.sm),
-                      // Join code chip — tap to show QR code (all members)
                       GestureDetector(
                         onTap: () => _showQrSheet(context),
                         child: Container(
@@ -238,42 +235,37 @@ class FlatHomeView extends StatelessWidget {
                       child: Row(
                         children: [
                           Expanded(
-                            child:
-                                BlocBuilder<
-                                  JoinRequestsCubit,
-                                  JoinRequestsState
-                                >(
-                                  builder: (context, reqState) {
-                                    int? pendingCount;
-                                    if (reqState is JoinRequestsLoaded) {
-                                      pendingCount = reqState.requests
-                                          .where((r) => r.isPending)
-                                          .length;
-                                      if (pendingCount == 0) {
-                                        pendingCount = null;
+                            child: BlocBuilder<JoinRequestsBloc,
+                                JoinRequestsState>(
+                              builder: (context, reqState) {
+                                int? pendingCount;
+                                if (reqState is JoinRequestsLoaded) {
+                                  pendingCount = reqState.requests
+                                      .where((r) => r.isPending)
+                                      .length;
+                                  if (pendingCount == 0) pendingCount = null;
+                                }
+                                return _ActionButton(
+                                  label: AppStrings.joinRequestsLabel,
+                                  icon: Icons.group_add_outlined,
+                                  badge: pendingCount,
+                                  onTap: () {
+                                    context
+                                        .push(
+                                          AppRoutes.flatRequests,
+                                          extra: flat.id,
+                                        )
+                                        .then((_) {
+                                      if (context.mounted) {
+                                        context.read<JoinRequestsBloc>().add(
+                                          JoinRequestsLoadRequested(flat.id),
+                                        );
                                       }
-                                    }
-                                    return _ActionButton(
-                                      label: AppStrings.joinRequestsLabel,
-                                      icon: Icons.group_add_outlined,
-                                      badge: pendingCount,
-                                      onTap: () {
-                                        context
-                                            .push(
-                                              AppRoutes.flatRequests,
-                                              extra: flat.id,
-                                            )
-                                            .then((_) {
-                                              if (context.mounted) {
-                                                context
-                                                    .read<JoinRequestsCubit>()
-                                                    .load(flat.id);
-                                              }
-                                            });
-                                      },
-                                    );
+                                    });
                                   },
-                                ),
+                                );
+                              },
+                            ),
                           ),
                           const SizedBox(width: AppSizing.md),
                           Expanded(
@@ -358,9 +350,8 @@ class FlatHomeView extends StatelessWidget {
                             .take(3)
                             .map(
                               (e) => Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: AppSizing.sm,
-                                ),
+                                padding:
+                                    const EdgeInsets.only(bottom: AppSizing.sm),
                                 child: ExpenseTile(expense: e),
                               ),
                             )
@@ -580,7 +571,8 @@ class _ActionButton extends StatelessWidget {
             right: -6,
             child: Container(
               constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
               decoration: BoxDecoration(
                 color: AppColors.error,
                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),

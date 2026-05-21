@@ -1,4 +1,6 @@
-part of 'flat_preview_cubit.dart';
+import 'package:equatable/equatable.dart';
+
+import '../../domain/entities/flat_preview_entity.dart';
 
 abstract class FlatPreviewState extends Equatable {
   const FlatPreviewState();
@@ -16,14 +18,18 @@ class FlatPreviewLoading extends FlatPreviewState {
 
 class FlatPreviewLoaded extends FlatPreviewState {
   final FlatPreviewEntity preview;
+
   const FlatPreviewLoaded(this.preview);
+
   @override
   List<Object?> get props => [preview];
 }
 
 class FlatPreviewError extends FlatPreviewState {
   final String message;
+
   const FlatPreviewError(this.message);
+
   @override
   List<Object?> get props => [message];
 }

@@ -7,7 +7,7 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../features/flat/presentation/bloc/flat_bloc.dart';
-import '../../../../features/flat/presentation/cubit/join_requests_cubit.dart';
+import '../../../../features/flat/presentation/bloc/join_requests_bloc.dart';
 import '../../../../features/flat/presentation/pages/flat_home_view.dart';
 import '../../../../features/flat/presentation/pages/flat_landing_view.dart';
 import '../../../../features/flat/presentation/pages/pending_request_view.dart';
@@ -27,10 +27,8 @@ class HomePage extends StatelessWidget {
         }
       },
       builder: (context, state) {
-        // Resolve display state — look through loading/error wrappers
         final displayState = _resolveDisplay(state);
 
-        // Still doing the initial session check
         if (displayState is FlatChecking || displayState is FlatInitial) {
           return const Scaffold(
             backgroundColor: AppColors.background,
@@ -42,7 +40,8 @@ class HomePage extends StatelessWidget {
 
         if (displayState is FlatLoaded) {
           return BlocProvider(
-            create: (_) => sl<JoinRequestsCubit>()..load(displayState.flat.id),
+            create: (_) => sl<JoinRequestsBloc>()
+              ..add(JoinRequestsLoadRequested(displayState.flat.id)),
             child: Scaffold(
               backgroundColor: AppColors.background,
               body: FlatHomeView(flat: displayState.flat),
@@ -58,7 +57,6 @@ class HomePage extends StatelessWidget {
           );
         }
 
-        // FlatNone (or unknown) — show landing
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: _profileAppBar(context),
@@ -87,9 +85,5 @@ class HomePage extends StatelessWidget {
     return state;
   }
 
-  bool _wasRequest(BuildContext context) {
-    // Check if we just transitioned from FlatPendingRequest — heuristic based
-    // on FlatBloc's last known base state in FlatActionLoading
-    return false; // Snackbar handled in PendingRequestView already
-  }
+  bool _wasRequest(BuildContext context) => false;
 }

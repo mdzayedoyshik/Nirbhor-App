@@ -9,7 +9,7 @@ import 'core/di/injection_container.dart';
 import 'core/env/app_env.dart';
 import 'core/router/app_router.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
-import 'features/auth/presentation/bloc/profile_cubit.dart';
+import 'features/auth/presentation/bloc/profile_bloc.dart';
 import 'features/flat/presentation/bloc/flat_bloc.dart';
 import 'firebase_options.dart';
 
@@ -42,7 +42,7 @@ class NirbhorApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>.value(value: sl<AuthBloc>()),
-        BlocProvider<ProfileCubit>.value(value: sl<ProfileCubit>()),
+        BlocProvider<ProfileBloc>.value(value: sl<ProfileBloc>()),
         BlocProvider<FlatBloc>.value(value: sl<FlatBloc>()),
       ],
       child: _AppView(router: router),

@@ -13,7 +13,7 @@ import '../../../../core/widgets/app_image_picker.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../bloc/auth_bloc.dart';
-import '../bloc/profile_cubit.dart';
+import '../bloc/profile_bloc.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -30,7 +30,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    context.read<ProfileCubit>().fetchProfile();
+    context.read<ProfileBloc>().add(const ProfileFetchRequested());
   }
 
   @override
@@ -46,28 +46,40 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _saveEdit(BuildContext context) {
     if (_formKey.currentState!.validate()) {
-      context.read<ProfileCubit>().updateProfile(name: _nameCtrl.text.trim());
+      context.read<ProfileBloc>().add(
+        ProfileUpdateRequested(name: _nameCtrl.text.trim()),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<ProfileCubit, ProfileState>(
+    return BlocConsumer<ProfileBloc, ProfileState>(
+      listenWhen: (_, curr) =>
+          curr is ProfileUpdateSuccess ||
+          curr is ProfileActionError ||
+          curr is ProfileLoadError,
       listener: (context, state) {
-        if (state is ProfileUpdated) {
+        if (state is ProfileUpdateSuccess) {
           setState(() => _editing = false);
           AppSnackbar.success(context, 'Profile updated');
-        } else if (state is ProfileFailure) {
+        } else if (state is ProfileActionError) {
+          AppSnackbar.error(context, state.message);
+        } else if (state is ProfileLoadError) {
           AppSnackbar.error(context, state.message);
         }
       },
       builder: (context, state) {
-        final loading = state is ProfileLoading;
-        final user = state is ProfileLoaded
-            ? state.user
-            : state is ProfileUpdated
-            ? state.user
-            : null;
+        final isLoading = state is ProfileLoading;
+        final isActionLoading = state is ProfileActionLoading;
+
+        final user = switch (state) {
+          ProfileLoaded s => s.user,
+          ProfileActionLoading s => s.user,
+          ProfileUpdateSuccess s => s.user,
+          ProfileActionError s => s.user,
+          _ => null,
+        };
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -90,7 +102,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
             ],
           ),
-          body: loading && user == null
+          body: isLoading
               ? const Center(child: CircularProgressIndicator())
               : user == null
               ? const Center(child: Text('Failed to load profile'))
@@ -106,9 +118,11 @@ class _ProfilePageState extends State<ProfilePage> {
                           name: user.name,
                           size: AppSizing.avatarRadius * 2,
                           onUploaded: (url) {
-                            context.read<ProfileCubit>().updateProfile(
-                              name: user.name,
-                              avatarUrl: url,
+                            context.read<ProfileBloc>().add(
+                              ProfileUpdateRequested(
+                                name: user.name,
+                                avatarUrl: url,
+                              ),
                             );
                           },
                         ),
@@ -134,7 +148,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: AppSizing.lg),
                         AppButton(
                           label: AppStrings.saveChanges,
-                          loading: loading,
+                          loading: isActionLoading,
                           onPressed: () => _saveEdit(context),
                         ),
                         const SizedBox(height: AppSizing.sm),

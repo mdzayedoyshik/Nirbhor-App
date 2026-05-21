@@ -8,7 +8,7 @@ import '../../../../core/constants/app_typography.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../bloc/profile_cubit.dart';
+import '../bloc/profile_bloc.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
@@ -31,34 +31,41 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
   void _submit(BuildContext context) {
     if (_formKey.currentState!.validate()) {
-      context.read<ProfileCubit>().changePassword(
-            oldPassword: _oldCtrl.text,
-            newPassword: _newCtrl.text,
-          );
+      context.read<ProfileBloc>().add(
+        ProfilePasswordChangeRequested(
+          oldPassword: _oldCtrl.text,
+          newPassword: _newCtrl.text,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<ProfileCubit, ProfileState>(
+    return BlocConsumer<ProfileBloc, ProfileState>(
+      listenWhen: (_, curr) =>
+          curr is ProfilePasswordChangeSuccess || curr is ProfileActionError,
       listener: (context, state) {
-        if (state is PasswordChanged) {
+        if (state is ProfilePasswordChangeSuccess) {
           AppSnackbar.success(context, 'Password changed successfully');
           Navigator.of(context).pop();
-        } else if (state is ProfileFailure) {
+        } else if (state is ProfileActionError) {
           AppSnackbar.error(context, state.message);
         }
       },
       builder: (context, state) {
-        final loading = state is ProfileLoading;
+        final loading =
+            state is ProfileLoading || state is ProfileActionLoading;
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
             backgroundColor: AppColors.surface,
             elevation: 0,
             leading: BackButton(color: AppColors.textPrimary),
-            title: Text(AppStrings.changePasswordTitle,
-                style: AppTypography.titleLarge),
+            title: Text(
+              AppStrings.changePasswordTitle,
+              style: AppTypography.titleLarge,
+            ),
           ),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -88,7 +95,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _submit(context),
                       validator: (v) {
-                        if (v == null || v.isEmpty) return 'New password is required';
+                        if (v == null || v.isEmpty) {
+                          return 'New password is required';
+                        }
                         if (v.length < 6) return 'Minimum 6 characters';
                         return null;
                       },

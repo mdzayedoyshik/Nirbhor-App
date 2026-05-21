@@ -16,7 +16,7 @@ import '../../../flat/domain/entities/flat_entity.dart';
 import '../../../flat/domain/entities/flat_member_entity.dart';
 import '../../../flat/presentation/bloc/flat_bloc.dart';
 import '../args/settlement_page_args.dart';
-import '../cubit/member_cubit.dart';
+import '../bloc/member_bloc.dart';
 import '../widgets/member_card.dart';
 
 class MemberListPage extends StatefulWidget {
@@ -32,7 +32,7 @@ class _MemberListPageState extends State<MemberListPage> {
   @override
   void initState() {
     super.initState();
-    context.read<MemberCubit>().load(widget.flat.id);
+    context.read<MemberBloc>().add(MemberLoadRequested(widget.flat.id));
   }
 
   String? get _myUserId {
@@ -42,7 +42,9 @@ class _MemberListPageState extends State<MemberListPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<MemberCubit, MemberState>(
+    return BlocConsumer<MemberBloc, MemberState>(
+      listenWhen: (_, curr) =>
+          curr is MemberActionError || curr is MemberSettlementReady,
       listener: _onStateChange,
       builder: (context, state) {
         if (state is MemberLoading) {
@@ -55,12 +57,7 @@ class _MemberListPageState extends State<MemberListPage> {
           );
         }
 
-        List<FlatMemberEntity> members = [];
-        Set<String> exitIds = const {};
-        bool isActionLoading = false;
-
-        if (state is MemberError) {
-          // Initial load failed — show full-screen error with retry
+        if (state is MemberLoadError) {
           return Scaffold(
             backgroundColor: AppColors.background,
             appBar: _buildAppBar(),
@@ -68,11 +65,18 @@ class _MemberListPageState extends State<MemberListPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: AppColors.error,
+                    size: AppSizing.iconLg,
+                  ),
+                  const SizedBox(height: AppSizing.md),
                   Text(state.message, style: AppTypography.bodyMedium),
                   const SizedBox(height: AppSizing.md),
                   TextButton(
-                    onPressed: () =>
-                        context.read<MemberCubit>().load(widget.flat.id),
+                    onPressed: () => context.read<MemberBloc>().add(
+                      MemberLoadRequested(widget.flat.id),
+                    ),
                     child: const Text('Retry'),
                   ),
                 ],
@@ -80,6 +84,10 @@ class _MemberListPageState extends State<MemberListPage> {
             ),
           );
         }
+
+        List<FlatMemberEntity> members = [];
+        Set<String> exitIds = const {};
+        bool isActionLoading = false;
 
         if (state is MemberLoaded) {
           members = state.members;
@@ -92,7 +100,6 @@ class _MemberListPageState extends State<MemberListPage> {
           members = state.members;
           exitIds = state.exitInProgressIds;
         } else if (state is MemberActionError) {
-          // Action failed — keep list visible (snackbar shown by listener)
           members = state.members;
           exitIds = state.exitInProgressIds;
         }
@@ -111,23 +118,24 @@ class _MemberListPageState extends State<MemberListPage> {
             children: [
               RefreshIndicator(
                 color: AppColors.primary,
-                onRefresh: () =>
-                    context.read<MemberCubit>().load(widget.flat.id),
+                onRefresh: () async => context.read<MemberBloc>().add(
+                  MemberLoadRequested(widget.flat.id),
+                ),
                 child: ListView(
                   padding: const EdgeInsets.all(AppSizing.pagePadding),
                   children: [
-                    // Summary strip
                     _SummaryStrip(
                       memberCount: members.length,
                       totalExpenses: widget.flat.totalFixedExpenses,
                     ),
                     const SizedBox(height: AppSizing.md),
-                    // Member cards
                     ...members.map((member) {
                       final isMe = member.userId == myUserId;
-                      final hasExit = exitIds.contains(member.flatMemberId);
+                      final hasExit =
+                          exitIds.contains(member.flatMemberId);
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: AppSizing.sm),
+                        padding:
+                            const EdgeInsets.only(bottom: AppSizing.sm),
                         child: MemberCard(
                           member: member,
                           isMe: isMe,
@@ -135,18 +143,21 @@ class _MemberListPageState extends State<MemberListPage> {
                           isManager: iAmManager,
                           hasCoManager: hasCoManager,
                           onChangeRole: iAmManager && !isMe
-                              ? (role) =>
-                                  _onChangeRole(context, member, role, hasCoManager)
+                              ? (role) => _onChangeRole(
+                                  context, member, role, hasCoManager)
                               : null,
                           onTransferManager: iAmManager && !isMe
-                              ? () => _onTransferManager(context, member)
+                              ? () =>
+                                  _onTransferManager(context, member)
                               : null,
                           onInitiateExit: iAmManager && !isMe && !hasExit
                               ? () => _onInitiateExit(context, member)
                               : null,
-                          onViewSettlement: hasExit && (iAmManager || isMe)
-                              ? () => _onViewSettlement(context, member)
-                              : null,
+                          onViewSettlement:
+                              hasExit && (iAmManager || isMe)
+                                  ? () =>
+                                      _onViewSettlement(context, member)
+                                  : null,
                         ),
                       );
                     }),
@@ -158,7 +169,9 @@ class _MemberListPageState extends State<MemberListPage> {
                   child: ColoredBox(
                     color: Color(0x26000000),
                     child: Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ),
@@ -190,25 +203,30 @@ class _MemberListPageState extends State<MemberListPage> {
     }
     if (state is MemberSettlementReady) {
       final myUserId = _myUserId;
-      final members = state.members;
       final myMember = myUserId != null
-          ? members.where((m) => m.userId == myUserId).firstOrNull
+          ? state.members
+              .where((m) => m.userId == myUserId)
+              .firstOrNull
           : null;
       final iAmManager = myMember?.isManager ?? false;
 
-      context.push(
-        AppRoutes.flatSettlement,
-        extra: SettlementPageArgs(
-          flatId: widget.flat.id,
-          memberId: state.memberId,
-          settlement: state.settlement,
-          isManager: iAmManager,
-        ),
-      ).then((_) {
+      context
+          .push(
+            AppRoutes.flatSettlement,
+            extra: SettlementPageArgs(
+              flatId: widget.flat.id,
+              memberId: state.memberId,
+              settlement: state.settlement,
+              isManager: iAmManager,
+            ),
+          )
+          .then((_) {
         if (!context.mounted) return;
-        context.read<MemberCubit>().acknowledgeSettlement();
-        context.read<MemberCubit>().load(widget.flat.id);
-        context.read<FlatBloc>().add(FlatRefreshRequested(widget.flat.id));
+        context.read<MemberBloc>().add(const MemberSettlementAcknowledged());
+        context.read<MemberBloc>().add(MemberLoadRequested(widget.flat.id));
+        context
+            .read<FlatBloc>()
+            .add(FlatRefreshRequested(widget.flat.id));
       });
     }
   }
@@ -233,10 +251,12 @@ class _MemberListPageState extends State<MemberListPage> {
       confirmLabel: 'Change',
     );
     if (confirmed != true || !context.mounted) return;
-    context.read<MemberCubit>().changeRole(
-      flatId: widget.flat.id,
-      memberId: member.flatMemberId,
-      role: newRole,
+    context.read<MemberBloc>().add(
+      MemberRoleChangeRequested(
+        flatId: widget.flat.id,
+        memberId: member.flatMemberId,
+        role: newRole,
+      ),
     );
     context.read<FlatBloc>().add(FlatRefreshRequested(widget.flat.id));
   }
@@ -249,15 +269,18 @@ class _MemberListPageState extends State<MemberListPage> {
       context: context,
       title: 'Transfer Manager Role',
       message:
-          'You will become a regular member and ${member.name} will become the manager. '
-          'This cannot be undone unless the new manager transfers the role back.',
+          'You will become a regular member and ${member.name} will become '
+          'the manager. This cannot be undone unless the new manager transfers '
+          'the role back.',
       confirmLabel: 'Transfer',
       destructive: true,
     );
     if (confirmed != true || !context.mounted) return;
-    context.read<MemberCubit>().transferManager(
-      flatId: widget.flat.id,
-      newManagerId: member.flatMemberId,
+    context.read<MemberBloc>().add(
+      ManagerTransferRequested(
+        flatId: widget.flat.id,
+        newManagerId: member.flatMemberId,
+      ),
     );
     context.read<FlatBloc>().add(FlatRefreshRequested(widget.flat.id));
   }
@@ -278,7 +301,8 @@ class _MemberListPageState extends State<MemberListPage> {
         children: [
           Text(
             'This will calculate ${member.name}\'s settlement. '
-            'They will be restricted to payment actions only until exit is finalised or cancelled.',
+            'They will be restricted to payment actions only until exit is '
+            'finalised or cancelled.',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -288,7 +312,8 @@ class _MemberListPageState extends State<MemberListPage> {
             controller: refundController,
             label: 'Refund from this month\'s fixed contribution (optional)',
             hint: '0',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
           ),
           const SizedBox(height: AppSizing.lg),
           AppButton(
@@ -311,17 +336,21 @@ class _MemberListPageState extends State<MemberListPage> {
 
     if (confirmed != true || !context.mounted) return;
 
-    context.read<MemberCubit>().initiateExit(
-      flatId: widget.flat.id,
-      memberId: member.flatMemberId,
-      fixedRefund: fixedRefund,
+    context.read<MemberBloc>().add(
+      MemberExitInitiateRequested(
+        flatId: widget.flat.id,
+        memberId: member.flatMemberId,
+        fixedRefund: fixedRefund,
+      ),
     );
   }
 
   void _onViewSettlement(BuildContext context, FlatMemberEntity member) {
-    context.read<MemberCubit>().viewSettlement(
-      flatId: widget.flat.id,
-      memberId: member.flatMemberId,
+    context.read<MemberBloc>().add(
+      MemberSettlementViewRequested(
+        flatId: widget.flat.id,
+        memberId: member.flatMemberId,
+      ),
     );
   }
 }
@@ -373,7 +402,8 @@ class _SummaryItem extends StatelessWidget {
       children: [
         Text(
           value,
-          style: AppTypography.titleLarge.copyWith(color: AppColors.primary),
+          style:
+              AppTypography.titleLarge.copyWith(color: AppColors.primary),
         ),
         Text(label, style: AppTypography.labelSmall),
       ],

@@ -12,7 +12,7 @@ import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../domain/entities/fixed_expense_entity.dart';
-import '../cubit/fixed_expenses_cubit.dart';
+import '../bloc/fixed_expenses_bloc.dart';
 import '../widgets/expense_tile.dart';
 
 class FixedExpensesPage extends StatefulWidget {
@@ -33,26 +33,14 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
   @override
   void initState() {
     super.initState();
-    context.read<FixedExpensesCubit>().load(widget.flatId);
+    context.read<FixedExpensesBloc>().add(FixedExpensesLoadRequested(widget.flatId));
   }
 
   Future<void> _showAddSheet(BuildContext context) async {
     await AppBottomSheet.show(
       context: context,
       title: AppStrings.addExpenseLabel,
-      child: _ExpenseForm(
-        onSubmit: (type, amount) async {
-          final ok = await context.read<FixedExpensesCubit>().add(
-                flatId: widget.flatId,
-                expenseType: type,
-                amount: amount,
-              );
-          if (ok && context.mounted) {
-            Navigator.of(context).pop();
-            AppSnackbar.success(context, AppStrings.expenseAddedMsg);
-          }
-        },
-      ),
+      child: _ExpenseForm(flatId: widget.flatId),
     );
   }
 
@@ -63,22 +51,7 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
     await AppBottomSheet.show(
       context: context,
       title: AppStrings.editExpenseTitle,
-      child: _ExpenseForm(
-        initialType: expense.expenseType,
-        initialAmount: expense.amount,
-        onSubmit: (type, amount) async {
-          final ok = await context.read<FixedExpensesCubit>().update(
-                flatId: widget.flatId,
-                expenseId: expense.id,
-                expenseType: type,
-                amount: amount,
-              );
-          if (ok && context.mounted) {
-            Navigator.of(context).pop();
-            AppSnackbar.success(context, AppStrings.expenseUpdatedMsg);
-          }
-        },
-      ),
+      child: _ExpenseForm(flatId: widget.flatId, expense: expense),
     );
   }
 
@@ -94,13 +67,12 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
       destructive: true,
     );
     if (confirmed == true && context.mounted) {
-      await context.read<FixedExpensesCubit>().delete(
-            flatId: widget.flatId,
-            expenseId: expense.id,
-          );
-      if (context.mounted) {
-        AppSnackbar.success(context, AppStrings.expenseDeletedMsg);
-      }
+      context.read<FixedExpensesBloc>().add(
+        FixedExpenseDeleteRequested(
+          flatId: widget.flatId,
+          expenseId: expense.id,
+        ),
+      );
     }
   }
 
@@ -113,10 +85,9 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
       confirmLabel: AppStrings.redistributeLabel,
     );
     if (confirmed == true && context.mounted) {
-      await context.read<FixedExpensesCubit>().redistribute(widget.flatId);
-      if (context.mounted) {
-        AppSnackbar.success(context, AppStrings.redistributedMsg);
-      }
+      context.read<FixedExpensesBloc>().add(
+        FixedExpensesRedistributeRequested(widget.flatId),
+      );
     }
   }
 
@@ -125,28 +96,40 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(AppStrings.fixedExpensesTitle,
-            style: AppTypography.titleLarge),
+        title: Text(
+          AppStrings.fixedExpensesTitle,
+          style: AppTypography.titleLarge,
+        ),
         backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => context.pop(),
         ),
         actions: [
           if (widget.canManage)
             IconButton(
-              icon: const Icon(Icons.balance_outlined,
-                  color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.balance_outlined,
+                color: AppColors.textPrimary,
+              ),
               tooltip: AppStrings.redistributeLabel,
               onPressed: () => _redistribute(context),
             ),
         ],
       ),
-      body: BlocConsumer<FixedExpensesCubit, FixedExpensesState>(
+      body: BlocConsumer<FixedExpensesBloc, FixedExpensesState>(
+        listenWhen: (_, curr) =>
+            curr is FixedExpensesActionSuccess ||
+            curr is FixedExpensesActionError,
         listener: (context, state) {
-          if (state is FixedExpensesError) {
+          if (state is FixedExpensesActionSuccess && !state.isFormAction) {
+            AppSnackbar.success(context, state.message);
+          }
+          if (state is FixedExpensesActionError) {
             AppSnackbar.error(context, state.message);
           }
         },
@@ -157,11 +140,45 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
             );
           }
 
-          final isFormLoading = state is FixedExpensesFormLoading;
+          if (state is FixedExpensesLoadError) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: AppColors.error,
+                    size: AppSizing.iconLg,
+                  ),
+                  const SizedBox(height: AppSizing.md),
+                  Text(state.message, style: AppTypography.bodyMedium),
+                  const SizedBox(height: AppSizing.md),
+                  TextButton(
+                    onPressed: () => context.read<FixedExpensesBloc>().add(
+                      FixedExpensesLoadRequested(widget.flatId),
+                    ),
+                    child: const Text(AppStrings.retry),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final isActionLoading = state is FixedExpensesActionInProgress;
 
           List<FixedExpenseEntity> expenses = [];
           double total = 0;
+
           if (state is FixedExpensesLoaded) {
+            expenses = state.expenses;
+            total = state.total;
+          } else if (state is FixedExpensesActionInProgress) {
+            expenses = state.expenses;
+            total = state.total;
+          } else if (state is FixedExpensesActionError) {
+            expenses = state.expenses;
+            total = state.total;
+          } else if (state is FixedExpensesActionSuccess) {
             expenses = state.expenses;
             total = state.total;
           }
@@ -180,7 +197,8 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+                      borderRadius:
+                          BorderRadius.circular(AppSizing.radiusLg),
                     ),
                     child: Row(
                       children: [
@@ -204,12 +222,14 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                             Text(
                               AppStrings.totalExpenses,
                               style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.white.withValues(alpha: 0.8),
+                                color:
+                                    AppColors.white.withValues(alpha: 0.8),
                               ),
                             ),
                             Text(
                               '৳${total.toStringAsFixed(0)}',
-                              style: AppTypography.headlineMedium.copyWith(
+                              style:
+                                  AppTypography.headlineMedium.copyWith(
                                 color: AppColors.white,
                               ),
                             ),
@@ -226,16 +246,24 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                         child: Column(
                           children: [
                             const Icon(
-                              Icons.receipt_outlined,
+                              Icons.receipt_long_outlined,
                               color: AppColors.textHint,
                               size: AppSizing.iconXl,
                             ),
                             const SizedBox(height: AppSizing.md),
                             Text(
-                              AppStrings.noExpenses,
-                              style: AppTypography.bodyMedium.copyWith(
+                              'No Expenses Added',
+                              style: AppTypography.titleMedium.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: AppSizing.xs),
+                            Text(
+                              'Add shared expenses like rent or utilities\nto track each member\'s contribution.',
+                              style: AppTypography.bodySmall.copyWith(
                                 color: AppColors.textSecondary,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
@@ -253,15 +281,17 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                         ),
                       ),
                     ),
-                  const SizedBox(height: 80), // FAB padding
+                  const SizedBox(height: 80),
                 ],
               ),
-              if (isFormLoading)
+              if (isActionLoading)
                 Positioned.fill(
                   child: Container(
                     color: AppColors.white.withValues(alpha: 0.5),
                     child: const Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ),
@@ -287,16 +317,13 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
   }
 }
 
-class _ExpenseForm extends StatefulWidget {
-  final String? initialType;
-  final double? initialAmount;
-  final Future<void> Function(String type, double amount) onSubmit;
+// ── Expense Form ────────────────────────────────────────────────────────────
 
-  const _ExpenseForm({
-    this.initialType,
-    this.initialAmount,
-    required this.onSubmit,
-  });
+class _ExpenseForm extends StatefulWidget {
+  final String flatId;
+  final FixedExpenseEntity? expense;
+
+  const _ExpenseForm({required this.flatId, this.expense});
 
   @override
   State<_ExpenseForm> createState() => _ExpenseFormState();
@@ -306,15 +333,14 @@ class _ExpenseFormState extends State<_ExpenseForm> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _typeCtrl;
   late final TextEditingController _amountCtrl;
-  bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
-    _typeCtrl = TextEditingController(text: widget.initialType ?? '');
+    _typeCtrl = TextEditingController(text: widget.expense?.expenseType ?? '');
     _amountCtrl = TextEditingController(
-      text: widget.initialAmount != null
-          ? widget.initialAmount!.toStringAsFixed(0)
+      text: widget.expense != null
+          ? widget.expense!.amount.toStringAsFixed(0)
           : '',
     );
   }
@@ -326,68 +352,95 @@ class _ExpenseFormState extends State<_ExpenseForm> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  void _submit(BuildContext context) {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() => _submitting = true);
-    try {
-      await widget.onSubmit(
-        _typeCtrl.text.trim(),
-        double.parse(_amountCtrl.text.trim()),
-      );
-    } finally {
-      if (mounted) setState(() => _submitting = false);
+    final type = _typeCtrl.text.trim();
+    final amount = double.parse(_amountCtrl.text.trim());
+
+    if (widget.expense != null) {
+      context.read<FixedExpensesBloc>().add(FixedExpenseUpdateRequested(
+        flatId: widget.flatId,
+        expenseId: widget.expense!.id,
+        expenseType: type,
+        amount: amount,
+      ));
+    } else {
+      context.read<FixedExpensesBloc>().add(FixedExpenseAddRequested(
+        flatId: widget.flatId,
+        expenseType: type,
+        amount: amount,
+      ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppTextField(
-            controller: _typeCtrl,
-            label: AppStrings.expenseTypeLabel,
-            hint: AppStrings.expenseTypeHint,
-            prefixIcon: const Icon(Icons.receipt_outlined,
-                color: AppColors.textSecondary),
-            textInputAction: TextInputAction.next,
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Required' : null,
+    return BlocConsumer<FixedExpensesBloc, FixedExpensesState>(
+      listenWhen: (_, curr) =>
+          curr is FixedExpensesActionSuccess && curr.isFormAction,
+      listener: (context, state) {
+        if (state is FixedExpensesActionSuccess && state.isFormAction) {
+          Navigator.of(context).pop();
+          AppSnackbar.success(context, state.message);
+        }
+      },
+      builder: (context, state) {
+        final isLoading = state is FixedExpensesActionInProgress;
+        return Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppTextField(
+                controller: _typeCtrl,
+                label: AppStrings.expenseTypeLabel,
+                hint: AppStrings.expenseTypeHint,
+                prefixIcon: const Icon(
+                  Icons.receipt_outlined,
+                  color: AppColors.textSecondary,
+                ),
+                textInputAction: TextInputAction.next,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
+              ),
+              const SizedBox(height: AppSizing.md),
+              AppTextField(
+                controller: _amountCtrl,
+                label: AppStrings.amountLabel,
+                hint: AppStrings.amountHint,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                textInputAction: TextInputAction.done,
+                prefixIcon: const Padding(
+                  padding: EdgeInsets.all(AppSizing.sm + 4),
+                  child: Text(
+                    '৳',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Required';
+                  final n = double.tryParse(v.trim());
+                  if (n == null || n <= 0) return 'Enter a positive amount';
+                  return null;
+                },
+                onSubmitted: (_) => _submit(context),
+              ),
+              const SizedBox(height: AppSizing.lg),
+              AppButton(
+                label: widget.expense != null
+                    ? 'Save Changes'
+                    : AppStrings.addExpenseLabel,
+                loading: isLoading,
+                onPressed: isLoading ? null : () => _submit(context),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSizing.md),
-          AppTextField(
-            controller: _amountCtrl,
-            label: AppStrings.amountLabel,
-            hint: AppStrings.amountHint,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            textInputAction: TextInputAction.done,
-            prefixIcon: const Padding(
-              padding: EdgeInsets.all(AppSizing.sm + 4),
-              child: Text('৳',
-                  style: TextStyle(
-                      fontSize: 18, color: AppColors.textSecondary)),
-            ),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Required';
-              final n = double.tryParse(v.trim());
-              if (n == null || n <= 0) return 'Enter a positive amount';
-              return null;
-            },
-            onSubmitted: (_) => _submit(),
-          ),
-          const SizedBox(height: AppSizing.lg),
-          AppButton(
-            label: widget.initialType != null
-                ? 'Save Changes'
-                : AppStrings.addExpenseLabel,
-            loading: _submitting,
-            onPressed: _submitting ? null : _submit,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

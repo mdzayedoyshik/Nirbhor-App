@@ -18,7 +18,7 @@ import '../../features/auth/domain/usecases/send_device_token_usecase.dart';
 import '../../features/auth/domain/usecases/update_profile_usecase.dart';
 import '../../features/auth/domain/usecases/verify_otp_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
-import '../../features/auth/presentation/bloc/profile_cubit.dart';
+import '../../features/auth/presentation/bloc/profile_bloc.dart';
 import '../../features/flat/data/datasources/flat_remote_datasource.dart';
 import '../../features/flat/data/repositories/flat_repository_impl.dart';
 import '../../features/flat/domain/repositories/flat_repository.dart';
@@ -38,10 +38,10 @@ import '../../features/flat/domain/usecases/redistribute_usecase.dart';
 import '../../features/flat/domain/usecases/send_join_request_usecase.dart';
 import '../../features/flat/domain/usecases/update_fixed_expense_usecase.dart';
 import '../../features/flat/domain/usecases/update_flat_usecase.dart';
+import '../../features/flat/presentation/bloc/fixed_expenses_bloc.dart';
 import '../../features/flat/presentation/bloc/flat_bloc.dart';
-import '../../features/flat/presentation/cubit/fixed_expenses_cubit.dart';
-import '../../features/flat/presentation/cubit/flat_preview_cubit.dart';
-import '../../features/flat/presentation/cubit/join_requests_cubit.dart';
+import '../../features/flat/presentation/bloc/flat_preview_bloc.dart';
+import '../../features/flat/presentation/bloc/join_requests_bloc.dart';
 import '../../features/member/data/datasources/member_remote_datasource.dart';
 import '../../features/member/data/repositories/member_repository_impl.dart';
 import '../../features/member/domain/repositories/member_repository.dart';
@@ -52,7 +52,7 @@ import '../../features/member/domain/usecases/get_members_usecase.dart';
 import '../../features/member/domain/usecases/get_settlement_usecase.dart';
 import '../../features/member/domain/usecases/initiate_exit_usecase.dart';
 import '../../features/member/domain/usecases/transfer_manager_usecase.dart';
-import '../../features/member/presentation/cubit/member_cubit.dart';
+import '../../features/member/presentation/bloc/member_bloc.dart';
 import '../network/api_client.dart';
 import '../services/device_token_service.dart';
 import '../services/image_upload_service.dart';
@@ -109,7 +109,7 @@ Future<void> configureDependencies() async {
     ),
   );
   sl.registerLazySingleton(
-    () => ProfileCubit(
+    () => ProfileBloc(
       getProfile: sl(),
       updateProfile: sl(),
       changePassword: sl(),
@@ -151,14 +151,17 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  // Flat cubits — factories (new instance per usage)
-  sl.registerFactory(() => FlatPreviewCubit(preview: sl()));
+  // Flat blocs — factories (new instance per page visit)
+  sl.registerFactory(() => FlatPreviewBloc(preview: sl()));
   sl.registerFactory(
-    () =>
-        JoinRequestsCubit(getJoinRequests: sl(), approve: sl(), decline: sl()),
+    () => JoinRequestsBloc(
+      getJoinRequests: sl(),
+      approve: sl(),
+      decline: sl(),
+    ),
   );
   sl.registerFactory(
-    () => FixedExpensesCubit(
+    () => FixedExpensesBloc(
       getExpenses: sl(),
       addExpense: sl(),
       updateExpense: sl(),
@@ -180,16 +183,14 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => FinalizeExitUseCase(sl()));
   sl.registerLazySingleton(() => CancelExitUseCase(sl()));
 
-  // Member cubit — factory (new instance per page visit)
+  // Member bloc — factory (new instance per page visit)
   sl.registerFactory(
-    () => MemberCubit(
+    () => MemberBloc(
       getMembers: sl(),
       changeRole: sl(),
       transferManager: sl(),
       initiateExit: sl(),
       getSettlement: sl(),
-      finalizeExit: sl(),
-      cancelExit: sl(),
     ),
   );
 }

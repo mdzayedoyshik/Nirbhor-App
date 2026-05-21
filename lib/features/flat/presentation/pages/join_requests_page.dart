@@ -10,7 +10,7 @@ import '../../../../core/constants/app_typography.dart';
 import '../../../../core/widgets/app_input_dialog.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../bloc/flat_bloc.dart';
-import '../cubit/join_requests_cubit.dart';
+import '../bloc/join_requests_bloc.dart';
 import '../widgets/join_request_tile.dart';
 
 class JoinRequestsPage extends StatefulWidget {
@@ -26,7 +26,7 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
   @override
   void initState() {
     super.initState();
-    context.read<JoinRequestsCubit>().load(widget.flatId);
+    context.read<JoinRequestsBloc>().add(JoinRequestsLoadRequested(widget.flatId));
   }
 
   Future<void> _approve(BuildContext context, String requestId) async {
@@ -53,10 +53,12 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
     final contribution = double.tryParse(result) ?? 0;
 
     // ignore: use_build_context_synchronously
-    await context.read<JoinRequestsCubit>().approve(
-      flatId: widget.flatId,
-      requestId: requestId,
-      fixedContribution: contribution,
+    context.read<JoinRequestsBloc>().add(
+      JoinRequestApproveRequested(
+        flatId: widget.flatId,
+        requestId: requestId,
+        fixedContribution: contribution,
+      ),
     );
   }
 
@@ -79,14 +81,16 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: BlocConsumer<JoinRequestsCubit, JoinRequestsState>(
+      body: BlocConsumer<JoinRequestsBloc, JoinRequestsState>(
+        listenWhen: (_, curr) =>
+            curr is JoinRequestsActionError || curr is JoinRequestsLoaded,
         listener: (context, state) {
           if (state is JoinRequestsActionError) {
             AppSnackbar.error(context, state.message);
-            // Reload after error clears
-            context.read<JoinRequestsCubit>().load(widget.flatId);
+            context.read<JoinRequestsBloc>().add(
+              JoinRequestsLoadRequested(widget.flatId),
+            );
           }
-          // On successful approve, also refresh the global flat data
           if (state is JoinRequestsLoaded) {
             context.read<FlatBloc>().add(FlatRefreshRequested(widget.flatId));
           }
@@ -98,7 +102,7 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
             );
           }
 
-          if (state is JoinRequestsError) {
+          if (state is JoinRequestsLoadError) {
             return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -112,8 +116,9 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
                   Text(state.message, style: AppTypography.bodyMedium),
                   const SizedBox(height: AppSizing.md),
                   TextButton(
-                    onPressed: () =>
-                        context.read<JoinRequestsCubit>().load(widget.flatId),
+                    onPressed: () => context.read<JoinRequestsBloc>().add(
+                      JoinRequestsLoadRequested(widget.flatId),
+                    ),
                     child: const Text(AppStrings.retry),
                   ),
                 ],
@@ -121,37 +126,49 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
             );
           }
 
-          List<dynamic> requests = [];
+          var requests = <dynamic>[];
           String? actionLoadingId;
 
           if (state is JoinRequestsLoaded) {
             requests = state.requests;
-          } else if (state is JoinRequestsActionLoading) {
+          } else if (state is JoinRequestsActionInProgress) {
+            requests = state.requests;
             actionLoadingId = state.requestId;
-            // Try to get previous list
-            final bloc = context.read<JoinRequestsCubit>();
-            final prev = bloc.state;
-            if (prev is JoinRequestsLoaded) requests = prev.requests;
+          } else if (state is JoinRequestsActionError) {
+            requests = state.requests;
           }
 
           if (requests.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.group_outlined,
-                    color: AppColors.textHint,
-                    size: AppSizing.iconXl,
-                  ),
-                  const SizedBox(height: AppSizing.md),
-                  Text(
-                    AppStrings.noJoinRequests,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizing.pagePadding,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.mark_email_unread_outlined,
+                      color: AppColors.textHint,
+                      size: AppSizing.iconXl,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: AppSizing.md),
+                    Text(
+                      'All Caught Up',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSizing.xs),
+                    Text(
+                      'When someone requests to join your flat, they\'ll appear here.',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -172,9 +189,11 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
                     : () => _approve(context, req.requestId),
                 onDecline: isLoading
                     ? null
-                    : () => context.read<JoinRequestsCubit>().decline(
-                        flatId: widget.flatId,
-                        requestId: req.requestId,
+                    : () => context.read<JoinRequestsBloc>().add(
+                        JoinRequestDeclineRequested(
+                          flatId: widget.flatId,
+                          requestId: req.requestId,
+                        ),
                       ),
               );
             },
