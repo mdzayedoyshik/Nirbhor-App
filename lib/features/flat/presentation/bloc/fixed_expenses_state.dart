@@ -30,15 +30,20 @@ class FixedExpensesLoaded extends FixedExpensesState {
 }
 
 /// An action is in progress; list stays visible.
+/// [isFormAction] is true for add/update (form is inside a bottom sheet —
+/// the sheet's submit button already shows loading, so the parent overlay
+/// should be suppressed to avoid flashing behind the sheet barrier).
 class FixedExpensesActionInProgress extends FixedExpensesState {
   final List<FixedExpenseEntity> expenses;
+  final bool isFormAction;
 
-  const FixedExpensesActionInProgress(this.expenses);
+  const FixedExpensesActionInProgress(this.expenses,
+      {this.isFormAction = false});
 
   double get total => expenses.fold(0, (sum, e) => sum + e.amount);
 
   @override
-  List<Object?> get props => [expenses];
+  List<Object?> get props => [expenses, isFormAction];
 }
 
 /// Action succeeded — ephemeral; bloc immediately emits FixedExpensesLoaded.

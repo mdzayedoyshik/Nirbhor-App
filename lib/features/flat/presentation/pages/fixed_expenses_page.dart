@@ -37,10 +37,14 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
   }
 
   Future<void> _showAddSheet(BuildContext context) async {
+    final bloc = context.read<FixedExpensesBloc>();
     await AppBottomSheet.show(
       context: context,
       title: AppStrings.addExpenseLabel,
-      child: _ExpenseForm(flatId: widget.flatId),
+      child: BlocProvider.value(
+        value: bloc,
+        child: _ExpenseForm(flatId: widget.flatId),
+      ),
     );
   }
 
@@ -48,10 +52,14 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
     BuildContext context,
     FixedExpenseEntity expense,
   ) async {
+    final bloc = context.read<FixedExpensesBloc>();
     await AppBottomSheet.show(
       context: context,
       title: AppStrings.editExpenseTitle,
-      child: _ExpenseForm(flatId: widget.flatId, expense: expense),
+      child: BlocProvider.value(
+        value: bloc,
+        child: _ExpenseForm(flatId: widget.flatId, expense: expense),
+      ),
     );
   }
 
@@ -164,7 +172,8 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
             );
           }
 
-          final isActionLoading = state is FixedExpensesActionInProgress;
+          final isActionLoading =
+              state is FixedExpensesActionInProgress && !state.isFormAction;
 
           List<FixedExpenseEntity> expenses = [];
           double total = 0;

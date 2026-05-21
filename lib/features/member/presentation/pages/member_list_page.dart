@@ -43,8 +43,10 @@ class _MemberListPageState extends State<MemberListPage> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<MemberBloc, MemberState>(
-      listenWhen: (_, curr) =>
-          curr is MemberActionError || curr is MemberSettlementReady,
+      listenWhen: (prev, curr) =>
+          curr is MemberActionError ||
+          curr is MemberSettlementReady ||
+          (prev is MemberActionLoading && curr is MemberLoaded),
       listener: _onStateChange,
       builder: (context, state) {
         if (state is MemberLoading) {
@@ -201,6 +203,9 @@ class _MemberListPageState extends State<MemberListPage> {
     if (state is MemberActionError) {
       AppSnackbar.error(context, state.message);
     }
+    if (state is MemberLoaded && context.mounted) {
+      context.read<FlatBloc>().add(FlatRefreshRequested(widget.flat.id));
+    }
     if (state is MemberSettlementReady) {
       final myUserId = _myUserId;
       final myMember = myUserId != null
@@ -258,7 +263,6 @@ class _MemberListPageState extends State<MemberListPage> {
         role: newRole,
       ),
     );
-    context.read<FlatBloc>().add(FlatRefreshRequested(widget.flat.id));
   }
 
   Future<void> _onTransferManager(
@@ -282,7 +286,6 @@ class _MemberListPageState extends State<MemberListPage> {
         newManagerId: member.flatMemberId,
       ),
     );
-    context.read<FlatBloc>().add(FlatRefreshRequested(widget.flat.id));
   }
 
   Future<void> _onInitiateExit(

@@ -58,7 +58,7 @@ class FixedExpensesBloc extends Bloc<FixedExpensesEvent, FixedExpensesState> {
   ) async {
     final current = _currentExpenses;
     if (current == null) return;
-    emit(FixedExpensesActionInProgress(current));
+    emit(FixedExpensesActionInProgress(current, isFormAction: true));
     try {
       await _addExpense(
         flatId: event.flatId,
@@ -84,7 +84,7 @@ class FixedExpensesBloc extends Bloc<FixedExpensesEvent, FixedExpensesState> {
   ) async {
     final current = _currentExpenses;
     if (current == null) return;
-    emit(FixedExpensesActionInProgress(current));
+    emit(FixedExpensesActionInProgress(current, isFormAction: true));
     try {
       await _updateExpense(
         flatId: event.flatId,
