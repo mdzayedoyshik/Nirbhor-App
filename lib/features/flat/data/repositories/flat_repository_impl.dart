@@ -181,7 +181,10 @@ class FlatRepositoryImpl implements FlatRepository {
   }
 
   @override
-  Future<void> redistribute(String flatId) async {
-    await _dataSource.redistribute(flatId);
+  Future<void> redistribute(
+    String flatId, {
+    List<dynamic>? contributions,
+  }) async {
+    await _dataSource.redistribute(flatId, contributions: contributions);
   }
 }

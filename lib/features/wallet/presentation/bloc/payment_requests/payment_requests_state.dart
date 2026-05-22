@@ -40,6 +40,16 @@ class PaymentRequestCreateSuccess extends PaymentRequestsState {
   List<Object?> get props => [requests];
 }
 
+class PaymentRequestBulkCreateSuccess extends PaymentRequestsState {
+  const PaymentRequestBulkCreateSuccess(this.requests,
+      {required this.sentCount, required this.skippedCount});
+  final List<PaymentRequestEntity> requests;
+  final int sentCount;
+  final int skippedCount;
+  @override
+  List<Object?> get props => [requests, sentCount, skippedCount];
+}
+
 class PaymentRequestCancelSuccess extends PaymentRequestsState {
   const PaymentRequestCancelSuccess(this.requests);
   final List<PaymentRequestEntity> requests;

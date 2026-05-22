@@ -135,7 +135,7 @@ class FixedExpensesBloc extends Bloc<FixedExpensesEvent, FixedExpensesState> {
     if (current == null) return;
     emit(FixedExpensesActionInProgress(current));
     try {
-      await _redistribute(event.flatId);
+      await _redistribute(event.flatId, contributions: event.contributions);
       final updated = await _getExpenses(event.flatId);
       emit(FixedExpensesActionSuccess(
         expenses: updated,

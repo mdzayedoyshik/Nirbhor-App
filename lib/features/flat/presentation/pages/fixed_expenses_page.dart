@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dialog.dart';
@@ -13,6 +14,7 @@ import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../domain/entities/fixed_expense_entity.dart';
 import '../bloc/fixed_expenses_bloc.dart';
+import '../bloc/flat_bloc.dart';
 import '../widgets/expense_tile.dart';
 
 class FixedExpensesPage extends StatefulWidget {
@@ -85,17 +87,258 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
   }
 
   Future<void> _redistribute(BuildContext context) async {
-    final confirmed = await AppDialog.confirm(
-      context: context,
-      title: 'Redistribute Equally?',
-      message:
-          'This will split all fixed expenses equally among active members.',
-      confirmLabel: AppStrings.redistributeLabel,
-    );
-    if (confirmed == true && context.mounted) {
-      context.read<FixedExpensesBloc>().add(
-        FixedExpensesRedistributeRequested(widget.flatId),
+    final flatState = sl<FlatBloc>().state;
+    final members = (flatState is FlatLoaded)
+        ? flatState.flat.activeMembers
+        : <dynamic>[];
+
+    if (members.isEmpty) {
+      AppSnackbar.error(context, 'No active members found.');
+      return;
+    }
+
+    // Get current total from the loaded state
+    double totalFixed = 0;
+    final state = context.read<FixedExpensesBloc>().state;
+    if (state is FixedExpensesLoaded) {
+      totalFixed = state.total;
+    } else if (state is FixedExpensesActionSuccess) {
+      totalFixed = state.total;
+    }
+
+    if (totalFixed <= 0) {
+      AppSnackbar.error(context, 'No fixed expenses to redistribute.');
+      return;
+    }
+
+    // Build controllers for each member
+    final double equalShare =
+        double.parse((totalFixed / members.length).toStringAsFixed(2));
+    final controllers = <String, TextEditingController>{};
+    for (final m in members) {
+      controllers[m.flatMemberId] = TextEditingController(
+        text: m.fixedContribution > 0
+            ? m.fixedContribution.toStringAsFixed(0)
+            : equalShare.toStringAsFixed(0),
       );
+    }
+
+    final bloc = context.read<FixedExpensesBloc>();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
+      ),
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (sheetCtx, setSheetState) {
+          double currentTotal() {
+            return controllers.values.fold(
+              0.0,
+              (s, c) => s + (double.tryParse(c.text.trim()) ?? 0),
+            );
+          }
+
+          void resetToEqual() {
+            final eq = totalFixed / members.length;
+            for (final m in members) {
+              controllers[m.flatMemberId]?.text = eq.toStringAsFixed(0);
+            }
+            setSheetState(() {});
+          }
+
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppSizing.pagePadding,
+              AppSizing.md,
+              AppSizing.pagePadding,
+              MediaQuery.of(context).viewInsets.bottom + AppSizing.pagePadding,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: AppSizing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius:
+                          BorderRadius.circular(AppSizing.radiusFull),
+                    ),
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(AppStrings.redistributeLabel,
+                        style: AppTypography.headlineSmall),
+                    TextButton(
+                      onPressed: resetToEqual,
+                      child: Text(
+                        'Equal Split',
+                        style: AppTypography.labelLarge
+                            .copyWith(color: AppColors.primary),
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  'Total fixed: ৳${totalFixed.toStringAsFixed(0)}',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: AppSizing.md),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.4,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: members.map((m) {
+                        return Padding(
+                          padding:
+                              const EdgeInsets.only(bottom: AppSizing.sm),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(m.name,
+                                        style: AppTypography.titleMedium),
+                                    Text(
+                                      m.role == 'manager'
+                                          ? 'Manager'
+                                          : m.role == 'co-manager'
+                                              ? 'Co-manager'
+                                              : 'Member',
+                                      style: AppTypography.labelSmall
+                                          .copyWith(
+                                              color: AppColors.textSecondary),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: AppSizing.sm),
+                              Expanded(
+                                flex: 2,
+                                child: StatefulBuilder(
+                                  builder: (ctx, setSub) {
+                                    return TextField(
+                                      controller:
+                                          controllers[m.flatMemberId],
+                                      keyboardType: TextInputType.number,
+                                      decoration: InputDecoration(
+                                        prefix: const Text('৳ '),
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 8),
+                                        isDense: true,
+                                      ),
+                                      style: AppTypography.titleMedium,
+                                      onChanged: (_) =>
+                                          setSheetState(() {}),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSizing.sm),
+                // Running total indicator
+                Builder(builder: (_) {
+                  final total = currentTotal();
+                  final diff = (total - totalFixed).abs();
+                  final isValid = diff < 0.1;
+                  return Container(
+                    padding: const EdgeInsets.all(AppSizing.sm),
+                    decoration: BoxDecoration(
+                      color: isValid
+                          ? AppColors.success.withValues(alpha: 0.1)
+                          : AppColors.error.withValues(alpha: 0.1),
+                      borderRadius:
+                          BorderRadius.circular(AppSizing.radiusMd),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isValid ? Icons.check_circle_outline : Icons.warning_amber_rounded,
+                          color: isValid ? AppColors.success : AppColors.error,
+                          size: 16,
+                        ),
+                        const SizedBox(width: AppSizing.xs),
+                        Text(
+                          isValid
+                              ? 'Total: ৳${total.toStringAsFixed(0)} ✓'
+                              : 'Total: ৳${total.toStringAsFixed(0)} — must equal ৳${totalFixed.toStringAsFixed(0)}',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: isValid
+                                ? AppColors.success
+                                : AppColors.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: AppSizing.md),
+                AppButton(
+                  label: 'Apply Distribution',
+                  onPressed: () {
+                    final total = currentTotal();
+                    if ((total - totalFixed).abs() > 0.1) {
+                      AppSnackbar.error(
+                        sheetCtx,
+                        'Total must equal ৳${totalFixed.toStringAsFixed(0)}',
+                      );
+                      return;
+                    }
+                    final contributions = members
+                        .map((m) => {
+                              'flat_member_id': m.flatMemberId,
+                              'amount': double.tryParse(
+                                      controllers[m.flatMemberId]
+                                              ?.text
+                                              .trim() ??
+                                          '0') ??
+                                  0.0,
+                            })
+                        .toList();
+                    Navigator.pop(sheetCtx);
+                    bloc.add(FixedExpensesRedistributeRequested(
+                      widget.flatId,
+                      contributions: contributions,
+                    ));
+                  },
+                  variant: AppButtonVariant.primary,
+                  fullWidth: true,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    // Dispose controllers
+    for (final c in controllers.values) {
+      c.dispose();
     }
   }
 

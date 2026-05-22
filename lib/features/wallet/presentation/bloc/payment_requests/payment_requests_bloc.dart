@@ -23,6 +23,7 @@ class PaymentRequestsBloc
         super(const PaymentRequestsInitial()) {
     on<PaymentRequestsLoadRequested>(_onLoad);
     on<PaymentRequestCreateRequested>(_onCreate);
+    on<PaymentRequestBulkCreateRequested>(_onBulkCreate);
     on<PaymentRequestCancelRequested>(_onCancel);
   }
 
@@ -64,6 +65,42 @@ class PaymentRequestsBloc
       final fallback = current ?? <PaymentRequestEntity>[];
       if (current != null) emit(PaymentRequestsLoaded(current));
       emit(PaymentRequestsActionError(message: _msg(e), requests: fallback));
+    }
+  }
+
+  Future<void> _onBulkCreate(
+    PaymentRequestBulkCreateRequested event,
+    Emitter<PaymentRequestsState> emit,
+  ) async {
+    final current = _currentRequests;
+    if (current != null) emit(PaymentRequestsActionLoading(current));
+    int sentCount = 0;
+    int skippedCount = 0;
+    String? lastError;
+    for (final memberId in event.memberIds) {
+      try {
+        await _createPaymentRequest(
+          flatId: event.flatId,
+          requestedTo: memberId,
+          amount: event.amount,
+          note: event.note,
+        );
+        sentCount++;
+      } catch (e) {
+        skippedCount++;
+        lastError = _msg(e);
+      }
+    }
+    final refreshed =
+        await _getPaymentRequests(event.flatId, status: _currentStatus);
+    if (sentCount == 0 && lastError != null) {
+      emit(PaymentRequestsLoaded(refreshed, statusFilter: _currentStatus));
+      emit(PaymentRequestsActionError(
+          message: lastError, requests: refreshed));
+    } else {
+      emit(PaymentRequestBulkCreateSuccess(refreshed,
+          sentCount: sentCount, skippedCount: skippedCount));
+      emit(PaymentRequestsLoaded(refreshed, statusFilter: _currentStatus));
     }
   }
 

@@ -64,5 +64,8 @@ abstract class FlatRepository {
     required String expenseId,
   });
 
-  Future<void> redistribute(String flatId);
+  Future<void> redistribute(
+    String flatId, {
+    List<dynamic>? contributions,
+  });
 }

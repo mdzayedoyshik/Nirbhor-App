@@ -75,6 +75,17 @@ import '../../features/member/domain/usecases/get_settlement_usecase.dart';
 import '../../features/member/domain/usecases/initiate_exit_usecase.dart';
 import '../../features/member/domain/usecases/transfer_manager_usecase.dart';
 import '../../features/member/presentation/bloc/member_bloc.dart';
+import '../../features/expense/data/datasources/expense_remote_datasource.dart';
+import '../../features/expense/data/repositories/expense_repository_impl.dart';
+import '../../features/expense/domain/repositories/expense_repository.dart';
+import '../../features/expense/domain/usecases/approve_expense_usecase.dart';
+import '../../features/expense/domain/usecases/delete_expense_usecase.dart';
+import '../../features/expense/domain/usecases/get_expense_detail_usecase.dart';
+import '../../features/expense/domain/usecases/get_expense_summary_usecase.dart';
+import '../../features/expense/domain/usecases/get_expenses_usecase.dart';
+import '../../features/expense/domain/usecases/record_expense_usecase.dart';
+import '../../features/expense/domain/usecases/update_expense_usecase.dart';
+import '../../features/expense/presentation/bloc/expense_bloc.dart';
 import '../network/api_client.dart';
 import '../services/device_token_service.dart';
 import '../services/image_upload_service.dart';
@@ -241,6 +252,33 @@ Future<void> configureDependencies() async {
     () => PaymentHintsBloc(
       getPaymentHints: sl(),
       updatePaymentHints: sl(),
+    ),
+  );
+
+  // ── Expense ───────────────────────────────────────────
+  sl.registerLazySingleton(
+      () => ExpenseRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton<ExpenseRepository>(
+    () => ExpenseRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetExpensesUseCase(sl()));
+  sl.registerLazySingleton(() => GetExpenseSummaryUseCase(sl()));
+  sl.registerLazySingleton(() => GetExpenseDetailUseCase(sl()));
+  sl.registerLazySingleton(() => RecordExpenseUseCase(sl()));
+  sl.registerLazySingleton(() => ApproveExpenseUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateExpenseUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteExpenseUseCase(sl()));
+
+  // Expense bloc — factory (new instance per page visit)
+  sl.registerFactory(
+    () => ExpenseBloc(
+      getExpenses: sl(),
+      getExpenseSummary: sl(),
+      getExpenseDetail: sl(),
+      recordExpense: sl(),
+      approveExpense: sl(),
+      updateExpense: sl(),
+      deleteExpense: sl(),
     ),
   );
 

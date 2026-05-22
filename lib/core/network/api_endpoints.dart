@@ -60,6 +60,15 @@ class ApiEndpoints {
   static String flatPaymentHints(String flatId) =>
       '/flats/$flatId/payment-hints';
 
+  // Expense
+  static String flatExpenses(String flatId) => '/flats/$flatId/expenses';
+  static String flatExpensesSummary(String flatId) =>
+      '/flats/$flatId/expenses/summary';
+  static String flatExpense(String flatId, String expenseId) =>
+      '/flats/$flatId/expenses/$expenseId';
+  static String flatExpenseApprove(String flatId, String expenseId) =>
+      '/flats/$flatId/expenses/$expenseId/approve';
+
   // Member
   static String flatMembers(String flatId) => '/flats/$flatId/members';
   static String flatMemberRole(String flatId, String memberId) =>

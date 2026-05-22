@@ -12,6 +12,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../expense/presentation/args/expense_list_args.dart';
 import '../../../wallet/presentation/args/wallet_page_args.dart';
 import '../../domain/entities/flat_entity.dart';
 import '../../domain/entities/flat_member_entity.dart';
@@ -237,6 +238,20 @@ class FlatHomeView extends StatelessWidget {
                         const SizedBox(width: AppSizing.md),
                         Expanded(
                           child: _ActionButton(
+                            label: AppStrings.expensesActionLabel,
+                            icon: Icons.receipt_outlined,
+                            onTap: () => context.push(
+                              AppRoutes.expenses,
+                              extra: ExpenseListArgs(
+                                flatId: flat.id,
+                                canManage: canManage,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSizing.md),
+                        Expanded(
+                          child: _ActionButton(
                             label: 'Show QR Code',
                             icon: Icons.qr_code_rounded,
                             onTap: () => _showQrSheet(context),
@@ -281,6 +296,9 @@ class FlatHomeView extends StatelessWidget {
                                         context.read<JoinRequestsBloc>().add(
                                           JoinRequestsLoadRequested(flat.id),
                                         );
+                                        context.read<FlatBloc>().add(
+                                          FlatRefreshRequested(flat.id),
+                                        );
                                       }
                                     });
                                   },
@@ -312,8 +330,15 @@ class FlatHomeView extends StatelessWidget {
                   _SectionHeader(
                     title: AppStrings.membersSection,
                     actionLabel: AppStrings.viewAll,
-                    onAction: () =>
-                        context.push(AppRoutes.flatMembers, extra: flat),
+                    onAction: () => context
+                        .push(AppRoutes.flatMembers, extra: flat)
+                        .then((_) {
+                      if (context.mounted) {
+                        context
+                            .read<FlatBloc>()
+                            .add(FlatRefreshRequested(flat.id));
+                      }
+                    }),
                   ),
                   const SizedBox(height: AppSizing.sm),
                   Padding(

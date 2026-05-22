@@ -76,6 +76,15 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
               .read<WalletBloc>()
               .add(WalletSummaryRequested(widget.args.flatId));
         }
+        if (state is PaymentRequestBulkCreateSuccess) {
+          final msg = state.skippedCount > 0
+              ? '${state.sentCount} sent, ${state.skippedCount} skipped (duplicate or error).'
+              : '${state.sentCount} request${state.sentCount == 1 ? '' : 's'} sent.';
+          AppSnackbar.success(context, msg);
+          context
+              .read<WalletBloc>()
+              .add(WalletSummaryRequested(widget.args.flatId));
+        }
         if (state is PaymentRequestCancelSuccess) {
           AppSnackbar.success(context, AppStrings.paymentRequestCancelledMsg);
           context
@@ -242,7 +251,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
 
     final amountController = TextEditingController();
     final noteController = TextEditingController();
-    String? selectedMemberId;
+    final selectedIds = <String>{};
 
     showModalBottomSheet(
       context: context,
@@ -253,91 +262,122 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
             BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
       ),
       builder: (sheetCtx) => StatefulBuilder(
-        builder: (sheetCtx, setSheetState) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            AppSizing.pagePadding,
-            AppSizing.md,
-            AppSizing.pagePadding,
-            MediaQuery.of(context).viewInsets.bottom + AppSizing.pagePadding,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: AppSizing.md),
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius:
-                        BorderRadius.circular(AppSizing.radiusFull),
+        builder: (sheetCtx, setSheetState) {
+          final bool canSubmit = selectedIds.isNotEmpty;
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.92,
+            builder: (_, scrollController) => Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSizing.pagePadding, AppSizing.md,
+                      AppSizing.pagePadding, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: AppSizing.md),
+                          decoration: BoxDecoration(
+                            color: AppColors.border,
+                            borderRadius: BorderRadius.circular(
+                                AppSizing.radiusFull),
+                          ),
+                        ),
+                      ),
+                      Text(AppStrings.newPaymentRequestTitle,
+                          style: AppTypography.headlineSmall),
+                      const SizedBox(height: AppSizing.xs),
+                      Text('Select one or more members',
+                          style: AppTypography.bodySmall
+                              .copyWith(color: AppColors.textSecondary)),
+                    ],
                   ),
                 ),
-              ),
-              Text(AppStrings.newPaymentRequestTitle,
-                  style: AppTypography.headlineSmall),
-              const SizedBox(height: AppSizing.md),
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(
-                  labelText: AppStrings.requestToLabel,
-                  border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(AppSizing.radiusMd)),
+                Expanded(
+                  child: ListView(
+                    controller: scrollController,
+                    padding: EdgeInsets.fromLTRB(
+                      AppSizing.pagePadding,
+                      AppSizing.sm,
+                      AppSizing.pagePadding,
+                      MediaQuery.of(context).viewInsets.bottom +
+                          AppSizing.pagePadding,
+                    ),
+                    children: [
+                      ...members.map((m) {
+                        final checked = selectedIds.contains(m.flatMemberId);
+                        return CheckboxListTile(
+                          value: checked,
+                          onChanged: (v) => setSheetState(() {
+                            if (v == true) {
+                              selectedIds.add(m.flatMemberId);
+                            } else {
+                              selectedIds.remove(m.flatMemberId);
+                            }
+                          }),
+                          title: Text(m.name,
+                              style: AppTypography.bodyMedium),
+                          activeColor: AppColors.primary,
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                        );
+                      }),
+                      const SizedBox(height: AppSizing.md),
+                      AppTextField(
+                        controller: amountController,
+                        label: AppStrings.paymentAmountLabel,
+                        hint: '0',
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: AppSizing.md),
+                      AppTextField(
+                        controller: noteController,
+                        label: AppStrings.requestPurposeLabel,
+                        hint: 'e.g. January contribution',
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: AppSizing.lg),
+                      AppButton(
+                        label: canSubmit
+                            ? 'Send to ${selectedIds.length} member${selectedIds.length == 1 ? '' : 's'}'
+                            : AppStrings.sendRequestLabel,
+                        onPressed: canSubmit
+                            ? () {
+                                final amount = double.tryParse(
+                                        amountController.text.trim()) ??
+                                    0;
+                                if (amount <= 0) return;
+                                Navigator.pop(sheetCtx);
+                                context.read<PaymentRequestsBloc>().add(
+                                      PaymentRequestBulkCreateRequested(
+                                        flatId: widget.args.flatId,
+                                        memberIds: selectedIds.toList(),
+                                        amount: amount,
+                                        note: noteController.text
+                                                .trim()
+                                                .isEmpty
+                                            ? null
+                                            : noteController.text.trim(),
+                                      ),
+                                    );
+                              }
+                            : null,
+                        variant: AppButtonVariant.primary,
+                        fullWidth: true,
+                      ),
+                    ],
+                  ),
                 ),
-                initialValue: selectedMemberId,
-                items: members
-                    .map((m) => DropdownMenuItem(
-                          value: m.flatMemberId,
-                          child: Text(m.name),
-                        ))
-                    .toList(),
-                onChanged: (v) =>
-                    setSheetState(() => selectedMemberId = v),
-              ),
-              const SizedBox(height: AppSizing.md),
-              AppTextField(
-                controller: amountController,
-                label: AppStrings.paymentAmountLabel,
-                hint: '0',
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: AppSizing.md),
-              AppTextField(
-                controller: noteController,
-                label: AppStrings.requestPurposeLabel,
-                hint: 'e.g. January contribution',
-                maxLines: 2,
-              ),
-              const SizedBox(height: AppSizing.lg),
-              AppButton(
-                label: AppStrings.sendRequestLabel,
-                onPressed: selectedMemberId == null
-                    ? null
-                    : () {
-                        final amount = double.tryParse(
-                                amountController.text.trim()) ??
-                            0;
-                        if (amount <= 0) return;
-                        Navigator.pop(sheetCtx);
-                        context.read<PaymentRequestsBloc>().add(
-                              PaymentRequestCreateRequested(
-                                flatId: widget.args.flatId,
-                                requestedTo: selectedMemberId!,
-                                amount: amount,
-                                note: noteController.text.trim().isEmpty
-                                    ? null
-                                    : noteController.text.trim(),
-                              ),
-                            );
-                      },
-                variant: AppButtonVariant.primary,
-                fullWidth: true,
-              ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

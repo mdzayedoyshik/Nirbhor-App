@@ -27,6 +27,21 @@ class PaymentRequestCreateRequested extends PaymentRequestsEvent {
   List<Object?> get props => [flatId, requestedTo, amount, note];
 }
 
+class PaymentRequestBulkCreateRequested extends PaymentRequestsEvent {
+  const PaymentRequestBulkCreateRequested({
+    required this.flatId,
+    required this.memberIds,
+    required this.amount,
+    this.note,
+  });
+  final String flatId;
+  final List<String> memberIds;
+  final double amount;
+  final String? note;
+  @override
+  List<Object?> get props => [flatId, memberIds, amount, note];
+}
+
 class PaymentRequestCancelRequested extends PaymentRequestsEvent {
   const PaymentRequestCancelRequested({
     required this.flatId,

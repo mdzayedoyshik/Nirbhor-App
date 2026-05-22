@@ -228,4 +228,19 @@ class AppStrings {
   static const String deleteFlatConfirmMsg =
       'This permanently deletes the flat. All members must leave first.';
   static const String flatDeletedMsg = 'Flat deleted.';
+
+  // Expense module
+  static const String expenseListTitle = 'Expenses';
+  static const String expenseDetailTitle = 'Expense Detail';
+  static const String recordExpenseTitle = 'Record Expense';
+  static const String noExpensesRecorded = 'No expenses recorded.';
+  static const String categoryLabel = 'Category';
+  static const String descriptionLabel = 'Description (optional)';
+  static const String descriptionHint = 'e.g. Market shopping';
+  static const String approveExpenseLabel = 'Approve Expense';
+  static const String deleteExpenseLabel = 'Delete Expense';
+  static const String recordExpenseLabel = 'Record Expense';
+  static const String expenseRecordedMsg = 'Expense recorded successfully.';
+  static const String expenseApprovedMsg = 'Expense approved successfully.';
+  static const String expensesActionLabel = 'Expenses';
 }
