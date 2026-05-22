@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -223,21 +225,33 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoading(AuthLoadingSource.google));
     try {
       final account = await GoogleSignIn.instance.authenticate();
+      log('Google Sign-In successful: ${account.email}');
       final idToken = account.authentication.idToken;
+      log('Google ID Token: $idToken');
       if (idToken == null) {
         emit(const AuthFailure('Failed to get Google ID token.'));
         return;
       }
       final result = await _googleAuth(idToken: idToken);
+      log('Backend authentication successful: ${result.user.email}');
       emit(AuthAuthenticated(result.user));
       await _syncDeviceToken();
-    } on PlatformException catch (e) {
+    } on GoogleSignInException catch (e, stackTrace) {
+      log('Google Sign-In failed: $e', stackTrace: stackTrace);
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        emit(const AuthInitial());
+      } else {
+        emit(AuthFailure(e.description ?? 'Google Sign-In failed. Please try again.'));
+      }
+    } on PlatformException catch (e, stackTrace) {
+      log('Platform exception occurred: $e', stackTrace: stackTrace);
       if (e.code == 'sign_in_canceled') {
         emit(const AuthInitial());
       } else {
         emit(AuthFailure(_message(e)));
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      log('Unexpected error occurred: $e', stackTrace: stackTrace);
       emit(AuthFailure(_message(e)));
     }
   }
