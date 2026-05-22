@@ -12,6 +12,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../wallet/presentation/args/wallet_page_args.dart';
 import '../../domain/entities/flat_entity.dart';
 import '../../domain/entities/flat_member_entity.dart';
 import '../bloc/flat_bloc.dart';
@@ -213,15 +214,35 @@ class FlatHomeView extends StatelessWidget {
 
                   const SizedBox(height: AppSizing.lg),
 
-                  // --- QR / invite action (all members) ---
+                  // --- Quick actions (all members) ---
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSizing.pagePadding,
                     ),
-                    child: _ActionButton(
-                      label: 'Show QR Code',
-                      icon: Icons.qr_code_rounded,
-                      onTap: () => _showQrSheet(context),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _ActionButton(
+                            label: 'My Wallet',
+                            icon: Icons.account_balance_wallet_outlined,
+                            onTap: () => context.push(
+                              AppRoutes.walletHome,
+                              extra: WalletPageArgs(
+                                flatId: flat.id,
+                                canManage: canManage,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSizing.md),
+                        Expanded(
+                          child: _ActionButton(
+                            label: 'Show QR Code',
+                            icon: Icons.qr_code_rounded,
+                            onTap: () => _showQrSheet(context),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: AppSizing.lg),

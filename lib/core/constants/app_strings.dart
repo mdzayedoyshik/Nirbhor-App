@@ -161,6 +161,64 @@ class AppStrings {
       'This will recalculate all member contributions.';
   static const String editExpenseTitle = 'Edit Expense';
 
+  // Wallet — general
+  static const String walletTitle = 'My Wallet';
+  static const String flatWalletTitle = 'Flat Cash Pool';
+  static const String walletCurrentBalance = 'Your current balance';
+  static const String payNow = 'Pay Now';
+  static const String suggestedDeposit = 'Suggested deposit this month';
+  static const String recentActivity = 'Recent Activity';
+  static const String seeAllTransactions = 'See All Transactions';
+  static const String paymentRequestsTitle = 'Payment Requests';
+  static const String allWalletsTitle = 'Member Wallets';
+  static const String paymentsListTitle = 'Payments';
+
+  // Wallet — submit payment
+  static const String submitPaymentTitle = 'Submit Payment';
+  static const String submitPaymentLabel = 'Submit Payment';
+  static const String paymentAmountLabel = 'Amount (BDT)';
+  static const String paymentMethodLabel = 'Payment Method';
+  static const String paymentNoteLabel = 'Transaction ID or note (recommended)';
+  static const String paymentSubmittedMsg =
+      'Payment submitted! Awaiting manager verification.';
+  static const String awaitingVerification = 'Awaiting Verification';
+  static const String paymentVerifiedStatus = 'Verified';
+  static const String paymentRejectedStatus = 'Rejected';
+  static const String paymentPendingStatus = 'Pending';
+
+  // Wallet — manager payments
+  static const String verifyPaymentLabel = 'Verify';
+  static const String rejectPaymentLabel = 'Reject';
+  static const String verifyConfirmTitle = 'Confirm Verification';
+  static const String rejectReasonLabel = 'Reason (optional)';
+  static const String paymentVerifiedMsg = 'Payment verified successfully.';
+  static const String paymentRejectedMsg = 'Payment rejected.';
+
+  // Wallet — transactions
+  static const String transactionHistoryTitle = 'Transaction History';
+
+  // Wallet — payment hints
+  static const String paymentHintsTitle = 'Payment Hints';
+  static const String suggestedMealLabel = 'Monthly meal estimate per person';
+  static const String suggestedHouseholdLabel =
+      'Monthly household expenses estimate';
+  static const String paymentHintsUpdatedMsg = 'Payment hints updated.';
+  static const String flatWalletNegativeTooltip =
+      'Flat wallet is in deficit. Members need to deposit before expenses can be cleared.';
+
+  static const String paymentHintsHelperNote =
+      'These are display-only suggestions. They guide members on how much to deposit. Changing them does not trigger any deductions.';
+
+  // Wallet — new payment request
+  static const String newPaymentRequestTitle = 'New Payment Request';
+  static const String requestToLabel = 'Request to';
+  static const String requestPurposeLabel = 'What is this payment for?';
+  static const String sendRequestLabel = 'Send Request';
+  static const String paymentRequestSentMsg = 'Payment request sent.';
+  static const String cancelRequestMsg =
+      'Cancel this request? Any linked pending payment will also be cancelled.';
+  static const String paymentRequestCancelledMsg = 'Request cancelled.';
+
   // Flat — settings
   static const String flatSettingsTitle = 'Flat Settings';
   static const String updateFlatLabel = 'Save Changes';

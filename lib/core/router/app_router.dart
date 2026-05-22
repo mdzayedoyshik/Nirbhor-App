@@ -34,6 +34,21 @@ import '../../features/member/presentation/args/settlement_page_args.dart';
 import '../../features/member/presentation/bloc/member_bloc.dart';
 import '../../features/member/presentation/pages/member_list_page.dart';
 import '../../features/member/presentation/pages/settlement_page.dart';
+import '../../features/wallet/presentation/args/submit_payment_args.dart';
+import '../../features/wallet/presentation/args/wallet_page_args.dart';
+import '../../features/wallet/presentation/bloc/all_wallets/all_wallets_bloc.dart';
+import '../../features/wallet/presentation/bloc/payment_hints/payment_hints_bloc.dart';
+import '../../features/wallet/presentation/bloc/payment_requests/payment_requests_bloc.dart';
+import '../../features/wallet/presentation/bloc/payments/payments_bloc.dart';
+import '../../features/wallet/presentation/bloc/transactions/transactions_bloc.dart';
+import '../../features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
+import '../../features/wallet/presentation/pages/all_wallets_page.dart';
+import '../../features/wallet/presentation/pages/payment_hints_page.dart';
+import '../../features/wallet/presentation/pages/payment_requests_page.dart';
+import '../../features/wallet/presentation/pages/payments_list_page.dart';
+import '../../features/wallet/presentation/pages/submit_payment_page.dart';
+import '../../features/wallet/presentation/pages/transaction_history_page.dart';
+import '../../features/wallet/presentation/pages/wallet_home_page.dart';
 import '../di/injection_container.dart';
 
 class AppRoutes {
@@ -49,6 +64,15 @@ class AppRoutes {
   static const home = '/home';
   static const profile = '/profile';
   static const changePassword = '/profile/change-password';
+
+  // Wallet
+  static const walletHome = '/wallet/home';
+  static const walletSubmitPayment = '/wallet/pay';
+  static const walletAllWallets = '/wallet/all-wallets';
+  static const walletPayments = '/wallet/payments';
+  static const walletRequests = '/wallet/requests';
+  static const walletTransactions = '/wallet/transactions';
+  static const walletHints = '/wallet/hints';
 
   // Flat
   static const flatCreate = '/flat/create';
@@ -129,6 +153,71 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: AppRoutes.changePassword,
         builder: (_, _) => const ChangePasswordPage(),
+      ),
+
+      // ── Wallet ────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.walletHome,
+        redirect: (_, state) =>
+            state.extra is WalletPageArgs ? null : AppRoutes.home,
+        builder: (_, state) => BlocProvider.value(
+          value: sl<WalletBloc>(),
+          child: WalletHomePage(args: state.extra! as WalletPageArgs),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.walletSubmitPayment,
+        redirect: (_, state) =>
+            state.extra is SubmitPaymentArgs ? null : AppRoutes.home,
+        builder: (_, state) => BlocProvider.value(
+          value: sl<WalletBloc>(),
+          child: SubmitPaymentPage(args: state.extra! as SubmitPaymentArgs),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.walletAllWallets,
+        redirect: (_, state) =>
+            state.extra is WalletPageArgs ? null : AppRoutes.home,
+        builder: (_, state) => BlocProvider(
+          create: (_) => sl<AllWalletsBloc>(),
+          child: AllWalletsPage(args: state.extra! as WalletPageArgs),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.walletPayments,
+        redirect: (_, state) =>
+            state.extra is String ? null : AppRoutes.home,
+        builder: (_, state) => BlocProvider(
+          create: (_) => sl<PaymentsBloc>(),
+          child: PaymentsListPage(flatId: state.extra! as String),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.walletRequests,
+        redirect: (_, state) =>
+            state.extra is WalletPageArgs ? null : AppRoutes.home,
+        builder: (_, state) => BlocProvider(
+          create: (_) => sl<PaymentRequestsBloc>(),
+          child: PaymentRequestsPage(args: state.extra! as WalletPageArgs),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.walletTransactions,
+        redirect: (_, state) =>
+            state.extra is String ? null : AppRoutes.home,
+        builder: (_, state) => BlocProvider(
+          create: (_) => sl<TransactionsBloc>(),
+          child: TransactionHistoryPage(flatId: state.extra! as String),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.walletHints,
+        redirect: (_, state) =>
+            state.extra is String ? null : AppRoutes.home,
+        builder: (_, state) => BlocProvider(
+          create: (_) => sl<PaymentHintsBloc>(),
+          child: PaymentHintsPage(flatId: state.extra! as String),
+        ),
       ),
 
       // ── Flat ──────────────────────────────────────────

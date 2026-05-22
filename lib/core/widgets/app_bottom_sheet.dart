@@ -23,9 +23,9 @@ class AppBottomSheet {
           top: Radius.circular(AppSizing.radiusXl),
         ),
       ),
-      builder: (_) => Padding(
+      builder: (builderContext) => Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          bottom: MediaQuery.of(builderContext).viewInsets.bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

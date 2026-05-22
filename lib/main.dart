@@ -11,6 +11,7 @@ import 'core/router/app_router.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/profile_bloc.dart';
 import 'features/flat/presentation/bloc/flat_bloc.dart';
+import 'features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
 import 'firebase_options.dart';
 
 
@@ -44,6 +45,7 @@ class NirbhorApp extends StatelessWidget {
         BlocProvider<AuthBloc>.value(value: sl<AuthBloc>()),
         BlocProvider<ProfileBloc>.value(value: sl<ProfileBloc>()),
         BlocProvider<FlatBloc>.value(value: sl<FlatBloc>()),
+        BlocProvider<WalletBloc>.value(value: sl<WalletBloc>()),
       ],
       child: _AppView(router: router),
     );

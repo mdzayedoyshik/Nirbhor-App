@@ -40,6 +40,26 @@ class ApiEndpoints {
   static String flatContributions(String flatId) =>
       '/flats/$flatId/contributions';
 
+  // Wallet
+  static String flatWalletMe(String flatId) => '/flats/$flatId/wallet/me';
+  static String flatWallets(String flatId) => '/flats/$flatId/wallets';
+  static String flatWalletFlat(String flatId) => '/flats/$flatId/flat-wallet';
+  static String flatWalletSummary(String flatId) =>
+      '/flats/$flatId/wallet/summary';
+  static String flatPaymentRequests(String flatId) =>
+      '/flats/$flatId/payment-requests';
+  static String flatPaymentRequest(String flatId, String requestId) =>
+      '/flats/$flatId/payment-requests/$requestId';
+  static String flatPayments(String flatId) => '/flats/$flatId/payments';
+  static String flatPaymentVerify(String flatId, String paymentId) =>
+      '/flats/$flatId/payments/$paymentId/verify';
+  static String flatPaymentReject(String flatId, String paymentId) =>
+      '/flats/$flatId/payments/$paymentId/reject';
+  static String flatTransactions(String flatId) =>
+      '/flats/$flatId/transactions';
+  static String flatPaymentHints(String flatId) =>
+      '/flats/$flatId/payment-hints';
+
   // Member
   static String flatMembers(String flatId) => '/flats/$flatId/members';
   static String flatMemberRole(String flatId, String memberId) =>

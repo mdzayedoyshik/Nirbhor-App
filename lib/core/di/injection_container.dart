@@ -42,6 +42,28 @@ import '../../features/flat/presentation/bloc/fixed_expenses_bloc.dart';
 import '../../features/flat/presentation/bloc/flat_bloc.dart';
 import '../../features/flat/presentation/bloc/flat_preview_bloc.dart';
 import '../../features/flat/presentation/bloc/join_requests_bloc.dart';
+import '../../features/wallet/data/datasources/wallet_remote_datasource.dart';
+import '../../features/wallet/data/repositories/wallet_repository_impl.dart';
+import '../../features/wallet/domain/repositories/wallet_repository.dart';
+import '../../features/wallet/domain/usecases/cancel_payment_request_usecase.dart';
+import '../../features/wallet/domain/usecases/create_payment_request_usecase.dart';
+import '../../features/wallet/domain/usecases/get_all_wallets_usecase.dart';
+import '../../features/wallet/domain/usecases/get_flat_wallet_usecase.dart';
+import '../../features/wallet/domain/usecases/get_payment_hints_usecase.dart';
+import '../../features/wallet/domain/usecases/get_payment_requests_usecase.dart';
+import '../../features/wallet/domain/usecases/get_payments_usecase.dart';
+import '../../features/wallet/domain/usecases/get_transactions_usecase.dart';
+import '../../features/wallet/domain/usecases/get_wallet_summary_usecase.dart';
+import '../../features/wallet/domain/usecases/reject_payment_usecase.dart';
+import '../../features/wallet/domain/usecases/submit_payment_usecase.dart';
+import '../../features/wallet/domain/usecases/update_payment_hints_usecase.dart';
+import '../../features/wallet/domain/usecases/verify_payment_usecase.dart';
+import '../../features/wallet/presentation/bloc/all_wallets/all_wallets_bloc.dart';
+import '../../features/wallet/presentation/bloc/payment_hints/payment_hints_bloc.dart';
+import '../../features/wallet/presentation/bloc/payment_requests/payment_requests_bloc.dart';
+import '../../features/wallet/presentation/bloc/payments/payments_bloc.dart';
+import '../../features/wallet/presentation/bloc/transactions/transactions_bloc.dart';
+import '../../features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
 import '../../features/member/data/datasources/member_remote_datasource.dart';
 import '../../features/member/data/repositories/member_repository_impl.dart';
 import '../../features/member/domain/repositories/member_repository.dart';
@@ -167,6 +189,58 @@ Future<void> configureDependencies() async {
       updateExpense: sl(),
       deleteExpense: sl(),
       redistribute: sl(),
+    ),
+  );
+
+  // ── Wallet ────────────────────────────────────────────
+  sl.registerLazySingleton(() => WalletRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton<WalletRepository>(
+    () => WalletRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetWalletSummaryUseCase(sl()));
+  sl.registerLazySingleton(() => GetAllWalletsUseCase(sl()));
+  sl.registerLazySingleton(() => GetFlatWalletUseCase(sl()));
+  sl.registerLazySingleton(() => SubmitPaymentUseCase(sl()));
+  sl.registerLazySingleton(() => GetPaymentRequestsUseCase(sl()));
+  sl.registerLazySingleton(() => CreatePaymentRequestUseCase(sl()));
+  sl.registerLazySingleton(() => CancelPaymentRequestUseCase(sl()));
+  sl.registerLazySingleton(() => GetPaymentsUseCase(sl()));
+  sl.registerLazySingleton(() => VerifyPaymentUseCase(sl()));
+  sl.registerLazySingleton(() => RejectPaymentUseCase(sl()));
+  sl.registerLazySingleton(() => GetTransactionsUseCase(sl()));
+  sl.registerLazySingleton(() => GetPaymentHintsUseCase(sl()));
+  sl.registerLazySingleton(() => UpdatePaymentHintsUseCase(sl()));
+
+  // Wallet bloc — global singleton
+  sl.registerLazySingleton(
+    () => WalletBloc(
+      getWalletSummary: sl(),
+      getFlatWallet: sl(),
+      submitPayment: sl(),
+    ),
+  );
+
+  // Wallet blocs — factories (new instance per page)
+  sl.registerFactory(() => AllWalletsBloc(getAllWallets: sl()));
+  sl.registerFactory(
+    () => PaymentsBloc(
+      getPayments: sl(),
+      verifyPayment: sl(),
+      rejectPayment: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => PaymentRequestsBloc(
+      getPaymentRequests: sl(),
+      createPaymentRequest: sl(),
+      cancelPaymentRequest: sl(),
+    ),
+  );
+  sl.registerFactory(() => TransactionsBloc(getTransactions: sl()));
+  sl.registerFactory(
+    () => PaymentHintsBloc(
+      getPaymentHints: sl(),
+      updatePaymentHints: sl(),
     ),
   );
 
