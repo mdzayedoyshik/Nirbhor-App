@@ -40,16 +40,28 @@ class MemberBloc extends Bloc<MemberEvent, MemberState> {
     on<MemberSettlementAcknowledged>(_onAcknowledgeSettlement);
   }
 
+  List<FlatMemberEntity>? _cachedMembers;
+
   Future<void> _onLoad(
     MemberLoadRequested event,
     Emitter<MemberState> emit,
   ) async {
-    emit(const MemberLoading());
-    try {
-      final members = await _getMembers(event.flatId);
-      emit(MemberLoaded(members: members));
-    } catch (e) {
-      emit(MemberLoadError(_msg(e)));
+    if (_cachedMembers != null) {
+      emit(MemberLoaded(members: _cachedMembers!));
+      try {
+        final fresh = await _getMembers(event.flatId);
+        _cachedMembers = fresh;
+        emit(MemberLoaded(members: fresh));
+      } catch (_) {}
+    } else {
+      emit(const MemberLoading());
+      try {
+        final members = await _getMembers(event.flatId);
+        _cachedMembers = members;
+        emit(MemberLoaded(members: members));
+      } catch (e) {
+        emit(MemberLoadError(_msg(e)));
+      }
     }
   }
 
@@ -67,6 +79,7 @@ class MemberBloc extends Bloc<MemberEvent, MemberState> {
         role: event.role,
       );
       final updated = await _getMembers(event.flatId);
+      _cachedMembers = updated;
       emit(MemberLoaded(members: updated, exitInProgressIds: exitIds));
     } catch (e) {
       emit(MemberLoaded(members: members, exitInProgressIds: exitIds));
@@ -91,6 +104,7 @@ class MemberBloc extends Bloc<MemberEvent, MemberState> {
         newManagerId: event.newManagerId,
       );
       final updated = await _getMembers(event.flatId);
+      _cachedMembers = updated;
       emit(MemberLoaded(members: updated, exitInProgressIds: exitIds));
     } catch (e) {
       emit(MemberLoaded(members: members, exitInProgressIds: exitIds));

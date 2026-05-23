@@ -31,17 +31,37 @@ class PaymentRequestsBloc
   final CreatePaymentRequestUseCase _createPaymentRequest;
   final CancelPaymentRequestUseCase _cancelPaymentRequest;
 
+  // Cache per status tab — avoids loading spinner on tab switch
+  final Map<String?, List<PaymentRequestEntity>> _cache = {};
+  // Always tracks the active status regardless of state type
+  String? _activeStatus;
+
   Future<void> _onLoad(
     PaymentRequestsLoadRequested event,
     Emitter<PaymentRequestsState> emit,
   ) async {
-    emit(const PaymentRequestsLoading());
-    try {
-      final requests =
-          await _getPaymentRequests(event.flatId, status: event.status);
-      emit(PaymentRequestsLoaded(requests, statusFilter: event.status));
-    } catch (e) {
-      emit(PaymentRequestsError(_msg(e)));
+    _activeStatus = event.status;
+    final cached = _cache[event.status];
+    if (cached != null) {
+      emit(PaymentRequestsLoaded(cached, statusFilter: event.status));
+      try {
+        final fresh = await _getPaymentRequests(event.flatId, status: event.status);
+        _cache[event.status] = fresh;
+        if (_activeStatus == event.status) {
+          emit(PaymentRequestsLoaded(fresh, statusFilter: event.status));
+        }
+      } catch (_) {
+        // Keep showing cached data silently
+      }
+    } else {
+      emit(const PaymentRequestsLoading());
+      try {
+        final requests = await _getPaymentRequests(event.flatId, status: event.status);
+        _cache[event.status] = requests;
+        emit(PaymentRequestsLoaded(requests, statusFilter: event.status));
+      } catch (e) {
+        emit(PaymentRequestsError(_msg(e)));
+      }
     }
   }
 
@@ -58,8 +78,10 @@ class PaymentRequestsBloc
         amount: event.amount,
         note: event.note,
       );
+      _cache.clear();
       final refreshed =
-          await _getPaymentRequests(event.flatId, status: _currentStatus);
+          await _getPaymentRequests(event.flatId, status: _activeStatus);
+      _cache[_activeStatus] = refreshed;
       emit(PaymentRequestCreateSuccess(refreshed));
     } catch (e) {
       final fallback = current ?? <PaymentRequestEntity>[];
@@ -92,15 +114,15 @@ class PaymentRequestsBloc
       }
     }
     final refreshed =
-        await _getPaymentRequests(event.flatId, status: _currentStatus);
+        await _getPaymentRequests(event.flatId, status: _activeStatus);
     if (sentCount == 0 && lastError != null) {
-      emit(PaymentRequestsLoaded(refreshed, statusFilter: _currentStatus));
+      emit(PaymentRequestsLoaded(refreshed, statusFilter: _activeStatus));
       emit(PaymentRequestsActionError(
           message: lastError, requests: refreshed));
     } else {
       emit(PaymentRequestBulkCreateSuccess(refreshed,
           sentCount: sentCount, skippedCount: skippedCount));
-      emit(PaymentRequestsLoaded(refreshed, statusFilter: _currentStatus));
+      emit(PaymentRequestsLoaded(refreshed, statusFilter: _activeStatus));
     }
   }
 
@@ -112,8 +134,10 @@ class PaymentRequestsBloc
     if (current != null) emit(PaymentRequestsActionLoading(current));
     try {
       await _cancelPaymentRequest(event.flatId, event.requestId);
+      _cache.clear();
       final refreshed =
-          await _getPaymentRequests(event.flatId, status: _currentStatus);
+          await _getPaymentRequests(event.flatId, status: _activeStatus);
+      _cache[_activeStatus] = refreshed;
       emit(PaymentRequestCancelSuccess(refreshed));
     } catch (e) {
       final fallback = current ?? <PaymentRequestEntity>[];
@@ -129,12 +153,6 @@ class PaymentRequestsBloc
     if (s is PaymentRequestCreateSuccess) return s.requests;
     if (s is PaymentRequestCancelSuccess) return s.requests;
     if (s is PaymentRequestsActionError) return s.requests;
-    return null;
-  }
-
-  String? get _currentStatus {
-    final s = state;
-    if (s is PaymentRequestsLoaded) return s.statusFilter;
     return null;
   }
 

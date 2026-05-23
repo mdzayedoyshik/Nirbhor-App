@@ -160,7 +160,13 @@ GoRouter createRouter(AuthBloc authBloc) {
         builder: (_, state) =>
             ResetPasswordPage(args: state.extra! as ResetPasswordPageArgs),
       ),
-      GoRoute(path: AppRoutes.home, builder: (_, _) => const HomePage()),
+      GoRoute(
+        path: AppRoutes.home,
+        builder: (_, _) => BlocProvider.value(
+          value: sl<WalletBloc>(),
+          child: const HomePage(),
+        ),
+      ),
       GoRoute(
         path: AppRoutes.profile,
         builder: (_, _) => const ProfilePage(),

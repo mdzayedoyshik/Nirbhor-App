@@ -51,41 +51,87 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
   final UpdateExpenseUseCase _updateExpense;
   final DeleteExpenseUseCase _deleteExpense;
 
+  // Caches the last fully loaded list state to avoid loading spinner on revisit
+  ExpenseListLoaded? _cachedList;
+  bool _cacheInvalidated = false;
+
+  void _invalidateCache() {
+    _cacheInvalidated = true;
+    _cachedList = null;
+  }
+
   Future<void> _onLoad(
     ExpensesLoadRequested event,
     Emitter<ExpenseState> emit,
   ) async {
-    emit(const ExpenseListLoading());
-    try {
-      final result = await _getExpenses(
-        event.flatId,
-        category: event.category,
-        isApproved: event.isApproved,
-        month: event.month,
-        year: event.year,
-        page: 1,
-      );
+    final cached = _cachedList;
+    // Use cache only when filters match exactly and cache is valid
+    final now = DateTime.now();
+    final reqMonth = event.month ?? now.month;
+    final reqYear = event.year ?? now.year;
+    final cacheMatches = cached != null &&
+        !_cacheInvalidated &&
+        cached.month == reqMonth &&
+        cached.year == reqYear;
 
-      final now = DateTime.now();
-      final month = event.month ?? now.month;
-      final year = event.year ?? now.year;
-
-      ExpenseSummaryEntity? summary;
+    if (cacheMatches) {
+      emit(cached);
       try {
-        summary = await _getExpenseSummary(event.flatId, month, year);
+        final result = await _getExpenses(
+          event.flatId,
+          category: event.category,
+          isApproved: event.isApproved,
+          month: event.month,
+          year: event.year,
+          page: 1,
+        );
+        ExpenseSummaryEntity? summary;
+        try {
+          summary = await _getExpenseSummary(event.flatId, reqMonth, reqYear);
+        } catch (_) {}
+        final fresh = ExpenseListLoaded(
+          expenses: result['expenses'] as List<ExpenseEntity>,
+          pagination: result['pagination'] as Map<String, dynamic>,
+          month: reqMonth,
+          year: reqYear,
+          summary: summary,
+        );
+        _cachedList = fresh;
+        _cacheInvalidated = false;
+        emit(fresh);
       } catch (_) {
-        // Summary is optional — don't fail the whole load
+        // Keep showing cached data silently
       }
+    } else {
+      emit(const ExpenseListLoading());
+      try {
+        final result = await _getExpenses(
+          event.flatId,
+          category: event.category,
+          isApproved: event.isApproved,
+          month: event.month,
+          year: event.year,
+          page: 1,
+        );
 
-      emit(ExpenseListLoaded(
-        expenses: result['expenses'] as List<ExpenseEntity>,
-        pagination: result['pagination'] as Map<String, dynamic>,
-        month: month,
-        year: year,
-        summary: summary,
-      ));
-    } catch (e) {
-      emit(ExpenseError(_msg(e)));
+        ExpenseSummaryEntity? summary;
+        try {
+          summary = await _getExpenseSummary(event.flatId, reqMonth, reqYear);
+        } catch (_) {}
+
+        final loaded = ExpenseListLoaded(
+          expenses: result['expenses'] as List<ExpenseEntity>,
+          pagination: result['pagination'] as Map<String, dynamic>,
+          month: reqMonth,
+          year: reqYear,
+          summary: summary,
+        );
+        _cachedList = loaded;
+        _cacheInvalidated = false;
+        emit(loaded);
+      } catch (e) {
+        emit(ExpenseError(_msg(e)));
+      }
     }
   }
 
@@ -148,6 +194,7 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
     ExpenseRecordRequested event,
     Emitter<ExpenseState> emit,
   ) async {
+    _invalidateCache();
     emit(const ExpenseActionLoading());
     try {
       final expense = await _recordExpense(
@@ -170,6 +217,7 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
     ExpenseApproveRequested event,
     Emitter<ExpenseState> emit,
   ) async {
+    _invalidateCache();
     emit(const ExpenseActionLoading());
     try {
       final result = await _approveExpense(event.flatId, event.expenseId);
@@ -187,6 +235,7 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
     ExpenseUpdateRequested event,
     Emitter<ExpenseState> emit,
   ) async {
+    _invalidateCache();
     emit(const ExpenseActionLoading());
     try {
       final expense = await _updateExpense(
@@ -209,6 +258,7 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
     ExpenseDeleteRequested event,
     Emitter<ExpenseState> emit,
   ) async {
+    _invalidateCache();
     emit(const ExpenseActionLoading());
     try {
       await _deleteExpense(event.flatId, event.expenseId);
