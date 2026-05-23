@@ -67,10 +67,13 @@ import '../../features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
 import '../../features/member/data/datasources/member_remote_datasource.dart';
 import '../../features/member/data/repositories/member_repository_impl.dart';
 import '../../features/member/domain/repositories/member_repository.dart';
+import '../../features/member/domain/usecases/acknowledge_exit_usecase.dart';
 import '../../features/member/domain/usecases/cancel_exit_usecase.dart';
 import '../../features/member/domain/usecases/change_role_usecase.dart';
 import '../../features/member/domain/usecases/finalize_exit_usecase.dart';
+import '../../features/member/domain/usecases/get_exit_status_usecase.dart';
 import '../../features/member/domain/usecases/get_members_usecase.dart';
+import '../../features/member/domain/usecases/get_pending_exits_usecase.dart';
 import '../../features/member/domain/usecases/get_settlement_usecase.dart';
 import '../../features/member/domain/usecases/initiate_exit_usecase.dart';
 import '../../features/member/domain/usecases/transfer_manager_usecase.dart';
@@ -181,6 +184,7 @@ Future<void> configureDependencies() async {
       sendJoinRequest: sl(),
       getMyRequests: sl(),
       cancelJoinRequest: sl(),
+      getExitStatus: sl(),
     ),
   );
 
@@ -294,6 +298,9 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => GetSettlementUseCase(sl()));
   sl.registerLazySingleton(() => FinalizeExitUseCase(sl()));
   sl.registerLazySingleton(() => CancelExitUseCase(sl()));
+  sl.registerLazySingleton(() => GetExitStatusUseCase(sl()));
+  sl.registerLazySingleton(() => AcknowledgeExitUseCase(sl()));
+  sl.registerLazySingleton(() => GetPendingExitsUseCase(sl()));
 
   // Member bloc — factory (new instance per page visit)
   sl.registerFactory(

@@ -2,6 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/exceptions.dart';
+import '../../../member/domain/entities/settlement_entity.dart';
+import '../../../member/domain/usecases/get_exit_status_usecase.dart';
 import '../../domain/entities/flat_entity.dart';
 import '../../domain/entities/join_request_entity.dart';
 import '../../domain/usecases/cancel_join_request_usecase.dart';
@@ -23,6 +25,7 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
   final SendJoinRequestUseCase _sendJoinRequest;
   final GetMyRequestsUseCase _getMyRequests;
   final CancelJoinRequestUseCase _cancelJoinRequest;
+  final GetExitStatusUseCase _getExitStatus;
 
   FlatBloc({
     required GetMyFlatUseCase getMyFlat,
@@ -32,6 +35,7 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
     required SendJoinRequestUseCase sendJoinRequest,
     required GetMyRequestsUseCase getMyRequests,
     required CancelJoinRequestUseCase cancelJoinRequest,
+    required GetExitStatusUseCase getExitStatus,
   }) : _getMyFlat = getMyFlat,
        _createFlat = createFlat,
        _updateFlat = updateFlat,
@@ -39,7 +43,7 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
        _sendJoinRequest = sendJoinRequest,
        _getMyRequests = getMyRequests,
        _cancelJoinRequest = cancelJoinRequest,
-
+       _getExitStatus = getExitStatus,
        super(const FlatInitial()) {
     on<FlatCheckRequested>(_onCheck);
     on<FlatRefreshRequested>(_onRefresh);
@@ -57,10 +61,35 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
     emit(const FlatChecking());
     try {
       final flat = await _getMyFlat();
+      // Member has an active flat — check for pending exit
+      try {
+        final exitStatus = await _getExitStatus();
+        if (exitStatus.isPending && exitStatus.settlement != null) {
+          emit(FlatPendingExit(flat, exitStatus.settlement!));
+          return;
+        }
+      } catch (_) {
+        // If exit status check fails, fall through to FlatLoaded
+      }
       emit(FlatLoaded(flat));
     } on ServerException catch (e) {
       if (e.statusCode == 404) {
-        // No active flat — check for pending requests
+        // No active flat — check for awaiting acknowledgment first
+        try {
+          final exitStatus = await _getExitStatus();
+          if (exitStatus.isAwaitingAck &&
+              exitStatus.settlement != null &&
+              exitStatus.flatName != null) {
+            emit(FlatExitPendingAck(
+              settlement: exitStatus.settlement!,
+              flatName: exitStatus.flatName!,
+            ));
+            return;
+          }
+        } catch (_) {
+          // If exit status check fails, fall through to pending request check
+        }
+        // No exit pending ack — check for pending join requests
         try {
           final requests = await _getMyRequests();
           final pending = requests.where((r) => r.isPending).toList();

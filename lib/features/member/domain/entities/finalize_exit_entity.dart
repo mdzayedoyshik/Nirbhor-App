@@ -2,17 +2,15 @@ import 'package:equatable/equatable.dart';
 
 class FinalizeExitEntity extends Equatable {
   final ExitingMemberSummary exitingMember;
-  final List<MemberDeduction> remainingMemberDeductions;
   final MealPoolUpdate? mealPoolUpdate;
 
   const FinalizeExitEntity({
     required this.exitingMember,
-    required this.remainingMemberDeductions,
     this.mealPoolUpdate,
   });
 
   @override
-  List<Object?> get props => [exitingMember, remainingMemberDeductions, mealPoolUpdate];
+  List<Object?> get props => [exitingMember, mealPoolUpdate];
 }
 
 class ExitingMemberSummary extends Equatable {
@@ -21,6 +19,8 @@ class ExitingMemberSummary extends Equatable {
   final double mealCostDeducted;
   final double fixedRefundCredited;
   final double finalWalletBalance;
+  final double settledAmount;
+  final bool managerCollected;
 
   const ExitingMemberSummary({
     required this.flatMemberId,
@@ -28,27 +28,20 @@ class ExitingMemberSummary extends Equatable {
     required this.mealCostDeducted,
     required this.fixedRefundCredited,
     required this.finalWalletBalance,
+    required this.settledAmount,
+    required this.managerCollected,
   });
 
   @override
-  List<Object?> get props => [flatMemberId, name, mealCostDeducted, fixedRefundCredited, finalWalletBalance];
-}
-
-class MemberDeduction extends Equatable {
-  final String flatMemberId;
-  final String name;
-  final double deducted;
-  final double newWalletBalance;
-
-  const MemberDeduction({
-    required this.flatMemberId,
-    required this.name,
-    required this.deducted,
-    required this.newWalletBalance,
-  });
-
-  @override
-  List<Object?> get props => [flatMemberId, name, deducted, newWalletBalance];
+  List<Object?> get props => [
+        flatMemberId,
+        name,
+        mealCostDeducted,
+        fixedRefundCredited,
+        finalWalletBalance,
+        settledAmount,
+        managerCollected,
+      ];
 }
 
 class MealPoolUpdate extends Equatable {
@@ -65,5 +58,10 @@ class MealPoolUpdate extends Equatable {
   });
 
   @override
-  List<Object?> get props => [pointsRemoved, expenseRemoved, newTotalPoints, newTotalExpense];
+  List<Object?> get props => [
+        pointsRemoved,
+        expenseRemoved,
+        newTotalPoints,
+        newTotalExpense,
+      ];
 }

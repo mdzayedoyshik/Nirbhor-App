@@ -63,4 +63,13 @@ class MemberRemoteDataSource {
     ApiEndpoints.flatMemberExit(flatId, memberId),
     auth: true,
   );
+
+  Future<Map<String, dynamic>> getExitStatus() =>
+      _apiClient.get(ApiEndpoints.meExitStatus(), auth: true);
+
+  Future<Map<String, dynamic>> acknowledgeExit() =>
+      _apiClient.post(ApiEndpoints.meAcknowledgeExit(), {}, auth: true);
+
+  Future<Map<String, dynamic>> getPendingExits(String flatId) =>
+      _apiClient.get(ApiEndpoints.flatMemberPendingExits(flatId), auth: true);
 }

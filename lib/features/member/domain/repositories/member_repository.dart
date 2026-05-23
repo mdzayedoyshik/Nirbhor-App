@@ -1,4 +1,5 @@
 import '../../../flat/domain/entities/flat_member_entity.dart';
+import '../entities/exit_status_entity.dart';
 import '../entities/finalize_exit_entity.dart';
 import '../entities/settlement_entity.dart';
 
@@ -36,4 +37,8 @@ abstract class MemberRepository {
     required String flatId,
     required String memberId,
   });
+
+  Future<ExitStatusEntity> getExitStatus();
+  Future<void> acknowledgeExit();
+  Future<List<Map<String, dynamic>>> getPendingExits(String flatId);
 }
