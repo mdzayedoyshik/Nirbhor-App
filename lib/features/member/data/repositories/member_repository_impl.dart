@@ -1,9 +1,11 @@
 import '../../../flat/data/models/flat_member_model.dart';
 import '../../../flat/domain/entities/flat_member_entity.dart';
+import '../../domain/entities/exit_status_entity.dart';
 import '../../domain/entities/finalize_exit_entity.dart';
 import '../../domain/entities/settlement_entity.dart';
 import '../../domain/repositories/member_repository.dart';
 import '../datasources/member_remote_datasource.dart';
+import '../models/exit_status_model.dart';
 import '../models/finalize_exit_model.dart';
 import '../models/settlement_model.dart';
 
@@ -95,5 +97,23 @@ class MemberRepositoryImpl implements MemberRepository {
     required String memberId,
   }) async {
     await _dataSource.cancelExit(flatId: flatId, memberId: memberId);
+  }
+
+  @override
+  Future<ExitStatusEntity> getExitStatus() async {
+    final response = await _dataSource.getExitStatus();
+    return ExitStatusModel.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<void> acknowledgeExit() async {
+    await _dataSource.acknowledgeExit();
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getPendingExits(String flatId) async {
+    final response = await _dataSource.getPendingExits(flatId);
+    final data = response['data'] as Map<String, dynamic>;
+    return (data['pending_exits'] as List).cast<Map<String, dynamic>>();
   }
 }

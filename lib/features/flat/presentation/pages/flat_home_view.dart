@@ -12,7 +12,9 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../expense/presentation/args/expense_list_args.dart';
 import '../../../wallet/presentation/args/wallet_page_args.dart';
+import '../../../wallet/presentation/bloc/wallet/wallet_bloc.dart';
 import '../../domain/entities/flat_entity.dart';
 import '../../domain/entities/flat_member_entity.dart';
 import '../bloc/flat_bloc.dart';
@@ -179,6 +181,20 @@ class FlatHomeView extends StatelessWidget {
                 children: [
                   const SizedBox(height: AppSizing.md),
 
+                  // --- Financial summary card (wallet balance + flat balance + contribution status) ---
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizing.pagePadding,
+                    ),
+                    child: _FinancialSummaryCard(
+                      flat: flat,
+                      me: me,
+                      canManage: canManage,
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSizing.md),
+
                   // --- Stats row ---
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -191,20 +207,18 @@ class FlatHomeView extends StatelessWidget {
                           value: '${flat.activeMembers.length}',
                           icon: Icons.group_outlined,
                         ),
-                        const SizedBox(width: AppSizing.md),
+                        const SizedBox(width: AppSizing.sm),
                         _StatCard(
                           label: AppStrings.totalExpenses,
-                          value:
-                              '৳${flat.totalFixedExpenses.toStringAsFixed(0)}',
+                          value: '৳${flat.totalFixedExpenses.toStringAsFixed(0)}',
                           icon: Icons.receipt_long_outlined,
                         ),
                         if (me != null) ...[
-                          const SizedBox(width: AppSizing.md),
+                          const SizedBox(width: AppSizing.sm),
                           _StatCard(
                             label: AppStrings.myContribution,
-                            value:
-                                '৳${me.fixedContribution.toStringAsFixed(0)}',
-                            icon: Icons.account_balance_wallet_outlined,
+                            value: '৳${me.fixedContribution.toStringAsFixed(0)}',
+                            icon: Icons.currency_exchange_outlined,
                             accent: true,
                           ),
                         ],
@@ -214,7 +228,7 @@ class FlatHomeView extends StatelessWidget {
 
                   const SizedBox(height: AppSizing.lg),
 
-                  // --- Quick actions (all members) ---
+                  // --- Quick actions ---
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSizing.pagePadding,
@@ -223,11 +237,11 @@ class FlatHomeView extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _ActionButton(
-                            label: 'My Wallet',
-                            icon: Icons.account_balance_wallet_outlined,
+                            label: AppStrings.expensesActionLabel,
+                            icon: Icons.receipt_outlined,
                             onTap: () => context.push(
-                              AppRoutes.walletHome,
-                              extra: WalletPageArgs(
+                              AppRoutes.expenses,
+                              extra: ExpenseListArgs(
                                 flatId: flat.id,
                                 canManage: canManage,
                               ),
@@ -237,7 +251,23 @@ class FlatHomeView extends StatelessWidget {
                         const SizedBox(width: AppSizing.md),
                         Expanded(
                           child: _ActionButton(
-                            label: 'Show QR Code',
+                            label: 'Members',
+                            icon: Icons.group_outlined,
+                            onTap: () => context
+                                .push(AppRoutes.flatMembers, extra: flat)
+                                .then((_) {
+                              if (context.mounted) {
+                                context
+                                    .read<FlatBloc>()
+                                    .add(FlatRefreshRequested(flat.id));
+                              }
+                            }),
+                          ),
+                        ),
+                        const SizedBox(width: AppSizing.md),
+                        Expanded(
+                          child: _ActionButton(
+                            label: 'Invite',
                             icon: Icons.qr_code_rounded,
                             onTap: () => _showQrSheet(context),
                           ),
@@ -281,6 +311,9 @@ class FlatHomeView extends StatelessWidget {
                                         context.read<JoinRequestsBloc>().add(
                                           JoinRequestsLoadRequested(flat.id),
                                         );
+                                        context.read<FlatBloc>().add(
+                                          FlatRefreshRequested(flat.id),
+                                        );
                                       }
                                     });
                                   },
@@ -312,8 +345,15 @@ class FlatHomeView extends StatelessWidget {
                   _SectionHeader(
                     title: AppStrings.membersSection,
                     actionLabel: AppStrings.viewAll,
-                    onAction: () =>
-                        context.push(AppRoutes.flatMembers, extra: flat),
+                    onAction: () => context
+                        .push(AppRoutes.flatMembers, extra: flat)
+                        .then((_) {
+                      if (context.mounted) {
+                        context
+                            .read<FlatBloc>()
+                            .add(FlatRefreshRequested(flat.id));
+                      }
+                    }),
                   ),
                   const SizedBox(height: AppSizing.sm),
                   Padding(
@@ -477,6 +517,244 @@ class FlatHomeView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Financial summary card ────────────────────────────────────────────────────
+
+class _FinancialSummaryCard extends StatelessWidget {
+  const _FinancialSummaryCard({
+    required this.flat,
+    required this.me,
+    required this.canManage,
+  });
+
+  final FlatEntity flat;
+  final FlatMemberEntity? me;
+  final bool canManage;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<WalletBloc, WalletState>(
+      builder: (context, walletState) {
+        final summary = switch (walletState) {
+          WalletSummaryLoaded(summary: final s) => s,
+          WalletActionLoading(summary: final s) => s,
+          WalletPaymentSubmitSuccess(summary: final s) => s,
+          WalletError(summary: final s) when s != null => s,
+          _ => null,
+        };
+        final flatWallet = switch (walletState) {
+          WalletSummaryLoaded(flatWallet: final fw) => fw,
+          WalletActionLoading(flatWallet: final fw) => fw,
+          WalletPaymentSubmitSuccess(flatWallet: final fw) => fw,
+          _ => null,
+        };
+
+        if (summary == null) {
+          return Container(
+            padding: const EdgeInsets.all(AppSizing.md),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: const Center(
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          );
+        }
+
+        final isNeg = summary.isNegative;
+        final balanceColor = isNeg ? AppColors.error : AppColors.success;
+        final paid = summary.hasPaidFixedThisMonth;
+
+        return GestureDetector(
+          onTap: () => context.push(
+            AppRoutes.walletHome,
+            extra: WalletPageArgs(flatId: flat.id, canManage: canManage),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(AppSizing.md),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isNeg
+                    ? [
+                        AppColors.error.withValues(alpha: 0.08),
+                        AppColors.error.withValues(alpha: 0.04),
+                      ]
+                    : [
+                        AppColors.primary.withValues(alpha: 0.08),
+                        AppColors.primary.withValues(alpha: 0.03),
+                      ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+              border: Border.all(
+                color: isNeg
+                    ? AppColors.error.withValues(alpha: 0.3)
+                    : AppColors.primary.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top row: balance + contribution status badge
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'My Wallet',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${isNeg ? '−' : ''}৳${summary.walletBalance.abs().toStringAsFixed(0)}',
+                            style: AppTypography.headlineMedium.copyWith(
+                              color: balanceColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Contribution status badge
+                    if (me != null && me!.fixedContribution > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSizing.sm,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: paid
+                              ? AppColors.success.withValues(alpha: 0.12)
+                              : AppColors.warning.withValues(alpha: 0.15),
+                          borderRadius:
+                              BorderRadius.circular(AppSizing.radiusFull),
+                          border: Border.all(
+                            color: paid
+                                ? AppColors.success.withValues(alpha: 0.4)
+                                : AppColors.warning.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              paid
+                                  ? Icons.check_circle_outline_rounded
+                                  : Icons.schedule_rounded,
+                              size: 13,
+                              color: paid ? AppColors.success : AppColors.warning,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              paid ? 'Paid' : 'Due',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: paid
+                                    ? AppColors.success
+                                    : AppColors.warning,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+
+                if (flatWallet != null) ...[
+                  const SizedBox(height: AppSizing.sm),
+                  Divider(color: AppColors.border, height: 1),
+                  const SizedBox(height: AppSizing.sm),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.account_balance_rounded,
+                        size: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Flat Pool  ',
+                        style: AppTypography.labelSmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        '৳${flatWallet.balance.abs().toStringAsFixed(0)}',
+                        style: AppTypography.titleMedium.copyWith(
+                          color: flatWallet.isNegative
+                              ? AppColors.error
+                              : AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (flatWallet.isNegative) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '(deficit)',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ],
+                      const Spacer(),
+                      // Pending request alert
+                      if (summary.hasPendingRequests)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius:
+                                BorderRadius.circular(AppSizing.radiusFull),
+                          ),
+                          child: Text(
+                            '${summary.pendingPaymentRequests.length} request${summary.pendingPaymentRequests.length > 1 ? 's' : ''}',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+
+                const SizedBox(height: AppSizing.xs),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Tap to open wallet →',
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

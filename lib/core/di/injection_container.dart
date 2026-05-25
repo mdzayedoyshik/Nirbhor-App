@@ -67,14 +67,28 @@ import '../../features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
 import '../../features/member/data/datasources/member_remote_datasource.dart';
 import '../../features/member/data/repositories/member_repository_impl.dart';
 import '../../features/member/domain/repositories/member_repository.dart';
+import '../../features/member/domain/usecases/acknowledge_exit_usecase.dart';
 import '../../features/member/domain/usecases/cancel_exit_usecase.dart';
 import '../../features/member/domain/usecases/change_role_usecase.dart';
 import '../../features/member/domain/usecases/finalize_exit_usecase.dart';
+import '../../features/member/domain/usecases/get_exit_status_usecase.dart';
 import '../../features/member/domain/usecases/get_members_usecase.dart';
+import '../../features/member/domain/usecases/get_pending_exits_usecase.dart';
 import '../../features/member/domain/usecases/get_settlement_usecase.dart';
 import '../../features/member/domain/usecases/initiate_exit_usecase.dart';
 import '../../features/member/domain/usecases/transfer_manager_usecase.dart';
 import '../../features/member/presentation/bloc/member_bloc.dart';
+import '../../features/expense/data/datasources/expense_remote_datasource.dart';
+import '../../features/expense/data/repositories/expense_repository_impl.dart';
+import '../../features/expense/domain/repositories/expense_repository.dart';
+import '../../features/expense/domain/usecases/approve_expense_usecase.dart';
+import '../../features/expense/domain/usecases/delete_expense_usecase.dart';
+import '../../features/expense/domain/usecases/get_expense_detail_usecase.dart';
+import '../../features/expense/domain/usecases/get_expense_summary_usecase.dart';
+import '../../features/expense/domain/usecases/get_expenses_usecase.dart';
+import '../../features/expense/domain/usecases/record_expense_usecase.dart';
+import '../../features/expense/domain/usecases/update_expense_usecase.dart';
+import '../../features/expense/presentation/bloc/expense_bloc.dart';
 import '../network/api_client.dart';
 import '../services/device_token_service.dart';
 import '../services/image_upload_service.dart';
@@ -170,6 +184,7 @@ Future<void> configureDependencies() async {
       sendJoinRequest: sl(),
       getMyRequests: sl(),
       cancelJoinRequest: sl(),
+      getExitStatus: sl(),
     ),
   );
 
@@ -244,6 +259,33 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  // ── Expense ───────────────────────────────────────────
+  sl.registerLazySingleton(
+      () => ExpenseRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton<ExpenseRepository>(
+    () => ExpenseRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetExpensesUseCase(sl()));
+  sl.registerLazySingleton(() => GetExpenseSummaryUseCase(sl()));
+  sl.registerLazySingleton(() => GetExpenseDetailUseCase(sl()));
+  sl.registerLazySingleton(() => RecordExpenseUseCase(sl()));
+  sl.registerLazySingleton(() => ApproveExpenseUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateExpenseUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteExpenseUseCase(sl()));
+
+  // Expense bloc — factory (new instance per page visit)
+  sl.registerFactory(
+    () => ExpenseBloc(
+      getExpenses: sl(),
+      getExpenseSummary: sl(),
+      getExpenseDetail: sl(),
+      recordExpense: sl(),
+      approveExpense: sl(),
+      updateExpense: sl(),
+      deleteExpense: sl(),
+    ),
+  );
+
   // ── Member ────────────────────────────────────────────
   sl.registerLazySingleton(() => MemberRemoteDataSource(apiClient: sl()));
   sl.registerLazySingleton<MemberRepository>(
@@ -256,6 +298,9 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => GetSettlementUseCase(sl()));
   sl.registerLazySingleton(() => FinalizeExitUseCase(sl()));
   sl.registerLazySingleton(() => CancelExitUseCase(sl()));
+  sl.registerLazySingleton(() => GetExitStatusUseCase(sl()));
+  sl.registerLazySingleton(() => AcknowledgeExitUseCase(sl()));
+  sl.registerLazySingleton(() => GetPendingExitsUseCase(sl()));
 
   // Member bloc — factory (new instance per page visit)
   sl.registerFactory(

@@ -9,7 +9,6 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/di/injection_container.dart';
-import '../../domain/entities/finalize_exit_entity.dart';
 import '../../domain/entities/settlement_entity.dart';
 import '../../domain/usecases/cancel_exit_usecase.dart';
 import '../../domain/usecases/finalize_exit_usecase.dart';
@@ -29,6 +28,17 @@ class _SettlementPageState extends State<SettlementPage> {
 
   SettlementEntity get _settlement => widget.args.settlement;
   bool get _isManager => widget.args.isManager;
+
+  String get _finaliseLabel {
+    final amount = _settlement.finalAmount;
+    final name = _settlement.memberName;
+    if (amount < 0) {
+      return 'Collected ৳${amount.abs().toStringAsFixed(2)} from $name';
+    } else if (amount > 0) {
+      return 'Paid ৳${amount.toStringAsFixed(2)} to $name';
+    }
+    return 'Finalise Exit';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +77,7 @@ class _SettlementPageState extends State<SettlementPage> {
             if (_isManager && _settlement.isPending) ...[
               const SizedBox(height: AppSizing.xl),
               AppButton(
-                label: 'Finalise Exit',
+                label: _finaliseLabel,
                 loading: _loading,
                 onPressed: _onFinalise,
               ),
@@ -98,13 +108,12 @@ class _SettlementPageState extends State<SettlementPage> {
 
     setState(() => _loading = true);
     try {
-      final result = await sl<FinalizeExitUseCase>()(
+      await sl<FinalizeExitUseCase>()(
         flatId: widget.args.flatId,
         memberId: widget.args.memberId,
       );
       if (!mounted) return;
-      await _showDeductionsSummary(context, result);
-      if (!mounted) return;
+      AppSnackbar.success(context, 'Exit finalised successfully.');
       context.pop({'finalized': true});
     } catch (e) {
       if (!mounted) return;
@@ -140,21 +149,6 @@ class _SettlementPageState extends State<SettlementPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  Future<void> _showDeductionsSummary(
-    BuildContext context,
-    FinalizeExitEntity result,
-  ) async {
-    if (result.remainingMemberDeductions.isEmpty) return;
-    final lines = result.remainingMemberDeductions
-        .map((d) => '${d.name}: −৳${d.deducted.toStringAsFixed(2)}')
-        .join('\n');
-    await AppDialog.info(
-      context: context,
-      title: 'Wallet Adjustments',
-      message: 'The following members were debited for the refund:\n\n$lines',
-    );
   }
 
   String _msg(Object e) {

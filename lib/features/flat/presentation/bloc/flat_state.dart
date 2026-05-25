@@ -58,6 +58,24 @@ class FlatLoaded extends FlatState {
   List<Object?> get props => [flat];
 }
 
+/// User is an active member but has a pending exit — all actions blocked except settlement view
+class FlatPendingExit extends FlatState {
+  final FlatEntity flat;
+  final SettlementEntity settlement;
+  const FlatPendingExit(this.flat, this.settlement);
+  @override
+  List<Object?> get props => [flat, settlement];
+}
+
+/// User was exited from flat; needs to acknowledge before seeing join/create screen
+class FlatExitPendingAck extends FlatState {
+  final SettlementEntity settlement;
+  final String flatName;
+  const FlatExitPendingAck({required this.settlement, required this.flatName});
+  @override
+  List<Object?> get props => [settlement, flatName];
+}
+
 /// Error state — [fallback] is the state to render while the error is shown
 class FlatError extends FlatState {
   final String message;

@@ -7,6 +7,7 @@ class WalletSummaryModel extends WalletSummaryEntity {
     required super.memberName,
     required super.walletBalance,
     required super.fixedContribution,
+    required super.hasPaidFixedThisMonth,
     required super.paymentHints,
     required super.suggestedTotalToPay,
     required super.pendingPaymentRequests,
@@ -21,6 +22,7 @@ class WalletSummaryModel extends WalletSummaryEntity {
       memberName: json['member_name'] as String,
       walletBalance: (json['wallet_balance'] as num).toDouble(),
       fixedContribution: (json['fixed_contribution'] as num).toDouble(),
+      hasPaidFixedThisMonth: json['has_paid_fixed_this_month'] as bool? ?? false,
       paymentHints: PaymentHintsModel(
         flatId: flatId,
         suggestedMealAmount:

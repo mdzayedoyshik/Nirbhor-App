@@ -30,17 +30,38 @@ class PaymentsBloc extends Bloc<PaymentsEvent, PaymentsState> {
   final VerifyPaymentUseCase _verifyPayment;
   final RejectPaymentUseCase _rejectPayment;
 
+  // Cache per status tab — avoids loading spinner on tab switch
+  final Map<String?, List<PaymentEntity>> _cache = {};
+  // Always tracks the active tab status regardless of state type
+  String? _activeStatus;
+
   Future<void> _onLoad(
     PaymentsLoadRequested event,
     Emitter<PaymentsState> emit,
   ) async {
-    emit(const PaymentsLoading());
-    try {
-      final payments =
-          await _getPayments(event.flatId, status: event.status);
-      emit(PaymentsLoaded(payments, statusFilter: event.status));
-    } catch (e) {
-      emit(PaymentsError(_msg(e)));
+    _activeStatus = event.status;
+    final cached = _cache[event.status];
+    if (cached != null) {
+      // Show stale data immediately, then refresh silently in background
+      emit(PaymentsLoaded(cached, statusFilter: event.status));
+      try {
+        final fresh = await _getPayments(event.flatId, status: event.status);
+        _cache[event.status] = fresh;
+        if (_activeStatus == event.status) {
+          emit(PaymentsLoaded(fresh, statusFilter: event.status));
+        }
+      } catch (_) {
+        // Keep showing cached data — no error flash on background refresh
+      }
+    } else {
+      emit(const PaymentsLoading());
+      try {
+        final payments = await _getPayments(event.flatId, status: event.status);
+        _cache[event.status] = payments;
+        emit(PaymentsLoaded(payments, statusFilter: event.status));
+      } catch (e) {
+        emit(PaymentsError(_msg(e)));
+      }
     }
   }
 
@@ -52,13 +73,15 @@ class PaymentsBloc extends Bloc<PaymentsEvent, PaymentsState> {
     if (current == null) return;
     emit(PaymentsActionLoading(current));
     try {
-      final result =
-          await _verifyPayment(event.flatId, event.paymentId);
-      final refreshed =
-          await _getPayments(event.flatId, status: _currentStatus);
+      final result = await _verifyPayment(event.flatId, event.paymentId);
+      // Invalidate both pending and verified cache since an item moved between them
+      _cache.remove('pending');
+      _cache.remove('verified');
+      final refreshed = await _getPayments(event.flatId, status: _activeStatus);
+      _cache[_activeStatus] = refreshed;
       emit(PaymentVerifySuccess(result: result, payments: refreshed));
     } catch (e) {
-      emit(PaymentsLoaded(current, statusFilter: _currentStatus));
+      emit(PaymentsLoaded(current, statusFilter: _activeStatus));
       emit(PaymentsActionError(message: _msg(e), payments: current));
     }
   }
@@ -71,13 +94,14 @@ class PaymentsBloc extends Bloc<PaymentsEvent, PaymentsState> {
     if (current == null) return;
     emit(PaymentsActionLoading(current));
     try {
-      await _rejectPayment(event.flatId, event.paymentId,
-          reason: event.reason);
-      final refreshed =
-          await _getPayments(event.flatId, status: _currentStatus);
+      await _rejectPayment(event.flatId, event.paymentId, reason: event.reason);
+      _cache.remove('pending');
+      _cache.remove('rejected');
+      final refreshed = await _getPayments(event.flatId, status: _activeStatus);
+      _cache[_activeStatus] = refreshed;
       emit(PaymentRejectSuccess(refreshed));
     } catch (e) {
-      emit(PaymentsLoaded(current, statusFilter: _currentStatus));
+      emit(PaymentsLoaded(current, statusFilter: _activeStatus));
       emit(PaymentsActionError(message: _msg(e), payments: current));
     }
   }
@@ -88,7 +112,7 @@ class PaymentsBloc extends Bloc<PaymentsEvent, PaymentsState> {
   ) {
     final s = state;
     if (s is PaymentVerifySuccess) {
-      emit(PaymentsLoaded(s.payments, statusFilter: _currentStatus));
+      emit(PaymentsLoaded(s.payments, statusFilter: _activeStatus));
     }
   }
 
@@ -99,12 +123,6 @@ class PaymentsBloc extends Bloc<PaymentsEvent, PaymentsState> {
     if (s is PaymentVerifySuccess) return s.payments;
     if (s is PaymentRejectSuccess) return s.payments;
     if (s is PaymentsActionError) return s.payments;
-    return null;
-  }
-
-  String? get _currentStatus {
-    final s = state;
-    if (s is PaymentsLoaded) return s.statusFilter;
     return null;
   }
 

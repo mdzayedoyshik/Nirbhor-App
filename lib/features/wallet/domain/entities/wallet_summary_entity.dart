@@ -23,6 +23,7 @@ class WalletSummaryEntity extends Equatable {
     required this.memberName,
     required this.walletBalance,
     required this.fixedContribution,
+    required this.hasPaidFixedThisMonth,
     required this.paymentHints,
     required this.suggestedTotalToPay,
     required this.pendingPaymentRequests,
@@ -32,6 +33,7 @@ class WalletSummaryEntity extends Equatable {
   final String memberName;
   final double walletBalance;
   final double fixedContribution;
+  final bool hasPaidFixedThisMonth;
   final PaymentHintsEntity paymentHints;
   final double suggestedTotalToPay;
   final List<PendingRequestSummary> pendingPaymentRequests;
@@ -45,6 +47,7 @@ class WalletSummaryEntity extends Equatable {
         memberName,
         walletBalance,
         fixedContribution,
+        hasPaidFixedThisMonth,
         paymentHints,
         suggestedTotalToPay,
         pendingPaymentRequests,

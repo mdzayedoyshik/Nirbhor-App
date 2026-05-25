@@ -109,6 +109,14 @@ class FlatRemoteDataSource {
     auth: true,
   );
 
-  Future<Map<String, dynamic>> redistribute(String flatId) =>
-      _apiClient.post(ApiEndpoints.flatRedistribute(flatId), {}, auth: true);
+  Future<Map<String, dynamic>> redistribute(
+    String flatId, {
+    List<dynamic>? contributions,
+  }) {
+    final body = contributions != null
+        ? {'contributions': contributions}
+        : <String, dynamic>{};
+    return _apiClient.post(
+        ApiEndpoints.flatRedistribute(flatId), body, auth: true);
+  }
 }

@@ -49,6 +49,15 @@ import '../../features/wallet/presentation/pages/payments_list_page.dart';
 import '../../features/wallet/presentation/pages/submit_payment_page.dart';
 import '../../features/wallet/presentation/pages/transaction_history_page.dart';
 import '../../features/wallet/presentation/pages/wallet_home_page.dart';
+import '../../features/expense/presentation/args/edit_expense_args.dart';
+import '../../features/expense/presentation/args/expense_detail_args.dart';
+import '../../features/expense/presentation/args/expense_list_args.dart';
+import '../../features/expense/presentation/args/record_expense_args.dart';
+import '../../features/expense/presentation/bloc/expense_bloc.dart';
+import '../../features/expense/presentation/pages/edit_expense_page.dart';
+import '../../features/expense/presentation/pages/expense_detail_page.dart';
+import '../../features/expense/presentation/pages/expense_list_page.dart';
+import '../../features/expense/presentation/pages/record_expense_page.dart';
 import '../di/injection_container.dart';
 
 class AppRoutes {
@@ -83,6 +92,12 @@ class AppRoutes {
   static const flatMembers = '/flat/members';
   static const flatSettlement = '/flat/settlement';
   static const flatSettings = '/flat/settings';
+
+  // Expense
+  static const expenses = '/expenses';
+  static const expenseDetail = '/expenses/detail';
+  static const recordExpense = '/expenses/record';
+  static const editExpense = '/expenses/edit';
 }
 
 GoRouter createRouter(AuthBloc authBloc) {
@@ -145,7 +160,13 @@ GoRouter createRouter(AuthBloc authBloc) {
         builder: (_, state) =>
             ResetPasswordPage(args: state.extra! as ResetPasswordPageArgs),
       ),
-      GoRoute(path: AppRoutes.home, builder: (_, _) => const HomePage()),
+      GoRoute(
+        path: AppRoutes.home,
+        builder: (_, _) => BlocProvider.value(
+          value: sl<WalletBloc>(),
+          child: const HomePage(),
+        ),
+      ),
       GoRoute(
         path: AppRoutes.profile,
         builder: (_, _) => const ProfilePage(),
@@ -288,6 +309,69 @@ GoRouter createRouter(AuthBloc authBloc) {
             state.extra is FlatEntity ? null : AppRoutes.flatJoin,
         builder: (_, state) =>
             FlatSettingsPage(flat: state.extra! as FlatEntity),
+      ),
+
+      // ── Expense ───────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.expenses,
+        redirect: (_, state) =>
+            state.extra is ExpenseListArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as ExpenseListArgs;
+          return BlocProvider(
+            create: (_) => sl<ExpenseBloc>(),
+            child: ExpenseListPage(
+              flatId: args.flatId,
+              canManage: args.canManage,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.expenseDetail,
+        redirect: (_, state) =>
+            state.extra is ExpenseDetailArgs ? null : AppRoutes.expenses,
+        builder: (_, state) {
+          final args = state.extra! as ExpenseDetailArgs;
+          return BlocProvider(
+            create: (_) => sl<ExpenseBloc>(),
+            child: ExpenseDetailPage(
+              flatId: args.flatId,
+              expenseId: args.expenseId,
+              canManage: args.canManage,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.recordExpense,
+        redirect: (_, state) =>
+            state.extra is RecordExpenseArgs ? null : AppRoutes.expenses,
+        builder: (_, state) {
+          final args = state.extra! as RecordExpenseArgs;
+          return BlocProvider(
+            create: (_) => sl<ExpenseBloc>(),
+            child: RecordExpensePage(
+              flatId: args.flatId,
+              memberCount: args.memberCount,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.editExpense,
+        redirect: (_, state) =>
+            state.extra is EditExpenseArgs ? null : AppRoutes.expenses,
+        builder: (_, state) {
+          final args = state.extra! as EditExpenseArgs;
+          return BlocProvider(
+            create: (_) => sl<ExpenseBloc>(),
+            child: EditExpensePage(
+              flatId: args.flatId,
+              expense: args.expense,
+            ),
+          );
+        },
       ),
     ],
   );

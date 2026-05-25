@@ -60,6 +60,15 @@ class ApiEndpoints {
   static String flatPaymentHints(String flatId) =>
       '/flats/$flatId/payment-hints';
 
+  // Expense
+  static String flatExpenses(String flatId) => '/flats/$flatId/expenses';
+  static String flatExpensesSummary(String flatId) =>
+      '/flats/$flatId/expenses/summary';
+  static String flatExpense(String flatId, String expenseId) =>
+      '/flats/$flatId/expenses/$expenseId';
+  static String flatExpenseApprove(String flatId, String expenseId) =>
+      '/flats/$flatId/expenses/$expenseId/approve';
+
   // Member
   static String flatMembers(String flatId) => '/flats/$flatId/members';
   static String flatMemberRole(String flatId, String memberId) =>
@@ -74,4 +83,10 @@ class ApiEndpoints {
       '/flats/$flatId/members/$memberId/finalize-exit';
   static String flatMemberExit(String flatId, String memberId) =>
       '/flats/$flatId/members/$memberId/exit';
+
+  // Member exit status (self)
+  static String meExitStatus() => '/flats/me/exit-status';
+  static String meAcknowledgeExit() => '/flats/me/acknowledge-exit';
+  static String flatMemberPendingExits(String flatId) =>
+      '/flats/$flatId/members/pending-exits';
 }

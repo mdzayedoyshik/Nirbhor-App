@@ -11,6 +11,9 @@ import '../../../../features/flat/presentation/bloc/join_requests_bloc.dart';
 import '../../../../features/flat/presentation/pages/flat_home_view.dart';
 import '../../../../features/flat/presentation/pages/flat_landing_view.dart';
 import '../../../../features/flat/presentation/pages/pending_request_view.dart';
+import '../../../../features/member/presentation/pages/exit_summary_page.dart';
+import '../../../../features/member/presentation/pages/pending_exit_page.dart';
+import '../../../../features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -19,6 +22,11 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<FlatBloc, FlatState>(
       listener: (context, state) {
+        final resolved = _resolveDisplay(state);
+        if (resolved is FlatLoaded) {
+          // Load wallet summary whenever flat becomes visible
+          context.read<WalletBloc>().add(WalletSummaryRequested(resolved.flat.id));
+        }
         if (state is FlatError) {
           AppSnackbar.error(context, state.message);
         }
@@ -39,9 +47,13 @@ class HomePage extends StatelessWidget {
         }
 
         if (displayState is FlatLoaded) {
-          return BlocProvider(
-            create: (_) => sl<JoinRequestsBloc>()
-              ..add(JoinRequestsLoadRequested(displayState.flat.id)),
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) => sl<JoinRequestsBloc>()
+                  ..add(JoinRequestsLoadRequested(displayState.flat.id)),
+              ),
+            ],
             child: Scaffold(
               backgroundColor: AppColors.background,
               body: FlatHomeView(flat: displayState.flat),
@@ -54,6 +66,20 @@ class HomePage extends StatelessWidget {
             backgroundColor: AppColors.background,
             appBar: _profileAppBar(context),
             body: const PendingRequestView(),
+          );
+        }
+
+        if (displayState is FlatPendingExit) {
+          return PendingExitPage(
+            flat: displayState.flat,
+            settlement: displayState.settlement,
+          );
+        }
+
+        if (displayState is FlatExitPendingAck) {
+          return ExitSummaryPage(
+            settlement: displayState.settlement,
+            flatName: displayState.flatName,
           );
         }
 

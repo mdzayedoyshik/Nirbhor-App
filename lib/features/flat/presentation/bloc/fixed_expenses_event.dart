@@ -62,9 +62,10 @@ class FixedExpenseDeleteRequested extends FixedExpensesEvent {
 
 class FixedExpensesRedistributeRequested extends FixedExpensesEvent {
   final String flatId;
+  final List<Map<String, dynamic>>? contributions;
 
-  const FixedExpensesRedistributeRequested(this.flatId);
+  const FixedExpensesRedistributeRequested(this.flatId, {this.contributions});
 
   @override
-  List<Object?> get props => [flatId];
+  List<Object?> get props => [flatId, contributions];
 }

@@ -29,12 +29,15 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
   final GetFlatWalletUseCase _getFlatWallet;
   final SubmitPaymentUseCase _submitPayment;
 
+  WalletSummaryEntity? _cachedSummary;
+  FlatWalletEntity? _cachedFlatWallet;
+
   Future<(WalletSummaryEntity, FlatWalletEntity?)> _fetchBoth(
       String flatId) async {
     final summaryFuture = _getWalletSummary(flatId);
     final flatWalletFuture = _getFlatWallet(flatId)
         .then<FlatWalletEntity?>((v) => v)
-        .onError((_, __) => null);
+        .onError((e, st) => null);
     return (await summaryFuture, await flatWalletFuture);
   }
 
@@ -42,12 +45,27 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     WalletSummaryRequested event,
     Emitter<WalletState> emit,
   ) async {
-    emit(const WalletLoading());
-    try {
-      final (summary, flatWallet) = await _fetchBoth(event.flatId);
-      emit(WalletSummaryLoaded(summary, flatWallet: flatWallet));
-    } catch (e) {
-      emit(WalletError(_msg(e)));
+    if (_cachedSummary != null) {
+      // Show cached data immediately, refresh silently in background
+      emit(WalletSummaryLoaded(_cachedSummary!, flatWallet: _cachedFlatWallet));
+      try {
+        final (summary, flatWallet) = await _fetchBoth(event.flatId);
+        _cachedSummary = summary;
+        _cachedFlatWallet = flatWallet;
+        emit(WalletSummaryLoaded(summary, flatWallet: flatWallet));
+      } catch (_) {
+        // Keep showing cached data silently
+      }
+    } else {
+      emit(const WalletLoading());
+      try {
+        final (summary, flatWallet) = await _fetchBoth(event.flatId);
+        _cachedSummary = summary;
+        _cachedFlatWallet = flatWallet;
+        emit(WalletSummaryLoaded(summary, flatWallet: flatWallet));
+      } catch (e) {
+        emit(WalletError(_msg(e)));
+      }
     }
   }
 
@@ -72,6 +90,8 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
         note: event.note,
       );
       final (refreshed, refreshedFlat) = await _fetchBoth(event.flatId);
+      _cachedSummary = refreshed;
+      _cachedFlatWallet = refreshedFlat;
       emit(WalletPaymentSubmitSuccess(refreshed, flatWallet: refreshedFlat));
     } catch (e) {
       if (summary != null) {
