@@ -113,6 +113,16 @@ import '../../features/summary/domain/usecases/get_close_preview_usecase.dart';
 import '../../features/summary/domain/usecases/get_closed_months_usecase.dart';
 import '../../features/summary/domain/usecases/get_monthly_summary_usecase.dart';
 import '../../features/summary/presentation/bloc/summary_bloc.dart';
+import '../../features/complaint/data/datasources/complaint_remote_datasource.dart';
+import '../../features/complaint/data/repositories/complaint_repository_impl.dart';
+import '../../features/complaint/domain/repositories/complaint_repository.dart';
+import '../../features/complaint/domain/usecases/delete_complaint_usecase.dart';
+import '../../features/complaint/domain/usecases/edit_complaint_usecase.dart';
+import '../../features/complaint/domain/usecases/get_complaint_usecase.dart';
+import '../../features/complaint/domain/usecases/get_complaints_usecase.dart';
+import '../../features/complaint/domain/usecases/raise_complaint_usecase.dart';
+import '../../features/complaint/domain/usecases/update_complaint_status_usecase.dart';
+import '../../features/complaint/presentation/bloc/complaint_bloc.dart';
 import '../../features/task/data/datasources/task_remote_datasource.dart';
 import '../../features/task/data/repositories/task_repository_impl.dart';
 import '../../features/task/domain/repositories/task_repository.dart';
@@ -415,6 +425,30 @@ Future<void> configureDependencies() async {
       addSubTask: sl(),
       updateSubTask: sl(),
       deleteSubTask: sl(),
+    ),
+  );
+
+  // ── Complaint ─────────────────────────────────────────
+  sl.registerLazySingleton(
+      () => ComplaintRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton<ComplaintRepository>(
+    () => ComplaintRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetComplaintsUseCase(sl()));
+  sl.registerLazySingleton(() => GetComplaintUseCase(sl()));
+  sl.registerLazySingleton(() => RaiseComplaintUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateComplaintStatusUseCase(sl()));
+  sl.registerLazySingleton(() => EditComplaintUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteComplaintUseCase(sl()));
+
+  sl.registerFactory(
+    () => ComplaintBloc(
+      getComplaints: sl(),
+      getComplaint: sl(),
+      raiseComplaint: sl(),
+      updateStatus: sl(),
+      editComplaint: sl(),
+      deleteComplaint: sl(),
     ),
   );
 

@@ -70,6 +70,10 @@ import '../../features/task/presentation/args/task_page_args.dart';
 import '../../features/task/presentation/bloc/task_bloc.dart';
 import '../../features/task/presentation/pages/task_detail_page.dart';
 import '../../features/task/presentation/pages/task_page.dart';
+import '../../features/complaint/presentation/args/complaint_page_args.dart';
+import '../../features/complaint/presentation/bloc/complaint_bloc.dart';
+import '../../features/complaint/presentation/pages/complaint_detail_page.dart';
+import '../../features/complaint/presentation/pages/complaint_page.dart';
 import '../di/injection_container.dart';
 
 class AppRoutes {
@@ -111,6 +115,10 @@ class AppRoutes {
   // Tasks
   static const tasks = '/tasks';
   static const taskDetail = '/tasks/detail';
+
+  // Complaints
+  static const complaints = '/complaints';
+  static const complaintDetail = '/complaints/detail';
 
   // Summary
   static const summary = '/summary';
@@ -373,6 +381,32 @@ GoRouter createRouter(AuthBloc authBloc) {
           return BlocProvider(
             create: (_) => sl<TaskBloc>(),
             child: TaskDetailPage(args: args),
+          );
+        },
+      ),
+
+      // ── Complaints ───────────────────────────────────
+      GoRoute(
+        path: AppRoutes.complaints,
+        redirect: (_, state) =>
+            state.extra is ComplaintPageArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as ComplaintPageArgs;
+          return BlocProvider(
+            create: (_) => sl<ComplaintBloc>(),
+            child: ComplaintPage(args: args),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.complaintDetail,
+        redirect: (_, state) =>
+            state.extra is ComplaintDetailArgs ? null : AppRoutes.complaints,
+        builder: (_, state) {
+          final args = state.extra! as ComplaintDetailArgs;
+          return BlocProvider(
+            create: (_) => sl<ComplaintBloc>(),
+            child: ComplaintDetailPage(args: args),
           );
         },
       ),

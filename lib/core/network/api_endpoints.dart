@@ -112,6 +112,14 @@ class ApiEndpoints {
   static String flatSubTask(String flatId, String taskId, String subTaskId) =>
       '/flats/$flatId/tasks/$taskId/sub-tasks/$subTaskId';
 
+  // Complaints
+  static String flatComplaints(String flatId) =>
+      '/flats/$flatId/complaints';
+  static String flatComplaint(String flatId, String complaintId) =>
+      '/flats/$flatId/complaints/$complaintId';
+  static String flatComplaintStatus(String flatId, String complaintId) =>
+      '/flats/$flatId/complaints/$complaintId/status';
+
   // Summary
   static String flatMonthlySummary(String flatId) =>
       '/flats/$flatId/monthly-summary';
