@@ -13,6 +13,7 @@ import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../expense/presentation/args/expense_list_args.dart';
+import '../../../meal/presentation/args/meal_page_args.dart';
 import '../../../wallet/presentation/args/wallet_page_args.dart';
 import '../../../wallet/presentation/bloc/wallet/wallet_bloc.dart';
 import '../../domain/entities/flat_entity.dart';
@@ -262,6 +263,25 @@ class FlatHomeView extends StatelessWidget {
                                     .add(FlatRefreshRequested(flat.id));
                               }
                             }),
+                          ),
+                        ),
+                        const SizedBox(width: AppSizing.md),
+                        Expanded(
+                          child: _ActionButton(
+                            label: 'Meals',
+                            icon: Icons.restaurant_outlined,
+                            onTap: () {
+                              final member = me;
+                              if (member == null) return;
+                              context.push(
+                                AppRoutes.meals,
+                                extra: MealPageArgs(
+                                  flatId: flat.id,
+                                  canManage: canManage,
+                                  myMemberId: member.flatMemberId,
+                                ),
+                              );
+                            },
                           ),
                         ),
                         const SizedBox(width: AppSizing.md),

@@ -89,6 +89,22 @@ import '../../features/expense/domain/usecases/get_expenses_usecase.dart';
 import '../../features/expense/domain/usecases/record_expense_usecase.dart';
 import '../../features/expense/domain/usecases/update_expense_usecase.dart';
 import '../../features/expense/presentation/bloc/expense_bloc.dart';
+import '../../features/meal/data/datasources/meal_remote_datasource.dart';
+import '../../features/meal/data/repositories/meal_repository_impl.dart';
+import '../../features/meal/domain/repositories/meal_repository.dart';
+import '../../features/meal/domain/usecases/get_daily_meal_logs_usecase.dart';
+import '../../features/meal/domain/usecases/get_meal_config_usecase.dart';
+import '../../features/meal/domain/usecases/get_meal_pool_usecase.dart';
+import '../../features/meal/domain/usecases/get_meal_preferences_usecase.dart';
+import '../../features/meal/domain/usecases/get_meal_toggle_usecase.dart';
+import '../../features/meal/domain/usecases/manager_edit_meal_log_usecase.dart';
+import '../../features/meal/domain/usecases/set_meal_toggle_usecase.dart';
+import '../../features/meal/domain/usecases/update_meal_config_usecase.dart';
+import '../../features/meal/domain/usecases/update_meal_preferences_usecase.dart';
+import '../../features/meal/domain/usecases/update_own_meal_log_usecase.dart';
+import '../../features/meal/presentation/bloc/meal_bloc.dart';
+import '../../features/meal/presentation/bloc/meal_pool_bloc.dart';
+import '../../features/meal/presentation/bloc/meal_prefs_bloc.dart';
 import '../network/api_client.dart';
 import '../services/device_token_service.dart';
 import '../services/image_upload_service.dart';
@@ -311,5 +327,37 @@ Future<void> configureDependencies() async {
       initiateExit: sl(),
       getSettlement: sl(),
     ),
+  );
+
+  // ── Meal ──────────────────────────────────────────────
+  sl.registerLazySingleton(() => MealRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton<MealRepository>(
+    () => MealRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetMealConfigUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateMealConfigUseCase(sl()));
+  sl.registerLazySingleton(() => GetMealToggleUseCase(sl()));
+  sl.registerLazySingleton(() => SetMealToggleUseCase(sl()));
+  sl.registerLazySingleton(() => GetMealPreferencesUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateMealPreferencesUseCase(sl()));
+  sl.registerLazySingleton(() => GetDailyMealLogsUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateOwnMealLogUseCase(sl()));
+  sl.registerLazySingleton(() => ManagerEditMealLogUseCase(sl()));
+  sl.registerLazySingleton(() => GetMealPoolUseCase(sl()));
+
+  // Meal blocs — factories (new instance per page visit)
+  sl.registerFactory(
+    () => MealBloc(
+      getConfig: sl(),
+      updateConfig: sl(),
+      getDailyLogs: sl(),
+      updateOwnLog: sl(),
+      managerEdit: sl(),
+      setToggle: sl(),
+    ),
+  );
+  sl.registerFactory(() => MealPoolBloc(getPool: sl()));
+  sl.registerFactory(
+    () => MealPrefsBloc(getPrefs: sl(), updatePrefs: sl()),
   );
 }

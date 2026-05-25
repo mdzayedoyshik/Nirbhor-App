@@ -58,6 +58,11 @@ import '../../features/expense/presentation/pages/edit_expense_page.dart';
 import '../../features/expense/presentation/pages/expense_detail_page.dart';
 import '../../features/expense/presentation/pages/expense_list_page.dart';
 import '../../features/expense/presentation/pages/record_expense_page.dart';
+import '../../features/meal/presentation/args/meal_page_args.dart';
+import '../../features/meal/presentation/bloc/meal_bloc.dart';
+import '../../features/meal/presentation/bloc/meal_pool_bloc.dart';
+import '../../features/meal/presentation/bloc/meal_prefs_bloc.dart';
+import '../../features/meal/presentation/pages/meal_page.dart';
 import '../di/injection_container.dart';
 
 class AppRoutes {
@@ -92,6 +97,9 @@ class AppRoutes {
   static const flatMembers = '/flat/members';
   static const flatSettlement = '/flat/settlement';
   static const flatSettings = '/flat/settings';
+
+  // Meal
+  static const meals = '/meals';
 
   // Expense
   static const expenses = '/expenses';
@@ -309,6 +317,24 @@ GoRouter createRouter(AuthBloc authBloc) {
             state.extra is FlatEntity ? null : AppRoutes.flatJoin,
         builder: (_, state) =>
             FlatSettingsPage(flat: state.extra! as FlatEntity),
+      ),
+
+      // ── Meal ─────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.meals,
+        redirect: (_, state) =>
+            state.extra is MealPageArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as MealPageArgs;
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => sl<MealBloc>()),
+              BlocProvider(create: (_) => sl<MealPoolBloc>()),
+              BlocProvider(create: (_) => sl<MealPrefsBloc>()),
+            ],
+            child: MealPage(args: args),
+          );
+        },
       ),
 
       // ── Expense ───────────────────────────────────────

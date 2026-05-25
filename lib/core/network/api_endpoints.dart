@@ -69,6 +69,19 @@ class ApiEndpoints {
   static String flatExpenseApprove(String flatId, String expenseId) =>
       '/flats/$flatId/expenses/$expenseId/approve';
 
+  // Meal
+  static String mealConfig(String flatId) => '/flats/$flatId/meal-config';
+  static String mealToggles(String flatId) => '/flats/$flatId/meal-toggles';
+  static String mealLogs(String flatId) => '/flats/$flatId/meal-logs';
+  static String myMealLog(String flatId) => '/flats/$flatId/meal-logs/me';
+  static String mealLogForMember(String flatId, String memberId) =>
+      '/flats/$flatId/meal-logs/$memberId';
+  static String mealPool(String flatId) => '/flats/$flatId/meal-pool';
+  static String mealPreferences(String flatId, String memberId) =>
+      '/flats/$flatId/members/$memberId/meal-preferences';
+  static String memberMealLogs(String flatId, String memberId) =>
+      '/flats/$flatId/members/$memberId/meal-logs';
+
   // Member
   static String flatMembers(String flatId) => '/flats/$flatId/members';
   static String flatMemberRole(String flatId, String memberId) =>
