@@ -63,6 +63,9 @@ import '../../features/meal/presentation/bloc/meal_bloc.dart';
 import '../../features/meal/presentation/bloc/meal_pool_bloc.dart';
 import '../../features/meal/presentation/bloc/meal_prefs_bloc.dart';
 import '../../features/meal/presentation/pages/meal_page.dart';
+import '../../features/summary/presentation/args/summary_page_args.dart';
+import '../../features/summary/presentation/bloc/summary_bloc.dart';
+import '../../features/summary/presentation/pages/summary_page.dart';
 import '../di/injection_container.dart';
 
 class AppRoutes {
@@ -100,6 +103,9 @@ class AppRoutes {
 
   // Meal
   static const meals = '/meals';
+
+  // Summary
+  static const summary = '/summary';
 
   // Expense
   static const expenses = '/expenses';
@@ -333,6 +339,20 @@ GoRouter createRouter(AuthBloc authBloc) {
               BlocProvider(create: (_) => sl<MealPrefsBloc>()),
             ],
             child: MealPage(args: args),
+          );
+        },
+      ),
+
+      // ── Summary ──────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.summary,
+        redirect: (_, state) =>
+            state.extra is SummaryPageArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as SummaryPageArgs;
+          return BlocProvider(
+            create: (_) => sl<SummaryBloc>(),
+            child: SummaryPage(args: args),
           );
         },
       ),

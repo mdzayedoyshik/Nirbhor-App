@@ -105,6 +105,14 @@ import '../../features/meal/domain/usecases/update_own_meal_log_usecase.dart';
 import '../../features/meal/presentation/bloc/meal_bloc.dart';
 import '../../features/meal/presentation/bloc/meal_pool_bloc.dart';
 import '../../features/meal/presentation/bloc/meal_prefs_bloc.dart';
+import '../../features/summary/data/datasources/summary_remote_datasource.dart';
+import '../../features/summary/data/repositories/summary_repository_impl.dart';
+import '../../features/summary/domain/repositories/summary_repository.dart';
+import '../../features/summary/domain/usecases/close_month_usecase.dart';
+import '../../features/summary/domain/usecases/get_close_preview_usecase.dart';
+import '../../features/summary/domain/usecases/get_closed_months_usecase.dart';
+import '../../features/summary/domain/usecases/get_monthly_summary_usecase.dart';
+import '../../features/summary/presentation/bloc/summary_bloc.dart';
 import '../network/api_client.dart';
 import '../services/device_token_service.dart';
 import '../services/image_upload_service.dart';
@@ -359,5 +367,24 @@ Future<void> configureDependencies() async {
   sl.registerFactory(() => MealPoolBloc(getPool: sl()));
   sl.registerFactory(
     () => MealPrefsBloc(getPrefs: sl(), updatePrefs: sl()),
+  );
+
+  // ── Summary ───────────────────────────────────────────
+  sl.registerLazySingleton(() => SummaryRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton<SummaryRepository>(
+    () => SummaryRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetMonthlySummaryUseCase(sl()));
+  sl.registerLazySingleton(() => GetClosePreviewUseCase(sl()));
+  sl.registerLazySingleton(() => CloseMonthUseCase(sl()));
+  sl.registerLazySingleton(() => GetClosedMonthsUseCase(sl()));
+
+  sl.registerFactory(
+    () => SummaryBloc(
+      getMonthlySummary: sl(),
+      getClosePreview: sl(),
+      closeMonth: sl(),
+      getClosedMonths: sl(),
+    ),
   );
 }

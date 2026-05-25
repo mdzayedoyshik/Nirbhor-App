@@ -102,4 +102,14 @@ class ApiEndpoints {
   static String meAcknowledgeExit() => '/flats/me/acknowledge-exit';
   static String flatMemberPendingExits(String flatId) =>
       '/flats/$flatId/members/pending-exits';
+
+  // Summary
+  static String flatMonthlySummary(String flatId) =>
+      '/flats/$flatId/monthly-summary';
+  static String flatMonthlySummaryPreview(String flatId) =>
+      '/flats/$flatId/monthly-summary/preview';
+  static String flatMonthlySummaryClose(String flatId) =>
+      '/flats/$flatId/monthly-summary/close';
+  static String flatMonthlySummaries(String flatId) =>
+      '/flats/$flatId/monthly-summaries';
 }
