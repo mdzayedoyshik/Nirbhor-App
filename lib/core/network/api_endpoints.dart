@@ -103,6 +103,15 @@ class ApiEndpoints {
   static String flatMemberPendingExits(String flatId) =>
       '/flats/$flatId/members/pending-exits';
 
+  // Tasks
+  static String flatTasks(String flatId) => '/flats/$flatId/tasks';
+  static String flatTask(String flatId, String taskId) =>
+      '/flats/$flatId/tasks/$taskId';
+  static String flatSubTasks(String flatId, String taskId) =>
+      '/flats/$flatId/tasks/$taskId/sub-tasks';
+  static String flatSubTask(String flatId, String taskId, String subTaskId) =>
+      '/flats/$flatId/tasks/$taskId/sub-tasks/$subTaskId';
+
   // Summary
   static String flatMonthlySummary(String flatId) =>
       '/flats/$flatId/monthly-summary';

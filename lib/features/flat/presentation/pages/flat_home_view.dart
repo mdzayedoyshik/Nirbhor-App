@@ -15,6 +15,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../expense/presentation/args/expense_list_args.dart';
 import '../../../meal/presentation/args/meal_page_args.dart';
 import '../../../summary/presentation/args/summary_page_args.dart';
+import '../../../task/presentation/args/task_page_args.dart';
 import '../../../wallet/presentation/args/wallet_page_args.dart';
 import '../../../wallet/presentation/bloc/wallet/wallet_bloc.dart';
 import '../../domain/entities/flat_entity.dart';
@@ -294,6 +295,29 @@ class FlatHomeView extends StatelessWidget {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSizing.sm),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizing.pagePadding,
+                    ),
+                    child: _ActionButton(
+                      label: 'Tasks',
+                      icon: Icons.task_alt_rounded,
+                      onTap: () {
+                        final member = me;
+                        if (member == null) return;
+                        context.push(
+                          AppRoutes.tasks,
+                          extra: TaskPageArgs(
+                            flatId: flat.id,
+                            canManage: canManage,
+                            myMemberId: member.flatMemberId,
+                            members: flat.activeMembers,
+                          ),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(height: AppSizing.sm),

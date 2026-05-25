@@ -66,6 +66,10 @@ import '../../features/meal/presentation/pages/meal_page.dart';
 import '../../features/summary/presentation/args/summary_page_args.dart';
 import '../../features/summary/presentation/bloc/summary_bloc.dart';
 import '../../features/summary/presentation/pages/summary_page.dart';
+import '../../features/task/presentation/args/task_page_args.dart';
+import '../../features/task/presentation/bloc/task_bloc.dart';
+import '../../features/task/presentation/pages/task_detail_page.dart';
+import '../../features/task/presentation/pages/task_page.dart';
 import '../di/injection_container.dart';
 
 class AppRoutes {
@@ -103,6 +107,10 @@ class AppRoutes {
 
   // Meal
   static const meals = '/meals';
+
+  // Tasks
+  static const tasks = '/tasks';
+  static const taskDetail = '/tasks/detail';
 
   // Summary
   static const summary = '/summary';
@@ -339,6 +347,32 @@ GoRouter createRouter(AuthBloc authBloc) {
               BlocProvider(create: (_) => sl<MealPrefsBloc>()),
             ],
             child: MealPage(args: args),
+          );
+        },
+      ),
+
+      // ── Tasks ────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.tasks,
+        redirect: (_, state) =>
+            state.extra is TaskPageArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as TaskPageArgs;
+          return BlocProvider(
+            create: (_) => sl<TaskBloc>(),
+            child: TaskPage(args: args),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.taskDetail,
+        redirect: (_, state) =>
+            state.extra is TaskDetailArgs ? null : AppRoutes.tasks,
+        builder: (_, state) {
+          final args = state.extra! as TaskDetailArgs;
+          return BlocProvider(
+            create: (_) => sl<TaskBloc>(),
+            child: TaskDetailPage(args: args),
           );
         },
       ),

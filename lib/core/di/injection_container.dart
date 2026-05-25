@@ -113,6 +113,18 @@ import '../../features/summary/domain/usecases/get_close_preview_usecase.dart';
 import '../../features/summary/domain/usecases/get_closed_months_usecase.dart';
 import '../../features/summary/domain/usecases/get_monthly_summary_usecase.dart';
 import '../../features/summary/presentation/bloc/summary_bloc.dart';
+import '../../features/task/data/datasources/task_remote_datasource.dart';
+import '../../features/task/data/repositories/task_repository_impl.dart';
+import '../../features/task/domain/repositories/task_repository.dart';
+import '../../features/task/domain/usecases/add_sub_task_usecase.dart';
+import '../../features/task/domain/usecases/create_task_usecase.dart';
+import '../../features/task/domain/usecases/delete_sub_task_usecase.dart';
+import '../../features/task/domain/usecases/delete_task_usecase.dart';
+import '../../features/task/domain/usecases/get_task_usecase.dart';
+import '../../features/task/domain/usecases/get_tasks_usecase.dart';
+import '../../features/task/domain/usecases/update_sub_task_usecase.dart';
+import '../../features/task/domain/usecases/update_task_usecase.dart';
+import '../../features/task/presentation/bloc/task_bloc.dart';
 import '../network/api_client.dart';
 import '../services/device_token_service.dart';
 import '../services/image_upload_service.dart';
@@ -378,6 +390,33 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => GetClosePreviewUseCase(sl()));
   sl.registerLazySingleton(() => CloseMonthUseCase(sl()));
   sl.registerLazySingleton(() => GetClosedMonthsUseCase(sl()));
+
+  // ── Task ──────────────────────────────────────────────
+  sl.registerLazySingleton(() => TaskRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton<TaskRepository>(
+    () => TaskRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetTasksUseCase(sl()));
+  sl.registerLazySingleton(() => GetTaskUseCase(sl()));
+  sl.registerLazySingleton(() => CreateTaskUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateTaskUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteTaskUseCase(sl()));
+  sl.registerLazySingleton(() => AddSubTaskUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateSubTaskUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteSubTaskUseCase(sl()));
+
+  sl.registerFactory(
+    () => TaskBloc(
+      getTasks: sl(),
+      getTask: sl(),
+      createTask: sl(),
+      updateTask: sl(),
+      deleteTask: sl(),
+      addSubTask: sl(),
+      updateSubTask: sl(),
+      deleteSubTask: sl(),
+    ),
+  );
 
   sl.registerFactory(
     () => SummaryBloc(
