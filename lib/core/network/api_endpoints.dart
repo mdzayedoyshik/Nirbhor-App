@@ -127,6 +127,11 @@ class ApiEndpoints {
   static String notificationRead(String id) => '/notifications/$id/read';
   static String notification(String id) => '/notifications/$id';
 
+  // Audit Logs
+  static String flatAuditLogs(String flatId) => '/flats/$flatId/audit-logs';
+  static String flatAuditLog(String flatId, String logId) =>
+      '/flats/$flatId/audit-logs/$logId';
+
   // Summary
   static String flatMonthlySummary(String flatId) =>
       '/flats/$flatId/monthly-summary';

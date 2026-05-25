@@ -8,6 +8,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../audit_log/presentation/args/audit_log_page_args.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/app_image_picker.dart';
 import '../../../../core/widgets/app_snackbar.dart';
@@ -168,6 +169,40 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                           : () => _submit(context),
                     ),
                     const SizedBox(height: AppSizing.xxl),
+                    // Audit log
+                    Card(
+                      elevation: 0,
+                      color: AppColors.surfaceVariant,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppSizing.radiusMd),
+                      ),
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.history,
+                          color: AppColors.primary,
+                        ),
+                        title: Text(
+                          'Audit Log',
+                          style: AppTypography.bodyMedium,
+                        ),
+                        subtitle: Text(
+                          'View all changes made in this flat',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        trailing: const Icon(
+                          Icons.chevron_right,
+                          color: AppColors.textSecondary,
+                        ),
+                        onTap: () => context.push(
+                          AppRoutes.auditLog,
+                          extra: AuditLogPageArgs(flatId: widget.flat.id),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSizing.md),
                     // Danger zone
                     Container(
                       width: double.infinity,

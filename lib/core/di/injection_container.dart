@@ -135,6 +135,12 @@ import '../../features/task/domain/usecases/get_tasks_usecase.dart';
 import '../../features/task/domain/usecases/update_sub_task_usecase.dart';
 import '../../features/task/domain/usecases/update_task_usecase.dart';
 import '../../features/task/presentation/bloc/task_bloc.dart';
+import '../../features/audit_log/data/datasources/audit_log_remote_datasource.dart';
+import '../../features/audit_log/data/repositories/audit_log_repository_impl.dart';
+import '../../features/audit_log/domain/repositories/audit_log_repository.dart';
+import '../../features/audit_log/domain/usecases/get_audit_log_usecase.dart';
+import '../../features/audit_log/domain/usecases/get_audit_logs_usecase.dart';
+import '../../features/audit_log/presentation/bloc/audit_log_bloc.dart';
 import '../../features/notification/data/datasources/notification_remote_datasource.dart';
 import '../../features/notification/data/repositories/notification_repository_impl.dart';
 import '../../features/notification/domain/repositories/notification_repository.dart';
@@ -490,6 +496,21 @@ Future<void> configureDependencies() async {
       markRead: sl(),
       markAllRead: sl(),
       deleteNotification: sl(),
+    ),
+  );
+
+  // ── Audit Log ─────────────────────────────────────────────
+  sl.registerLazySingleton(() => AuditLogRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton<AuditLogRepository>(
+    () => AuditLogRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetAuditLogsUseCase(sl()));
+  sl.registerLazySingleton(() => GetAuditLogUseCase(sl()));
+
+  sl.registerFactory(
+    () => AuditLogBloc(
+      getAuditLogs: sl(),
+      getAuditLog: sl(),
     ),
   );
 }

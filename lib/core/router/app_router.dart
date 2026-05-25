@@ -78,6 +78,10 @@ import '../../features/notification/presentation/args/notification_page_args.dar
 import '../../features/notification/presentation/bloc/notification_bloc.dart';
 import '../../features/notification/presentation/bloc/notification_event.dart';
 import '../../features/notification/presentation/pages/notification_page.dart';
+import '../../features/audit_log/presentation/args/audit_log_page_args.dart';
+import '../../features/audit_log/presentation/bloc/audit_log_bloc.dart';
+import '../../features/audit_log/presentation/bloc/audit_log_event.dart';
+import '../../features/audit_log/presentation/pages/audit_log_page.dart';
 import '../di/injection_container.dart';
 
 class AppRoutes {
@@ -126,6 +130,9 @@ class AppRoutes {
 
   // Notifications
   static const notifications = '/notifications';
+
+  // Audit Log
+  static const auditLog = '/audit-log';
 
   // Summary
   static const summary = '/summary';
@@ -512,6 +519,24 @@ GoRouter createRouter(AuthBloc authBloc) {
             value: sl<NotificationBloc>()
               ..add(const NotificationLoadRequested()),
             child: NotificationPage(args: args),
+          );
+        },
+      ),
+
+      // ── Audit Log ─────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.auditLog,
+        redirect: (_, state) =>
+            state.extra is AuditLogPageArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as AuditLogPageArgs;
+          return BlocProvider(
+            create: (_) => sl<AuditLogBloc>()
+              ..add(AuditLogLoadRequested(
+                flatId: args.flatId,
+                filters: const AuditLogFilters(),
+              )),
+            child: AuditLogPage(args: args),
           );
         },
       ),
