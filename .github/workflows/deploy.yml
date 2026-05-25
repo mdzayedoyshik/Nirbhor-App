@@ -28,6 +28,7 @@ jobs:
 
       - name: Decode keystore
         run: |
+          mkdir -p android/properties
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/properties/upload.jks
 
       - name: Create key.properties
