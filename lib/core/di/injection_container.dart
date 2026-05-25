@@ -135,6 +135,15 @@ import '../../features/task/domain/usecases/get_tasks_usecase.dart';
 import '../../features/task/domain/usecases/update_sub_task_usecase.dart';
 import '../../features/task/domain/usecases/update_task_usecase.dart';
 import '../../features/task/presentation/bloc/task_bloc.dart';
+import '../../features/notification/data/datasources/notification_remote_datasource.dart';
+import '../../features/notification/data/repositories/notification_repository_impl.dart';
+import '../../features/notification/domain/repositories/notification_repository.dart';
+import '../../features/notification/domain/usecases/delete_notification_usecase.dart';
+import '../../features/notification/domain/usecases/get_notifications_usecase.dart';
+import '../../features/notification/domain/usecases/get_unread_count_usecase.dart';
+import '../../features/notification/domain/usecases/mark_all_notifications_read_usecase.dart';
+import '../../features/notification/domain/usecases/mark_notification_read_usecase.dart';
+import '../../features/notification/presentation/bloc/notification_bloc.dart';
 import '../network/api_client.dart';
 import '../services/device_token_service.dart';
 import '../services/image_upload_service.dart';
@@ -458,6 +467,29 @@ Future<void> configureDependencies() async {
       getClosePreview: sl(),
       closeMonth: sl(),
       getClosedMonths: sl(),
+    ),
+  );
+
+  // ── Notification ──────────────────────────────────────────
+  sl.registerLazySingleton(
+      () => NotificationRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetNotificationsUseCase(sl()));
+  sl.registerLazySingleton(() => GetUnreadCountUseCase(sl()));
+  sl.registerLazySingleton(() => MarkNotificationReadUseCase(sl()));
+  sl.registerLazySingleton(() => MarkAllNotificationsReadUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteNotificationUseCase(sl()));
+
+  // Singleton so the bell badge is globally consistent
+  sl.registerLazySingleton(
+    () => NotificationBloc(
+      getNotifications: sl(),
+      getUnreadCount: sl(),
+      markRead: sl(),
+      markAllRead: sl(),
+      deleteNotification: sl(),
     ),
   );
 }

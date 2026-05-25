@@ -14,6 +14,9 @@ import '../../../../core/widgets/app_snackbar.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../expense/presentation/args/expense_list_args.dart';
 import '../../../meal/presentation/args/meal_page_args.dart';
+import '../../../notification/presentation/args/notification_page_args.dart';
+import '../../../notification/presentation/bloc/notification_bloc.dart';
+import '../../../notification/presentation/bloc/notification_state.dart';
 import '../../../summary/presentation/args/summary_page_args.dart';
 import '../../../task/presentation/args/task_page_args.dart';
 import '../../../complaint/presentation/args/complaint_page_args.dart';
@@ -60,6 +63,62 @@ class FlatHomeView extends StatelessWidget {
               pinned: true,
               backgroundColor: AppColors.primary,
               actions: [
+                // Notification bell with badge
+                BlocBuilder<NotificationBloc, NotificationState>(
+                  builder: (context, notifState) {
+                    int count = 0;
+                    if (notifState is NotificationUnreadCountLoaded) {
+                      count = notifState.unreadCount;
+                    } else if (notifState is NotificationListLoaded) {
+                      count = notifState.unreadCount;
+                    } else if (notifState is NotificationError) {
+                      count = notifState.unreadCount;
+                    }
+                    return Stack(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.notifications_outlined,
+                            color: AppColors.white,
+                          ),
+                          onPressed: () => context.push(
+                            AppRoutes.notifications,
+                            extra: NotificationPageArgs(
+                              flatId: flat.id,
+                              canManage: me?.canManage ?? false,
+                              myMemberId: me?.flatMemberId ?? '',
+                            ),
+                          ),
+                        ),
+                        if (count > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(
+                                color: AppColors.error,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                count > 99 ? '99+' : '$count',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
                 if (canManage)
                   IconButton(
                     icon: const Icon(

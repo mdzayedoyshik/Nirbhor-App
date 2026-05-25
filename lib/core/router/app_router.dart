@@ -74,6 +74,10 @@ import '../../features/complaint/presentation/args/complaint_page_args.dart';
 import '../../features/complaint/presentation/bloc/complaint_bloc.dart';
 import '../../features/complaint/presentation/pages/complaint_detail_page.dart';
 import '../../features/complaint/presentation/pages/complaint_page.dart';
+import '../../features/notification/presentation/args/notification_page_args.dart';
+import '../../features/notification/presentation/bloc/notification_bloc.dart';
+import '../../features/notification/presentation/bloc/notification_event.dart';
+import '../../features/notification/presentation/pages/notification_page.dart';
 import '../di/injection_container.dart';
 
 class AppRoutes {
@@ -119,6 +123,9 @@ class AppRoutes {
   // Complaints
   static const complaints = '/complaints';
   static const complaintDetail = '/complaints/detail';
+
+  // Notifications
+  static const notifications = '/notifications';
 
   // Summary
   static const summary = '/summary';
@@ -192,8 +199,14 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: AppRoutes.home,
-        builder: (_, _) => BlocProvider.value(
-          value: sl<WalletBloc>(),
+        builder: (_, _) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: sl<WalletBloc>()),
+            BlocProvider.value(
+              value: sl<NotificationBloc>()
+                ..add(const NotificationUnreadCountRequested()),
+            ),
+          ],
           child: const HomePage(),
         ),
       ),
@@ -484,6 +497,21 @@ GoRouter createRouter(AuthBloc authBloc) {
               flatId: args.flatId,
               expense: args.expense,
             ),
+          );
+        },
+      ),
+
+      // ── Notifications ─────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.notifications,
+        redirect: (_, state) =>
+            state.extra is NotificationPageArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as NotificationPageArgs;
+          return BlocProvider.value(
+            value: sl<NotificationBloc>()
+              ..add(const NotificationLoadRequested()),
+            child: NotificationPage(args: args),
           );
         },
       ),

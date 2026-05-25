@@ -120,6 +120,13 @@ class ApiEndpoints {
   static String flatComplaintStatus(String flatId, String complaintId) =>
       '/flats/$flatId/complaints/$complaintId/status';
 
+  // Notifications
+  static const String notifications = '/notifications';
+  static const String notificationsUnreadCount = '/notifications/unread-count';
+  static const String notificationsReadAll = '/notifications/read-all';
+  static String notificationRead(String id) => '/notifications/$id/read';
+  static String notification(String id) => '/notifications/$id';
+
   // Summary
   static String flatMonthlySummary(String flatId) =>
       '/flats/$flatId/monthly-summary';
