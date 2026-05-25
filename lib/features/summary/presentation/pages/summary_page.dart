@@ -166,7 +166,6 @@ class _SummaryPageState extends State<SummaryPage>
     return BlocConsumer<SummaryBloc, SummaryState>(
       listener: (context, state) {
         if (state is SummaryCloseSuccess) {
-          Navigator.of(context).popUntil((route) => route.isFirst || !route.settings.name!.contains('sheet'));
           AppSnackbar.success(
             context,
             '${_monthLabel(state.month, state.year)} closed successfully.',
@@ -184,9 +183,6 @@ class _SummaryPageState extends State<SummaryPage>
                 SummaryClosedMonthsLoadRequested(widget.args.flatId),
               );
         } else if (state is SummaryCloseError) {
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          }
           AppSnackbar.error(context, state.message);
           // Restore loaded state so page remains usable
           context.read<SummaryBloc>().add(SummaryLoadRequested(
@@ -346,6 +342,22 @@ class _SummaryTab extends StatelessWidget {
                 else if (state is SummaryLoaded) ...[
                   _SummaryContent(
                     summary: (state as SummaryLoaded).summary,
+                    myMemberId: args.myMemberId,
+                    isManager: args.isManager,
+                    isCurrentMonth: isCurrentMonth,
+                    onClose: onClose,
+                  ),
+                ] else if (state is SummaryCloseSuccess) ...[
+                  _SummaryContent(
+                    summary: (state as SummaryCloseSuccess).summary,
+                    myMemberId: args.myMemberId,
+                    isManager: args.isManager,
+                    isCurrentMonth: isCurrentMonth,
+                    onClose: onClose,
+                  ),
+                ] else if (state is SummaryCloseError) ...[
+                  _SummaryContent(
+                    summary: (state as SummaryCloseError).summary,
                     myMemberId: args.myMemberId,
                     isManager: args.isManager,
                     isCurrentMonth: isCurrentMonth,
@@ -842,6 +854,10 @@ class _HistoryTab extends StatelessWidget {
     if (state is SummaryLoaded) {
       months = (state as SummaryLoaded).closedMonths;
       isLoading = (state as SummaryLoaded).isClosedMonthsLoading;
+    } else if (state is SummaryCloseSuccess) {
+      months = (state as SummaryCloseSuccess).closedMonths;
+    } else if (state is SummaryCloseError) {
+      months = (state as SummaryCloseError).closedMonths;
     }
 
     if (isLoading) {
