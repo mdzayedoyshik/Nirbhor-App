@@ -99,7 +99,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
       ),
       body: BlocConsumer<ComplaintBloc, ComplaintState>(
         listener: (context, state) {
-          if (state is ComplaintError && state.detail == null) {
+          if (state is ComplaintError) {
             AppSnackbar.error(context, state.message);
           }
           if (state is ComplaintActionSuccess) {
@@ -153,7 +153,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
       ),
-      builder: (_) => SafeArea(
+      builder: (sheetCtx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -173,7 +173,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
                     color: AppColors.textPrimary),
                 title: Text('Edit Complaint', style: AppTypography.bodyMedium),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetCtx);
                   _showEditSheet(context, c);
                 },
               ),
@@ -187,7 +187,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
                       .copyWith(color: AppColors.error),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetCtx);
                   _confirmDelete(context, c);
                 },
               ),
