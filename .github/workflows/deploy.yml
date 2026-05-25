@@ -47,12 +47,35 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Extract version from pubspec.yaml
+        id: version
+        run: |
+          VERSION_NAME=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
+          BUILD_NUMBER=$(( ${{ github.run_number }} + 4 ))
+          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "build=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION_NAME}+${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+
+      - name: Build APK
+        run: |
+          flutter build apk \
+            --release \
+            --dart-define=ENV=prod \
+            --build-number=${{ steps.version.outputs.build }}
+
       - name: Build App Bundle
         run: |
           flutter build appbundle \
             --release \
             --dart-define=ENV=prod \
-            --build-number=$(( ${{ github.run_number }} + 4 ))
+            --build-number=${{ steps.version.outputs.build }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.name }} (build ${{ steps.version.outputs.build }})
+          files: build/app/outputs/apk/release/app-release.apk
 
       - name: Upload to Play Store (Closed Testing)
         uses: r0adkll/upload-google-play@v1
