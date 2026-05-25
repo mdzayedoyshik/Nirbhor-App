@@ -8,6 +8,8 @@ jobs:
   deploy:
     name: Build & Deploy to Play Store
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -51,7 +53,7 @@ jobs:
         id: version
         run: |
           VERSION_NAME=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
-          BUILD_NUMBER=$(( ${{ github.run_number }} + 4 ))
+          BUILD_NUMBER=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f2)
           echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "build=$BUILD_NUMBER" >> $GITHUB_OUTPUT
           echo "tag=v${VERSION_NAME}+${BUILD_NUMBER}" >> $GITHUB_OUTPUT
