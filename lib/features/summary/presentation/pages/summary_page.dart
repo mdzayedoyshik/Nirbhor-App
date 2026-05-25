@@ -83,7 +83,6 @@ class _SummaryPageState extends State<SummaryPage>
     _month = now.month;
     _year = now.year;
     _load();
-    _loadClosedMonths();
   }
 
   @override
@@ -98,12 +97,6 @@ class _SummaryPageState extends State<SummaryPage>
           month: _month,
           year: _year,
         ));
-  }
-
-  void _loadClosedMonths() {
-    context.read<SummaryBloc>().add(
-          SummaryClosedMonthsLoadRequested(widget.args.flatId),
-        );
   }
 
   void _prevMonth() {
