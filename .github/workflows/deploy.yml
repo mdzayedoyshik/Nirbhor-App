@@ -85,5 +85,5 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
           packageName: com.techorbit.nirbhor
           releaseFiles: build/app/outputs/bundle/release/*.aab
-          track: alpha
+          tracks: alpha
           status: completed
