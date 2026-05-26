@@ -7,9 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../di/injection_container.dart';
 import '../router/app_router.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
-import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/flat/presentation/bloc/flat_bloc.dart';
-import '../../features/flat/presentation/bloc/flat_state.dart';
 import '../../features/notification/presentation/bloc/notification_bloc.dart';
 import '../../features/notification/presentation/bloc/notification_event.dart';
 import '../../features/task/presentation/args/task_page_args.dart';
@@ -213,17 +211,23 @@ class PushNotificationService {
           AppRoutes.walletHome,
           extra: WalletPageArgs(flatId: flatId, canManage: canManage),
         );
+      case 'join_requests':
+        if (canManage) {
+          router.push(AppRoutes.flatRequests, extra: flatId);
+        } else {
+          router.go(AppRoutes.home);
+        }
       default:
         router.go(AppRoutes.home);
     }
   }
 
   static String _routeFromType(String type) {
-    if (type.contains('task')) return 'tasks';
-    if (type.contains('complaint')) return 'complaints';
+    if (type.contains('task')) { return 'tasks'; }
+    if (type.contains('complaint')) { return 'complaints'; }
     if (type.contains('payment') ||
         type.contains('wallet') ||
-        type.contains('contribution')) return 'wallet';
+        type.contains('contribution')) { return 'wallet'; }
     return 'home';
   }
 }

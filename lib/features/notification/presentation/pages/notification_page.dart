@@ -282,6 +282,13 @@ class _NotificationPageState extends State<NotificationPage> {
 
     final type = n.type.toLowerCase();
 
+    if (type.contains('join_request') || type.contains('join request')) {
+      if (widget.args.canManage) {
+        context.push(AppRoutes.flatRequests, extra: widget.args.flatId);
+      }
+      return;
+    }
+
     if (type.contains('complaint')) {
       context.push(
         AppRoutes.complaints,
@@ -504,23 +511,60 @@ class _NotificationTile extends StatelessWidget {
 
   _TypeInfo _iconForType(String type) {
     final t = type.toLowerCase();
-    if (t.contains('complaint')) {
-      return _TypeInfo(Icons.report_problem_outlined, Colors.orange);
+    // Payment / wallet
+    if (t.contains('payment_request_received') || t.contains('payment_request')) {
+      return _TypeInfo(Icons.request_quote_outlined, const Color(0xFFFF9800)); // orange
+    }
+    if (t.contains('payment_submitted')) {
+      return _TypeInfo(Icons.upload_rounded, const Color(0xFF2196F3)); // blue
+    }
+    if (t.contains('payment_verified')) {
+      return _TypeInfo(Icons.verified_outlined, const Color(0xFF4CAF50)); // green
+    }
+    if (t.contains('payment_rejected')) {
+      return _TypeInfo(Icons.cancel_outlined, const Color(0xFFF44336)); // red
+    }
+    if (t.contains('payment') || t.contains('wallet')) {
+      return _TypeInfo(Icons.account_balance_wallet_outlined, const Color(0xFF2196F3));
+    }
+    if (t.contains('contribution') || t.contains('fixed')) {
+      return _TypeInfo(Icons.calendar_month_outlined, const Color(0xFF009688)); // teal
+    }
+    // Tasks
+    if (t.contains('task_assigned') || t.contains('task_created')) {
+      return _TypeInfo(Icons.assignment_outlined, const Color(0xFF3F51B5)); // indigo
+    }
+    if (t.contains('task_completed')) {
+      return _TypeInfo(Icons.task_alt, const Color(0xFF4CAF50));
     }
     if (t.contains('task')) {
-      return _TypeInfo(Icons.task_alt, Colors.blue);
+      return _TypeInfo(Icons.task_alt, const Color(0xFF3F51B5));
     }
-    if (t.contains('payment') ||
-        t.contains('wallet') ||
-        t.contains('contribution')) {
-      return _TypeInfo(Icons.account_balance_wallet_outlined, Colors.green);
+    // Complaints
+    if (t.contains('complaint_resolved')) {
+      return _TypeInfo(Icons.check_circle_outline, const Color(0xFF4CAF50));
     }
-    if (t.contains('member') ||
-        t.contains('joined') ||
-        t.contains('exit')) {
-      return _TypeInfo(Icons.people_outline, Colors.purple);
+    if (t.contains('complaint')) {
+      return _TypeInfo(Icons.report_problem_outlined, const Color(0xFFFF9800));
     }
-    return _TypeInfo(Icons.notifications_outlined, Colors.grey);
+    // Join / members
+    if (t.contains('join_request_received')) {
+      return _TypeInfo(Icons.person_add_outlined, const Color(0xFF9C27B0)); // purple
+    }
+    if (t.contains('join_request_approved') || t.contains('approved')) {
+      return _TypeInfo(Icons.how_to_reg_outlined, const Color(0xFF4CAF50));
+    }
+    if (t.contains('join_request_rejected') || t.contains('declined')) {
+      return _TypeInfo(Icons.person_remove_outlined, const Color(0xFFF44336));
+    }
+    if (t.contains('member') || t.contains('joined')) {
+      return _TypeInfo(Icons.people_outline, const Color(0xFF9C27B0));
+    }
+    if (t.contains('exit')) {
+      return _TypeInfo(Icons.exit_to_app_rounded, const Color(0xFFFF5722)); // deep orange
+    }
+    // Default
+    return _TypeInfo(Icons.notifications_outlined, const Color(0xFF607D8B)); // blue grey
   }
 
   String _timeAgo(String iso) {

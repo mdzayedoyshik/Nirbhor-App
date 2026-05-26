@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
@@ -17,8 +18,12 @@ import '../../../../core/widgets/section_header.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../audit_log/presentation/args/audit_log_page_args.dart';
 import '../../../complaint/presentation/args/complaint_page_args.dart';
+import '../../../expense/presentation/bloc/expense_bloc.dart';
 import '../../../expense/presentation/pages/expense_list_page.dart';
 import '../../../meal/presentation/args/meal_page_args.dart';
+import '../../../meal/presentation/bloc/meal_bloc.dart';
+import '../../../meal/presentation/bloc/meal_pool_bloc.dart';
+import '../../../meal/presentation/bloc/meal_prefs_bloc.dart';
 import '../../../meal/presentation/pages/meal_page.dart';
 import '../../../notification/presentation/args/notification_page_args.dart';
 import '../../../notification/presentation/bloc/notification_bloc.dart';
@@ -89,6 +94,7 @@ class _FlatHomeViewState extends State<FlatHomeView> {
   int _tab = 0;
   // true = tab has been loaded at least once; start only home as loaded
   final List<bool> _loaded = [true, false, false, false];
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   FlatMemberEntity? _myMember() {
     final authState = context.read<AuthBloc>().state;
@@ -111,7 +117,7 @@ class _FlatHomeViewState extends State<FlatHomeView> {
 
   void _switchTab(BuildContext context, int i) {
     if (i == 4) {
-      Scaffold.of(context).openDrawer();
+      _scaffoldKey.currentState?.openDrawer();
       return;
     }
     if (i == _tab) return;
@@ -132,6 +138,7 @@ class _FlatHomeViewState extends State<FlatHomeView> {
       },
       child: Builder(
         builder: (scaffoldCtx) => Scaffold(
+          key: _scaffoldKey,
           backgroundColor: scaffoldCtx.bgColor,
           drawer: _MoreDrawer(flat: widget.flat, me: me, canManage: canManage),
           body: GestureDetector(
@@ -149,15 +156,23 @@ class _FlatHomeViewState extends State<FlatHomeView> {
                 ),
                 // Tab 1 — Meals (lazy)
                 _loaded[1] && me != null
-                    ? MealPage(
-                        args: MealPageArgs(
-                          flatId: widget.flat.id,
-                          canManage: canManage,
-                          myMemberId: me.flatMemberId,
+                    ? MultiBlocProvider(
+                        providers: [
+                          BlocProvider(create: (_) => sl<MealBloc>()),
+                          BlocProvider(create: (_) => sl<MealPoolBloc>()),
+                          BlocProvider(create: (_) => sl<MealPrefsBloc>()),
+                        ],
+                        child: MealPage(
+                          args: MealPageArgs(
+                            flatId: widget.flat.id,
+                            canManage: canManage,
+                            myMemberId: me.flatMemberId,
+                          ),
                         ),
                       )
                     : const SizedBox.expand(),
-                // Tab 2 — Wallet (lazy)
+                // Tab 2 — Wallet (lazy) — WalletBloc is the global singleton
+                // already provided at the home route level, so no extra provider needed.
                 _loaded[2]
                     ? WalletHomePage(
                         args: WalletPageArgs(
@@ -168,10 +183,13 @@ class _FlatHomeViewState extends State<FlatHomeView> {
                     : const SizedBox.expand(),
                 // Tab 3 — Expenses (lazy)
                 _loaded[3]
-                    ? ExpenseListPage(
-                        flatId: widget.flat.id,
-                        canManage: canManage,
-                        memberCount: widget.flat.activeMembers.length,
+                    ? BlocProvider(
+                        create: (_) => sl<ExpenseBloc>(),
+                        child: ExpenseListPage(
+                          flatId: widget.flat.id,
+                          canManage: canManage,
+                          memberCount: widget.flat.activeMembers.length,
+                        ),
                       )
                     : const SizedBox.expand(),
               ],
@@ -492,6 +510,18 @@ class _MoreDrawer extends StatelessWidget {
                       });
                     },
                   ),
+                  if (canManage)
+                    _DrawerItem(
+                      icon: Icons.monetization_on_outlined,
+                      label: 'Fixed Expenses',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push(
+                          AppRoutes.flatExpenses,
+                          extra: {'flatId': flat.id, 'canManage': canManage},
+                        );
+                      },
+                    ),
                   if (canManage)
                     _DrawerItem(
                       icon: Icons.history_edu_rounded,
@@ -1092,128 +1122,130 @@ class _QuickActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Build the action list dynamically
+    final actions = <Widget>[
+      QuickActionButton(
+        icon: Icons.account_balance_wallet_outlined,
+        label: 'Wallet',
+        onTap: () => onTabSelect(2),
+      ),
+      QuickActionButton(
+        icon: Icons.restaurant_rounded,
+        label: 'Meals',
+        onTap: () => onTabSelect(1),
+      ),
+      QuickActionButton(
+        icon: Icons.receipt_long_outlined,
+        label: 'Expenses',
+        onTap: () => onTabSelect(3),
+      ),
+      QuickActionButton(
+        icon: Icons.task_alt_rounded,
+        label: 'Tasks',
+        onTap: () {
+          if (me == null) return;
+          context.push(
+            AppRoutes.tasks,
+            extra: TaskPageArgs(
+              flatId: flat.id,
+              canManage: canManage,
+              myMemberId: me!.flatMemberId,
+              members: flat.activeMembers,
+            ),
+          );
+        },
+      ),
+      QuickActionButton(
+        icon: Icons.report_problem_outlined,
+        label: 'Complaints',
+        onTap: () {
+          if (me == null) return;
+          context.push(
+            AppRoutes.complaints,
+            extra: ComplaintPageArgs(
+              flatId: flat.id,
+              canManage: canManage,
+              myMemberId: me!.flatMemberId,
+            ),
+          );
+        },
+      ),
+      QuickActionButton(
+        icon: Icons.bar_chart_rounded,
+        label: 'Summary',
+        onTap: () {
+          if (me == null) return;
+          context.push(
+            AppRoutes.summary,
+            extra: SummaryPageArgs(
+              flatId: flat.id,
+              isManager: canManage,
+              myMemberId: me!.flatMemberId,
+            ),
+          );
+        },
+      ),
+      QuickActionButton(
+        icon: Icons.qr_code_rounded,
+        label: 'Invite',
+        onTap: () => _showQrSheet(context),
+      ),
+    ];
+
+    if (canManage) {
+      actions.add(
+        QuickActionButton(
+          icon: Icons.history_edu_rounded,
+          label: 'Audit',
+          onTap: () => context.push(
+            AppRoutes.auditLog,
+            extra: AuditLogPageArgs(flatId: flat.id),
+          ),
+        ),
+      );
+      actions.add(
+        BlocBuilder<JoinRequestsBloc, JoinRequestsState>(
+          builder: (context, reqState) {
+            int pendingCount = 0;
+            if (reqState is JoinRequestsLoaded) {
+              pendingCount =
+                  reqState.requests.where((r) => r.isPending).length;
+            }
+            return QuickActionButton(
+              icon: Icons.group_add_outlined,
+              label: 'Requests',
+              badge: pendingCount,
+              onTap: () => context
+                  .push(AppRoutes.flatRequests, extra: flat.id)
+                  .then((_) {
+                if (context.mounted) {
+                  context
+                      .read<JoinRequestsBloc>()
+                      .add(JoinRequestsLoadRequested(flat.id));
+                  context.read<FlatBloc>().add(FlatRefreshRequested(flat.id));
+                }
+              }),
+            );
+          },
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SectionHeader(title: 'Quick Actions'),
         const SizedBox(height: AppSizing.sp12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding:
-              const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
-          child: Row(
-            children: [
-              QuickActionButton(
-                icon: Icons.account_balance_wallet_outlined,
-                label: 'Wallet',
-                onTap: () => onTabSelect(2),
-              ),
-              const SizedBox(width: AppSizing.sp12),
-              QuickActionButton(
-                icon: Icons.restaurant_rounded,
-                label: 'Meals',
-                onTap: () => onTabSelect(1),
-              ),
-              const SizedBox(width: AppSizing.sp12),
-              QuickActionButton(
-                icon: Icons.receipt_long_outlined,
-                label: 'Expenses',
-                onTap: () => onTabSelect(3),
-              ),
-              const SizedBox(width: AppSizing.sp12),
-              QuickActionButton(
-                icon: Icons.task_alt_rounded,
-                label: 'Tasks',
-                onTap: () {
-                  if (me == null) return;
-                  context.push(
-                    AppRoutes.tasks,
-                    extra: TaskPageArgs(
-                      flatId: flat.id,
-                      canManage: canManage,
-                      myMemberId: me!.flatMemberId,
-                      members: flat.activeMembers,
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: AppSizing.sp12),
-              QuickActionButton(
-                icon: Icons.report_problem_outlined,
-                label: 'Complaints',
-                onTap: () {
-                  if (me == null) return;
-                  context.push(
-                    AppRoutes.complaints,
-                    extra: ComplaintPageArgs(
-                      flatId: flat.id,
-                      canManage: canManage,
-                      myMemberId: me!.flatMemberId,
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: AppSizing.sp12),
-              QuickActionButton(
-                icon: Icons.bar_chart_rounded,
-                label: 'Summary',
-                onTap: () {
-                  if (me == null) return;
-                  context.push(
-                    AppRoutes.summary,
-                    extra: SummaryPageArgs(
-                      flatId: flat.id,
-                      isManager: canManage,
-                      myMemberId: me!.flatMemberId,
-                    ),
-                  );
-                },
-              ),
-              if (canManage) ...[
-                const SizedBox(width: AppSizing.sp12),
-                QuickActionButton(
-                  icon: Icons.history_edu_rounded,
-                  label: 'Audit',
-                  onTap: () => context.push(
-                    AppRoutes.auditLog,
-                    extra: AuditLogPageArgs(flatId: flat.id),
-                  ),
-                ),
-                const SizedBox(width: AppSizing.sp12),
-                BlocBuilder<JoinRequestsBloc, JoinRequestsState>(
-                  builder: (context, reqState) {
-                    int pendingCount = 0;
-                    if (reqState is JoinRequestsLoaded) {
-                      pendingCount =
-                          reqState.requests.where((r) => r.isPending).length;
-                    }
-                    return QuickActionButton(
-                      icon: Icons.group_add_outlined,
-                      label: 'Requests',
-                      badge: pendingCount,
-                      onTap: () => context
-                          .push(AppRoutes.flatRequests, extra: flat.id)
-                          .then((_) {
-                        if (context.mounted) {
-                          context.read<JoinRequestsBloc>().add(
-                            JoinRequestsLoadRequested(flat.id),
-                          );
-                          context
-                              .read<FlatBloc>()
-                              .add(FlatRefreshRequested(flat.id));
-                        }
-                      }),
-                    );
-                  },
-                ),
-              ],
-              const SizedBox(width: AppSizing.sp12),
-              QuickActionButton(
-                icon: Icons.qr_code_rounded,
-                label: 'Invite',
-                onTap: () => _showQrSheet(context),
-              ),
-            ],
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+          child: GridView.count(
+            crossAxisCount: 4,
+            mainAxisSpacing: AppSizing.sp12,
+            crossAxisSpacing: AppSizing.sp12,
+            childAspectRatio: 0.9,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            children: actions,
           ),
         ),
       ],
