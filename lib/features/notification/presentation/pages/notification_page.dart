@@ -399,7 +399,6 @@ class _NotificationTile extends StatelessWidget {
                 ? AppColors.brand.withValues(alpha: 0.05)
                 : context.cardColor,
             borderRadius: BorderRadius.circular(AppSizing.r12),
-            boxShadow: AppColors.shadowSm,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,

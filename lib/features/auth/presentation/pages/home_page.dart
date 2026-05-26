@@ -15,8 +15,17 @@ import '../../../../features/member/presentation/pages/exit_summary_page.dart';
 import '../../../../features/member/presentation/pages/pending_exit_page.dart';
 import '../../../../features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  // Ensures JoinRequestsBloc is loaded only once per flat session;
+  // the bloc re-fetches internally after every approve/decline.
+  bool _joinRequestsLoaded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -24,8 +33,15 @@ class HomePage extends StatelessWidget {
       listener: (context, state) {
         final resolved = _resolveDisplay(state);
         if (resolved is FlatLoaded) {
-          // Load wallet summary whenever flat becomes visible
+          // Refresh wallet summary whenever flat becomes visible
           context.read<WalletBloc>().add(WalletSummaryRequested(resolved.flat.id));
+          // Load join-requests badge only once; bloc self-refreshes after approve/decline
+          if (!_joinRequestsLoaded) {
+            _joinRequestsLoaded = true;
+            context
+                .read<JoinRequestsBloc>()
+                .add(JoinRequestsLoadRequested(resolved.flat.id));
+          }
         }
         if (state is FlatError) {
           AppSnackbar.error(context, state.message);
@@ -49,10 +65,9 @@ class HomePage extends StatelessWidget {
         if (displayState is FlatLoaded) {
           return MultiBlocProvider(
             providers: [
-              BlocProvider(
-                create: (_) => sl<JoinRequestsBloc>()
-                  ..add(JoinRequestsLoadRequested(displayState.flat.id)),
-              ),
+              // BlocProvider.value — singleton shared with JoinRequestsPage;
+              // .value never closes the bloc when this widget is removed.
+              BlocProvider.value(value: sl<JoinRequestsBloc>()),
             ],
             child: Scaffold(
               backgroundColor: AppColors.background,

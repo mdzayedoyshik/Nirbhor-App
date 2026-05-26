@@ -10,6 +10,7 @@ import '../../features/auth/presentation/args/otp_page_args.dart';
 import '../../features/auth/presentation/args/reset_password_page_args.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/pages/change_password_page.dart';
+import '../../features/auth/presentation/pages/set_password_page.dart';
 import '../../features/auth/presentation/pages/complete_setup_page.dart';
 import '../../features/auth/presentation/pages/email_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
@@ -96,6 +97,7 @@ class AppRoutes {
   static const home = '/home';
   static const profile = '/profile';
   static const changePassword = '/profile/change-password';
+  static const setPassword = '/profile/set-password';
 
   // Wallet
   static const walletHome = '/wallet/home';
@@ -224,6 +226,10 @@ GoRouter createRouter(AuthBloc authBloc) {
         path: AppRoutes.changePassword,
         builder: (_, _) => const ChangePasswordPage(),
       ),
+      GoRoute(
+        path: AppRoutes.setPassword,
+        builder: (_, _) => const SetPasswordPage(),
+      ),
 
       // ── Wallet ────────────────────────────────────────
       GoRoute(
@@ -320,8 +326,9 @@ GoRouter createRouter(AuthBloc authBloc) {
             state.extra is String ? null : AppRoutes.flatJoin,
         builder: (ctx, state) {
           final flatId = state.extra! as String;
-          return BlocProvider(
-            create: (_) => sl<JoinRequestsBloc>(),
+          // BlocProvider.value — does not close the singleton when popped
+          return BlocProvider.value(
+            value: sl<JoinRequestsBloc>(),
             child: JoinRequestsPage(flatId: flatId),
           );
         },

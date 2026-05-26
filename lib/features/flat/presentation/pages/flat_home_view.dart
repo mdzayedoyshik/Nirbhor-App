@@ -945,10 +945,9 @@ class _QuickActionsRow extends StatelessWidget {
                   onTap: () => context
                       .push(AppRoutes.flatRequests, extra: flat.id)
                       .then((_) {
+                    // JoinRequestsBloc re-fetches internally after approve/decline;
+                    // only refresh the flat to sync member count etc.
                     if (context.mounted) {
-                      context
-                          .read<JoinRequestsBloc>()
-                          .add(JoinRequestsLoadRequested(flat.id));
                       context
                           .read<FlatBloc>()
                           .add(FlatRefreshRequested(flat.id));
@@ -1048,10 +1047,9 @@ class _PendingActionsSection extends StatelessWidget {
                 onAction: () => context
                     .push(AppRoutes.flatRequests, extra: flat.id)
                     .then((_) {
+                  // JoinRequestsBloc re-fetches internally after approve/decline;
+                  // only refresh the flat to sync member count etc.
                   if (context.mounted) {
-                    context.read<JoinRequestsBloc>().add(
-                      JoinRequestsLoadRequested(flat.id),
-                    );
                     context
                         .read<FlatBloc>()
                         .add(FlatRefreshRequested(flat.id));

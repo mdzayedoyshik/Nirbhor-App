@@ -6,6 +6,7 @@ import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/change_password_usecase.dart';
+import '../../features/auth/domain/usecases/set_password_usecase.dart';
 import '../../features/auth/domain/usecases/check_email_usecase.dart';
 import '../../features/auth/domain/usecases/complete_setup_usecase.dart';
 import '../../features/auth/domain/usecases/forgot_password_usecase.dart';
@@ -188,6 +189,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => GetProfileUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
   sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
+  sl.registerLazySingleton(() => SetPasswordUseCase(sl()));
   sl.registerLazySingleton(() => SendDeviceTokenUseCase(sl()));
   sl.registerLazySingleton(
     () => AuthBloc(
@@ -210,6 +212,7 @@ Future<void> configureDependencies() async {
       getProfile: sl(),
       updateProfile: sl(),
       changePassword: sl(),
+      setPassword: sl(),
     ),
   );
 
@@ -251,7 +254,9 @@ Future<void> configureDependencies() async {
 
   // Flat blocs — factories (new instance per page visit)
   sl.registerFactory(() => FlatPreviewBloc(preview: sl()));
-  sl.registerFactory(
+  // Singleton so badge + pending-section on home always reflects live state;
+  // use BlocProvider.value everywhere to avoid closing the shared instance.
+  sl.registerLazySingleton(
     () => JoinRequestsBloc(
       getJoinRequests: sl(),
       approve: sl(),

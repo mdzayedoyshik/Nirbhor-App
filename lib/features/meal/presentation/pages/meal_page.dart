@@ -4,9 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../domain/entities/meal_pref_day_entity.dart';
 import '../../domain/entities/meal_toggle_entity.dart';
+import '../../domain/usecases/get_meal_config_usecase.dart';
+import '../../domain/usecases/update_meal_config_usecase.dart';
 import '../args/meal_page_args.dart';
 import '../bloc/meal_bloc.dart';
 import '../bloc/meal_pool_bloc.dart';
@@ -801,6 +804,12 @@ class _PrefsTabState extends State<_PrefsTab>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Manager-only: lock times card
+                  if (widget.args.canManage) ...[
+                    _LockTimesCard(flatId: widget.args.flatId),
+                    const SizedBox(height: AppSizing.lg),
+                  ],
+
                   // Section title + description
                   Text(
                     'Weekly Meal Preferences',
@@ -1024,6 +1033,395 @@ class _PrefsTabState extends State<_PrefsTab>
           ],
         );
       },
+    );
+  }
+}
+
+// ── Lock times card (manager-only) ────────────────────────────────────────────
+
+class _LockTimesCard extends StatefulWidget {
+  final String flatId;
+
+  const _LockTimesCard({required this.flatId});
+
+  @override
+  State<_LockTimesCard> createState() => _LockTimesCardState();
+}
+
+class _LockTimesCardState extends State<_LockTimesCard> {
+  bool _loading = true;
+  bool _saving = false;
+  String? _error;
+
+  // Current saved values
+  String _savedBreakfast = '';
+  String _savedLunch = '';
+  String _savedDinner = '';
+
+  // Editable working values
+  String _breakfast = '';
+  String _lunch = '';
+  String _dinner = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConfig();
+  }
+
+  Future<void> _loadConfig() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final config = await sl<GetMealConfigUseCase>()(widget.flatId);
+      if (!mounted) return;
+      setState(() {
+        _savedBreakfast = config.lockTimeBreakfast;
+        _savedLunch = config.lockTimeLunch;
+        _savedDinner = config.lockTimeDinner;
+        _breakfast = config.lockTimeBreakfast;
+        _lunch = config.lockTimeLunch;
+        _dinner = config.lockTimeDinner;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  bool get _isDirty =>
+      _breakfast != _savedBreakfast ||
+      _lunch != _savedLunch ||
+      _dinner != _savedDinner;
+
+  TimeOfDay? _parseTime(String hhmm) {
+    if (hhmm.isEmpty) return null;
+    final parts = hhmm.split(':');
+    if (parts.length < 2) return null;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) return null;
+    return TimeOfDay(hour: h, minute: m);
+  }
+
+  String _formatTimeOfDay(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _pickTime(
+    String shift,
+    String current,
+    void Function(String) onPicked,
+  ) async {
+    final initial = _parseTime(current) ?? const TimeOfDay(hour: 0, minute: 0);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      helpText: 'Set UTC lock time for $shift',
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (picked != null && mounted) {
+      setState(() => onPicked(_formatTimeOfDay(picked)));
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_isDirty || _saving) return;
+    setState(() => _saving = true);
+    try {
+      final payload = <String, dynamic>{};
+      if (_breakfast != _savedBreakfast) {
+        payload['lock_time_breakfast'] = _breakfast;
+      }
+      if (_lunch != _savedLunch) {
+        payload['lock_time_lunch'] = _lunch;
+      }
+      if (_dinner != _savedDinner) {
+        payload['lock_time_dinner'] = _dinner;
+      }
+      final updated = await sl<UpdateMealConfigUseCase>()(widget.flatId, payload);
+      if (!mounted) return;
+      setState(() {
+        _savedBreakfast = updated.lockTimeBreakfast;
+        _savedLunch = updated.lockTimeLunch;
+        _savedDinner = updated.lockTimeDinner;
+        _breakfast = updated.lockTimeBreakfast;
+        _lunch = updated.lockTimeLunch;
+        _dinner = updated.lockTimeDinner;
+        _saving = false;
+      });
+      if (mounted) AppSnackbar.success(context, 'Lock times updated.');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      AppSnackbar.error(context, e.toString());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppColors.shadowSm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Card header
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.brand.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppSizing.r8),
+                ),
+                child: const Icon(Icons.lock_clock_rounded,
+                    size: 18, color: AppColors.brand),
+              ),
+              const SizedBox(width: AppSizing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Meal Lock Times',
+                      style: AppTypography.labelL
+                          .copyWith(color: AppColors.textPrimary),
+                    ),
+                    Text(
+                      'UTC cut-off times for each shift',
+                      style: AppTypography.labelS
+                          .copyWith(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: AppSizing.md),
+
+          if (_loading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSizing.sm),
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: AppColors.brand),
+              ),
+            )
+          else if (_error != null)
+            Row(
+              children: [
+                const Icon(Icons.error_outline_rounded,
+                    size: 16, color: AppColors.error),
+                const SizedBox(width: AppSizing.xs),
+                Expanded(
+                  child: Text(
+                    'Failed to load config',
+                    style: AppTypography.labelS
+                        .copyWith(color: AppColors.error),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _loadConfig,
+                  child: const Text('Retry'),
+                ),
+              ],
+            )
+          else ...[
+            // Shift rows
+            _LockTimeRow(
+              shift: 'breakfast',
+              icon: _shiftIcons['breakfast']!,
+              color: _shiftColors['breakfast']!,
+              label: 'Breakfast',
+              time: _breakfast,
+              enabled: !_saving,
+              onTap: () => _pickTime(
+                'breakfast',
+                _breakfast,
+                (v) => _breakfast = v,
+              ),
+            ),
+            const SizedBox(height: AppSizing.sm),
+            _LockTimeRow(
+              shift: 'lunch',
+              icon: _shiftIcons['lunch']!,
+              color: _shiftColors['lunch']!,
+              label: 'Lunch',
+              time: _lunch,
+              enabled: !_saving,
+              onTap: () => _pickTime(
+                'lunch',
+                _lunch,
+                (v) => _lunch = v,
+              ),
+            ),
+            const SizedBox(height: AppSizing.sm),
+            _LockTimeRow(
+              shift: 'dinner',
+              icon: _shiftIcons['dinner']!,
+              color: _shiftColors['dinner']!,
+              label: 'Dinner',
+              time: _dinner,
+              enabled: !_saving,
+              onTap: () => _pickTime(
+                'dinner',
+                _dinner,
+                (v) => _dinner = v,
+              ),
+            ),
+
+            if (_isDirty || _saving) ...[
+              const SizedBox(height: AppSizing.md),
+              SizedBox(
+                width: double.infinity,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    gradient: _saving ? null : AppColors.brandGradient,
+                    color: _saving
+                        ? AppColors.brand.withValues(alpha: 0.6)
+                        : null,
+                    boxShadow: _saving ? null : AppColors.shadowBrand,
+                  ),
+                  child: FilledButton(
+                    onPressed: _saving ? null : _save,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.transparent,
+                      disabledBackgroundColor: AppColors.transparent,
+                      minimumSize: const Size(double.infinity, 48),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSizing.sm + 2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppSizing.radiusMd),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: AppColors.white),
+                          )
+                        : Text(
+                            'Save Lock Times',
+                            style: AppTypography.labelL
+                                .copyWith(color: AppColors.white),
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Lock time row (used inside _LockTimesCard) ────────────────────────────────
+
+class _LockTimeRow extends StatelessWidget {
+  final String shift;
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String time;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _LockTimeRow({
+    required this.shift,
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.time,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSizing.sm, vertical: AppSizing.sm),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(AppSizing.r8),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppSizing.r8),
+              ),
+              child: Icon(icon, size: 16, color: color),
+            ),
+            const SizedBox(width: AppSizing.sm),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTypography.labelM
+                    .copyWith(color: AppColors.textPrimary),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizing.sm, vertical: AppSizing.xs),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppSizing.r8),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    time.isEmpty ? '--:--' : time,
+                    style: AppTypography.labelM.copyWith(
+                      color: time.isEmpty
+                          ? AppColors.textDisabled
+                          : AppColors.textPrimary,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  const SizedBox(width: AppSizing.xs),
+                  Icon(
+                    Icons.edit_rounded,
+                    size: 12,
+                    color: enabled
+                        ? AppColors.textSecondary
+                        : AppColors.textDisabled,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

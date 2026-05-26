@@ -61,8 +61,6 @@ class MemberMealRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPref = entry.isPreferenceBased;
-
     return GestureDetector(
       onTap: _tappable ? () => _onTap(context) : null,
       child: Container(
@@ -71,12 +69,7 @@ class MemberMealRow extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(
-            color: isPref
-                ? AppColors.border.withValues(alpha: 0.5)
-                : AppColors.border,
-            // dashed border for preference-based not possible natively; use opacity instead
-          ),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
@@ -89,46 +82,17 @@ class MemberMealRow extends StatelessWidget {
             ),
             const SizedBox(width: AppSizing.sm),
 
-            // Name + badge
+            // Name
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          entry.memberName,
-                          style: AppTypography.titleMedium.copyWith(
-                            color: isPref
-                                ? AppColors.textSecondary
-                                : AppColors.textPrimary,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (isPref) ...[
-                        const SizedBox(width: AppSizing.xs),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.textSecondary.withValues(alpha: 0.08),
-                            borderRadius:
-                                BorderRadius.circular(AppSizing.radiusFull),
-                            border: Border.all(
-                                color: AppColors.textSecondary
-                                    .withValues(alpha: 0.25)),
-                          ),
-                          child: Text(
-                            'Expected',
-                            style: AppTypography.labelSmall.copyWith(
-                                fontSize: 10,
-                                color: AppColors.textSecondary),
-                          ),
-                        ),
-                      ],
-                    ],
+                  Text(
+                    entry.memberName,
+                    style: AppTypography.titleMedium.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   // Guest indicator
                   if (_totalGuests > 0)
@@ -168,9 +132,7 @@ class MemberMealRow extends StatelessWidget {
                 Text(
                   entry.totalPoints.toStringAsFixed(1),
                   style: AppTypography.titleMedium.copyWith(
-                    color: isPref
-                        ? AppColors.textSecondary
-                        : AppColors.textPrimary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 Text(

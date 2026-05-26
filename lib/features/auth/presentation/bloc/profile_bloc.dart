@@ -4,6 +4,7 @@ import '../../../../core/errors/exceptions.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/usecases/change_password_usecase.dart';
 import '../../domain/usecases/get_profile_usecase.dart';
+import '../../domain/usecases/set_password_usecase.dart';
 import '../../domain/usecases/update_profile_usecase.dart';
 import 'profile_event.dart';
 import 'profile_state.dart';
@@ -15,18 +16,22 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final GetProfileUseCase _getProfile;
   final UpdateProfileUseCase _updateProfile;
   final ChangePasswordUseCase _changePassword;
+  final SetPasswordUseCase _setPassword;
 
   ProfileBloc({
     required GetProfileUseCase getProfile,
     required UpdateProfileUseCase updateProfile,
     required ChangePasswordUseCase changePassword,
+    required SetPasswordUseCase setPassword,
   })  : _getProfile = getProfile,
         _updateProfile = updateProfile,
         _changePassword = changePassword,
+        _setPassword = setPassword,
         super(const ProfileInitial()) {
     on<ProfileFetchRequested>(_onFetch);
     on<ProfileUpdateRequested>(_onUpdate);
     on<ProfilePasswordChangeRequested>(_onChangePassword);
+    on<ProfileSetPasswordRequested>(_onSetPassword);
   }
 
   Future<void> _onFetch(
@@ -74,6 +79,23 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         oldPassword: event.oldPassword,
         newPassword: event.newPassword,
       );
+      emit(const ProfilePasswordChangeSuccess());
+      emit(ProfileLoaded(user));
+    } catch (e) {
+      emit(ProfileActionError(user: user, message: _message(e)));
+      emit(ProfileLoaded(user));
+    }
+  }
+
+  Future<void> _onSetPassword(
+    ProfileSetPasswordRequested event,
+    Emitter<ProfileState> emit,
+  ) async {
+    final user = _currentUser;
+    if (user == null) return;
+    emit(ProfileActionLoading(user));
+    try {
+      await _setPassword(newPassword: event.newPassword);
       emit(const ProfilePasswordChangeSuccess());
       emit(ProfileLoaded(user));
     } catch (e) {

@@ -230,10 +230,15 @@ class _ProfilePageState extends State<ProfilePage> {
                           children: [
                             _SettingsRow(
                               icon: Icons.lock_outline_rounded,
-                              label: AppStrings.changePasswordTitle,
+                              label: user.hasPassword
+                                  ? AppStrings.changePasswordTitle
+                                  : 'Set Password',
                               showArrow: true,
-                              onTap: () =>
-                                  context.push(AppRoutes.changePassword),
+                              onTap: () => context.push(
+                                user.hasPassword
+                                    ? AppRoutes.changePassword
+                                    : AppRoutes.setPassword,
+                              ),
                             ),
                           ],
                         ),

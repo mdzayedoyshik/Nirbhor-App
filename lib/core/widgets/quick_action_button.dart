@@ -4,7 +4,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_sizing.dart';
 import '../constants/app_typography.dart';
 
-/// A square card with an icon and a label below, used in the quick-action grid.
+/// A square card with a centred icon and label, used in the quick-action grid.
 /// The optional badge is rendered inside the card (top-right corner) so it
 /// is never clipped by a parent container.
 class QuickActionButton extends StatelessWidget {
@@ -39,42 +39,50 @@ class QuickActionButton extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Content centred inside the card
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
+            // Content — fill the card and centre vertically + horizontally
+            Positioned.fill(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: effectiveIconColor.withValues(alpha: 0.10),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, size: AppSizing.iconMd, color: effectiveIconColor),
+                    child: Icon(icon, size: 18, color: effectiveIconColor),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    label,
-                    style: AppTypography.labelS.copyWith(
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  const SizedBox(height: 5),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      label,
+                      style: AppTypography.labelS.copyWith(
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                        fontSize: 10,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            // Badge inside top-right of card — never clips
+            // Badge — inside top-right corner, never clips
             if (badge > 0)
               Positioned(
-                top: 6,
-                right: 6,
+                top: 5,
+                right: 5,
                 child: Container(
-                  constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  constraints:
+                      const BoxConstraints(minWidth: 16, minHeight: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
                   decoration: BoxDecoration(
                     color: AppColors.error,
                     borderRadius: BorderRadius.circular(AppSizing.rFull),
@@ -83,7 +91,7 @@ class QuickActionButton extends StatelessWidget {
                     badge > 99 ? '99+' : '$badge',
                     style: const TextStyle(
                       color: AppColors.white,
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: FontWeight.w700,
                     ),
                     textAlign: TextAlign.center,

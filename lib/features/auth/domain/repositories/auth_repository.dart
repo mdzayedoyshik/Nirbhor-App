@@ -48,4 +48,6 @@ abstract class AuthRepository {
     required String oldPassword,
     required String newPassword,
   });
+
+  Future<void> setPassword({required String newPassword});
 }
