@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
 import '../bloc/auth_bloc.dart';
@@ -39,7 +40,7 @@ class _SplashPageState extends State<SplashPage>
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarBrightness: Brightness.light,
-        statusBarIconBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.light,
       ),
     );
 
@@ -105,89 +106,112 @@ class _SplashPageState extends State<SplashPage>
     return BlocListener<AuthBloc, AuthState>(
       listener: (_, state) => _onAuthState(state),
       child: Scaffold(
-        backgroundColor: AppColors.surface,
-        body: SafeArea(
-          child: Column(
-            children: [
-              // ── centre content ────────────────────────────────────────
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Icon
-                      FadeTransition(
-                        opacity: _opacity,
-                        child: ScaleTransition(
-                          scale: _scale,
-                          child: Image.asset(
-                            'assets/images/icon.png',
-                            width: 112,
-                            height: 112,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      // App name
-                      FadeTransition(
-                        opacity: _opacity,
-                        child: AnimatedBuilder(
-                          animation: _nameSlide,
-                          builder: (_, child) => Transform.translate(
-                            offset: Offset(0, _nameSlide.value),
-                            child: child,
-                          ),
-                          child: Text(
-                            'Nirbhor',
-                            style: AppTypography.headlineLarge.copyWith(
-                              color: AppColors.textPrimary,
-                              fontSize: 34,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: AppColors.brandGradient,
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                // ── centre content ────────────────────────────────────────
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Logo mark — white rounded-square with brand icon
+                        FadeTransition(
+                          opacity: _opacity,
+                          child: ScaleTransition(
+                            scale: _scale,
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: AppColors.white,
+                                borderRadius: BorderRadius.circular(
+                                  AppSizing.radiusLg,
+                                ),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x33000000),
+                                    blurRadius: 24,
+                                    offset: Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.home_rounded,
+                                size: 44,
+                                color: AppColors.brand,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Tagline
-                      FadeTransition(
-                        opacity: _opacity,
-                        child: AnimatedBuilder(
-                          animation: _nameSlide,
-                          builder: (_, child) => Transform.translate(
-                            offset: Offset(0, _nameSlide.value),
-                            child: child,
-                          ),
-                          child: Text(
-                            'Live together, hassle-free',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.textSecondary,
-                              letterSpacing: 0.2,
+                        const SizedBox(height: 28),
+                        // App name
+                        FadeTransition(
+                          opacity: _opacity,
+                          child: AnimatedBuilder(
+                            animation: _nameSlide,
+                            builder: (_, child) => Transform.translate(
+                              offset: Offset(0, _nameSlide.value),
+                              child: child,
+                            ),
+                            child: Text(
+                              'Nirbhor',
+                              style: AppTypography.h1.copyWith(
+                                color: AppColors.white,
+                                fontSize: 34,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // ── bottom loader ─────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.only(bottom: 40),
-                child: FadeTransition(
-                  opacity: _opacity,
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: AppColors.primary.withValues(alpha: 0.5),
+                        const SizedBox(height: 8),
+                        // Tagline
+                        FadeTransition(
+                          opacity: _opacity,
+                          child: AnimatedBuilder(
+                            animation: _nameSlide,
+                            builder: (_, child) => Transform.translate(
+                              offset: Offset(0, _nameSlide.value),
+                              child: child,
+                            ),
+                            child: Text(
+                              'নির্ভর — Your Home, Together',
+                              style: AppTypography.bodyM.copyWith(
+                                color: AppColors.white.withValues(alpha: 0.75),
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
-            ],
+
+                // ── bottom loader ─────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 40),
+                  child: FadeTransition(
+                    opacity: _opacity,
+                    child: const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

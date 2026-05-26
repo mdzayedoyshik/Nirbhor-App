@@ -54,7 +54,7 @@ class _MemberListPageState extends State<MemberListPage> {
             backgroundColor: AppColors.background,
             appBar: _buildAppBar(),
             body: const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+              child: CircularProgressIndicator(color: AppColors.brand),
             ),
           );
         }
@@ -73,7 +73,7 @@ class _MemberListPageState extends State<MemberListPage> {
                     size: AppSizing.iconLg,
                   ),
                   const SizedBox(height: AppSizing.md),
-                  Text(state.message, style: AppTypography.bodyMedium),
+                  Text(state.message, style: AppTypography.bodyM),
                   const SizedBox(height: AppSizing.md),
                   TextButton(
                     onPressed: () => context.read<MemberBloc>().add(
@@ -119,15 +119,20 @@ class _MemberListPageState extends State<MemberListPage> {
           body: Stack(
             children: [
               RefreshIndicator(
-                color: AppColors.primary,
+                color: AppColors.brand,
                 onRefresh: () async => context.read<MemberBloc>().add(
                   MemberLoadRequested(widget.flat.id),
                 ),
                 child: ListView(
-                  padding: const EdgeInsets.all(AppSizing.pagePadding),
+                  padding: const EdgeInsets.only(
+                    left: AppSizing.pagePadding,
+                    right: AppSizing.pagePadding,
+                    top: AppSizing.md,
+                    bottom: AppSizing.xl,
+                  ),
                   children: [
-                    _SummaryStrip(
-                      memberCount: members.length,
+                    _StatsHeaderCard(
+                      members: members,
                       totalExpenses: widget.flat.totalFixedExpenses,
                     ),
                     const SizedBox(height: AppSizing.md),
@@ -172,7 +177,7 @@ class _MemberListPageState extends State<MemberListPage> {
                     color: Color(0x26000000),
                     child: Center(
                       child: CircularProgressIndicator(
-                        color: AppColors.primary,
+                        color: AppColors.brand,
                       ),
                     ),
                   ),
@@ -186,15 +191,19 @@ class _MemberListPageState extends State<MemberListPage> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      title: Text('Members', style: AppTypography.titleLarge),
       backgroundColor: AppColors.surface,
       elevation: 0,
+      scrolledUnderElevation: 0,
       leading: IconButton(
         icon: const Icon(
           Icons.arrow_back_ios_new_rounded,
           color: AppColors.textPrimary,
         ),
         onPressed: () => context.pop(),
+      ),
+      title: Text(
+        'Members',
+        style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
       ),
     );
   }
@@ -306,7 +315,7 @@ class _MemberListPageState extends State<MemberListPage> {
             'This will calculate ${member.name}\'s settlement. '
             'They will be restricted to payment actions only until exit is '
             'finalised or cancelled.',
-            style: AppTypography.bodyMedium.copyWith(
+            style: AppTypography.bodyM.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
@@ -358,34 +367,61 @@ class _MemberListPageState extends State<MemberListPage> {
   }
 }
 
-// ─── Summary Strip ────────────────────────────────────────────────────────────
+// ─── Stats Header Card ────────────────────────────────────────────────────────
 
-class _SummaryStrip extends StatelessWidget {
-  final int memberCount;
+class _StatsHeaderCard extends StatelessWidget {
+  final List<FlatMemberEntity> members;
   final double totalExpenses;
 
-  const _SummaryStrip({
-    required this.memberCount,
+  const _StatsHeaderCard({
+    required this.members,
     required this.totalExpenses,
   });
 
   @override
   Widget build(BuildContext context) {
+    final managerCount =
+        members.where((m) => m.isManager || m.isCoManager).length;
+    final totalContribution =
+        members.fold<double>(0, (sum, m) => sum + m.fixedContribution);
+
     return Container(
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+        gradient: AppColors.brandGradient,
+        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        boxShadow: AppColors.shadowMd,
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SummaryItem(label: 'Total Members', value: '$memberCount'),
-          Container(width: 1, height: 32, color: AppColors.border),
-          _SummaryItem(
-            label: 'Total Expenses',
-            value: '৳${totalExpenses.toStringAsFixed(0)}',
+          Text(
+            'Flat Members',
+            style: AppTypography.overline.copyWith(
+              color: AppColors.white.withValues(alpha: 0.75),
+            ),
+          ),
+          const SizedBox(height: AppSizing.sm),
+          Row(
+            children: [
+              _StatItem(
+                label: 'Total',
+                value: '${members.length}',
+                icon: Icons.people_outline_rounded,
+              ),
+              _Divider(),
+              _StatItem(
+                label: 'Managers',
+                value: '$managerCount',
+                icon: Icons.manage_accounts_outlined,
+              ),
+              _Divider(),
+              _StatItem(
+                label: 'Monthly',
+                value: '৳${totalContribution.toStringAsFixed(0)}',
+                icon: Icons.account_balance_wallet_outlined,
+              ),
+            ],
           ),
         ],
       ),
@@ -393,23 +429,51 @@ class _SummaryStrip extends StatelessWidget {
   }
 }
 
-class _SummaryItem extends StatelessWidget {
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 36,
+      margin: const EdgeInsets.symmetric(horizontal: AppSizing.sm),
+      color: AppColors.white.withValues(alpha: 0.25),
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
   final String label;
   final String value;
+  final IconData icon;
 
-  const _SummaryItem({required this.label, required this.value});
+  const _StatItem({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style:
-              AppTypography.titleLarge.copyWith(color: AppColors.primary),
-        ),
-        Text(label, style: AppTypography.labelSmall),
-      ],
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.white.withValues(alpha: 0.85), size: 20),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: AppTypography.h3.copyWith(
+              color: AppColors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          Text(
+            label,
+            style: AppTypography.labelS.copyWith(
+              color: AppColors.white.withValues(alpha: 0.75),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

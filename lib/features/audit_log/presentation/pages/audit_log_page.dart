@@ -46,6 +46,23 @@ const _kAllEntityTypes = [
   'transaction',
 ];
 
+// ── Filter chip categories ────────────────────────────────────────────────────
+
+const _kFilterChips = [
+  _ChipDef(label: 'All', entityType: null),
+  _ChipDef(label: 'Members', entityType: 'member'),
+  _ChipDef(label: 'Payments', entityType: 'payment'),
+  _ChipDef(label: 'Meals', entityType: 'meal'),
+  _ChipDef(label: 'Expenses', entityType: 'expense'),
+  _ChipDef(label: 'Tasks', entityType: 'task'),
+];
+
+class _ChipDef {
+  final String label;
+  final String? entityType;
+  const _ChipDef({required this.label, required this.entityType});
+}
+
 // ── Label mapping ─────────────────────────────────────────────────────────────
 
 String _actionLabel(String action) {
@@ -97,19 +114,20 @@ String _actionLabel(String action) {
 // ── Category helpers ──────────────────────────────────────────────────────────
 
 Color _categoryColor(String action) {
-  if (action.startsWith('FLAT_')) return AppColors.primary;
-  if (action.startsWith('COMPLAINT_')) return Colors.orange;
-  if (action.startsWith('TASK_')) return Colors.blue;
+  if (action.startsWith('FLAT_') || action == 'MANAGER_TRANSFERRED') {
+    return AppColors.brand;
+  }
+  if (action.startsWith('COMPLAINT_') || action == 'EXIT_FINALISED') {
+    return AppColors.error;
+  }
+  if (action.startsWith('TASK_')) return AppColors.info;
   if (action == 'PAYMENT_VERIFIED' ||
       action == 'EXPENSE_APPROVED' ||
       action == 'FIXED_CONTRIBUTION_AUTO_DEDUCTED' ||
       action == 'MONTH_CLOSED') {
     return AppColors.success;
   }
-  if (action.startsWith('MEAL_')) return Colors.amber;
-  if (action == 'EXIT_FINALISED' || action == 'MANAGER_TRANSFERRED') {
-    return Colors.purple.shade300;
-  }
+  if (action.startsWith('MEAL_')) return AppColors.warning;
   return AppColors.textSecondary;
 }
 
@@ -130,7 +148,7 @@ IconData _categoryIcon(String action) {
   return Icons.history;
 }
 
-// ── Time-ago helper ───────────────────────────────────────────────────────────
+// ── Time helpers ──────────────────────────────────────────────────────────────
 
 String _timeAgo(String iso) {
   final dt = DateTime.tryParse(iso)?.toLocal() ?? DateTime.now();
@@ -140,6 +158,36 @@ String _timeAgo(String iso) {
   if (diff.inHours < 24) return '${diff.inHours}h ago';
   if (diff.inDays < 7) return '${diff.inDays}d ago';
   return '${dt.day}/${dt.month}/${dt.year}';
+}
+
+String _timeOnly(String iso) {
+  final dt = DateTime.tryParse(iso)?.toLocal() ?? DateTime.now();
+  final h = dt.hour.toString().padLeft(2, '0');
+  final m = dt.minute.toString().padLeft(2, '0');
+  return '$h:$m';
+}
+
+String _dateGroupLabel(String iso) {
+  final dt = DateTime.tryParse(iso)?.toLocal() ?? DateTime.now();
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final d = DateTime(dt.year, dt.month, dt.day);
+  if (d == today) return 'Today';
+  if (d == today.subtract(const Duration(days: 1))) return 'Yesterday';
+  return '${dt.day} ${_monthName(dt.month)} ${dt.year}';
+}
+
+String _monthName(int m) {
+  const names = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  return names[m - 1];
+}
+
+String _isoDateOnly(String iso) {
+  final dt = DateTime.tryParse(iso)?.toLocal() ?? DateTime.now();
+  return '${dt.year}-${dt.month}-${dt.day}';
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -196,11 +244,17 @@ class _AuditLogPageState extends State<AuditLogPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
         title: Text(
           'Audit Log',
-          style: AppTypography.titleLarge.copyWith(color: AppColors.white),
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
         ),
         actions: [
           BlocBuilder<AuditLogBloc, AuditLogState>(
@@ -208,8 +262,13 @@ class _AuditLogPageState extends State<AuditLogPage> {
               final filters = state is AuditLogLoaded
                   ? state.filters
                   : const AuditLogFilters();
+              final hasActive =
+                  filters.action != null || filters.entityType != null;
               return IconButton(
-                icon: const Icon(Icons.filter_list, color: AppColors.white),
+                icon: Icon(
+                  Icons.tune_rounded,
+                  color: hasActive ? AppColors.brand : AppColors.textSecondary,
+                ),
                 tooltip: 'Filter',
                 onPressed: () => _openFilterSheet(context, filters),
               );
@@ -226,7 +285,7 @@ class _AuditLogPageState extends State<AuditLogPage> {
         builder: (context, state) {
           if (state is AuditLogLoading) {
             return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+              child: CircularProgressIndicator(color: AppColors.brand),
             );
           }
 
@@ -248,68 +307,57 @@ class _AuditLogPageState extends State<AuditLogPage> {
 
           return Column(
             children: [
-              // Active filter chips
-              if (hasActiveFilter)
+              // ── Filter chip row ───────────────────────────────────────────
+              _FilterChipRow(
+                filters: filters,
+                flatId: widget.args.flatId,
+              ),
+
+              // ── Active action filter chip ─────────────────────────────────
+              if (hasActiveFilter && filters.action != null)
                 Container(
                   width: double.infinity,
                   color: AppColors.surface,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizing.pagePadding,
-                    vertical: AppSizing.xs,
+                  padding: const EdgeInsets.only(
+                    left: AppSizing.pagePadding,
+                    right: AppSizing.pagePadding,
+                    bottom: AppSizing.sm,
                   ),
                   child: Wrap(
                     spacing: AppSizing.xs,
                     children: [
-                      if (filters.action != null)
-                        Chip(
-                          label: Text(
-                            _actionLabel(filters.action!),
-                            style: AppTypography.bodySmall,
+                      Chip(
+                        label: Text(
+                          _actionLabel(filters.action!),
+                          style: AppTypography.labelS.copyWith(
+                            color: AppColors.brand,
                           ),
-                          deleteIcon: const Icon(Icons.close, size: 16),
-                          onDeleted: () {
-                            context.read<AuditLogBloc>().add(
-                                  AuditLogFilterChanged(
-                                    flatId: widget.args.flatId,
-                                    filters: filters.copyWith(action: null),
-                                  ),
-                                );
-                          },
-                          backgroundColor:
-                              AppColors.primary.withValues(alpha: 0.1),
-                          side: BorderSide.none,
-                          visualDensity: VisualDensity.compact,
                         ),
-                      if (filters.entityType != null)
-                        Chip(
-                          label: Text(
-                            filters.entityType!,
-                            style: AppTypography.bodySmall,
-                          ),
-                          deleteIcon: const Icon(Icons.close, size: 16),
-                          onDeleted: () {
-                            context.read<AuditLogBloc>().add(
-                                  AuditLogFilterChanged(
-                                    flatId: widget.args.flatId,
-                                    filters:
-                                        filters.copyWith(entityType: null),
-                                  ),
-                                );
-                          },
-                          backgroundColor:
-                              AppColors.primary.withValues(alpha: 0.1),
-                          side: BorderSide.none,
-                          visualDensity: VisualDensity.compact,
-                        ),
+                        deleteIcon: const Icon(Icons.close, size: 14),
+                        deleteIconColor: AppColors.brand,
+                        onDeleted: () {
+                          context.read<AuditLogBloc>().add(
+                                AuditLogFilterChanged(
+                                  flatId: widget.args.flatId,
+                                  filters: filters.copyWith(action: null),
+                                ),
+                              );
+                        },
+                        backgroundColor:
+                            AppColors.brand.withValues(alpha: 0.1),
+                        side: BorderSide.none,
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
                     ],
                   ),
                 ),
 
-              // List
+              // ── List ──────────────────────────────────────────────────────
               Expanded(
                 child: logs.isEmpty
                     ? RefreshIndicator(
-                        color: AppColors.primary,
+                        color: AppColors.brand,
                         onRefresh: () async {
                           context.read<AuditLogBloc>().add(
                                 AuditLogLoadRequested(
@@ -323,31 +371,14 @@ class _AuditLogPageState extends State<AuditLogPage> {
                           children: [
                             SizedBox(
                               height:
-                                  MediaQuery.of(context).size.height * 0.3,
+                                  MediaQuery.of(context).size.height * 0.25,
                             ),
-                            Center(
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.history,
-                                    size: 64,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'No audit logs found',
-                                    style: AppTypography.bodyMedium.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            _EmptyState(),
                           ],
                         ),
                       )
                     : RefreshIndicator(
-                        color: AppColors.primary,
+                        color: AppColors.brand,
                         onRefresh: () async {
                           context.read<AuditLogBloc>().add(
                                 AuditLogLoadRequested(
@@ -356,25 +387,10 @@ class _AuditLogPageState extends State<AuditLogPage> {
                                 ),
                               );
                         },
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount: logs.length + (isLoadingMore ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == logs.length) {
-                              return const Padding(
-                                padding:
-                                    EdgeInsets.symmetric(vertical: 16),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.primary,
-                                    strokeWidth: 2,
-                                  ),
-                                ),
-                              );
-                            }
-                            return _AuditLogTile(log: logs[index]);
-                          },
+                        child: _TimelineList(
+                          logs: logs,
+                          isLoadingMore: isLoadingMore,
+                          scrollController: _scrollController,
                         ),
                       ),
               ),
@@ -386,78 +402,441 @@ class _AuditLogPageState extends State<AuditLogPage> {
   }
 }
 
-// ── Audit Log Tile ────────────────────────────────────────────────────────────
+// ── Filter Chip Row ───────────────────────────────────────────────────────────
 
-class _AuditLogTile extends StatelessWidget {
-  const _AuditLogTile({required this.log});
+class _FilterChipRow extends StatelessWidget {
+  const _FilterChipRow({
+    required this.filters,
+    required this.flatId,
+  });
+
+  final AuditLogFilters filters;
+  final String flatId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.surface,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizing.pagePadding,
+        vertical: AppSizing.sm,
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: _kFilterChips.map((chip) {
+            final isActive = chip.entityType == null
+                ? filters.entityType == null
+                : filters.entityType == chip.entityType;
+            return Padding(
+              padding: const EdgeInsets.only(right: AppSizing.xs),
+              child: _PillChip(
+                label: chip.label,
+                isActive: isActive,
+                onTap: () {
+                  context.read<AuditLogBloc>().add(
+                        AuditLogFilterChanged(
+                          flatId: flatId,
+                          filters: filters.copyWith(
+                            entityType: chip.entityType,
+                          ),
+                        ),
+                      );
+                },
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _PillChip extends StatelessWidget {
+  const _PillChip({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive
+              ? AppColors.brand
+              : AppColors.surface200,
+          borderRadius: BorderRadius.circular(AppSizing.rFull),
+        ),
+        child: Text(
+          label,
+          style: AppTypography.labelM.copyWith(
+            color: isActive ? AppColors.white : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Empty State ───────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppColors.brand.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.history_rounded,
+              size: 36,
+              color: AppColors.brand,
+            ),
+          ),
+          const SizedBox(height: AppSizing.md),
+          Text(
+            'No activity yet',
+            style: AppTypography.h4.copyWith(color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: AppSizing.xs),
+          Text(
+            'Actions taken in this flat will appear here',
+            style: AppTypography.bodyS.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Timeline List ─────────────────────────────────────────────────────────────
+
+class _TimelineList extends StatelessWidget {
+  const _TimelineList({
+    required this.logs,
+    required this.isLoadingMore,
+    required this.scrollController,
+  });
+
+  final List<AuditLogEntity> logs;
+  final bool isLoadingMore;
+  final ScrollController scrollController;
+
+  @override
+  Widget build(BuildContext context) {
+    // Build a flat list of items (date headers + log entries)
+    final items = <_TimelineItem>[];
+    String? lastDate;
+
+    for (final log in logs) {
+      final dateKey = _isoDateOnly(log.createdAt);
+      if (dateKey != lastDate) {
+        lastDate = dateKey;
+        items.add(_TimelineItem.header(_dateGroupLabel(log.createdAt)));
+      }
+      items.add(_TimelineItem.entry(log));
+    }
+
+    return ListView.builder(
+      controller: scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(
+        top: AppSizing.sm,
+        bottom: AppSizing.xl,
+        left: AppSizing.pagePadding,
+        right: AppSizing.pagePadding,
+      ),
+      itemCount: items.length + (isLoadingMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == items.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSizing.md),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: AppColors.brand,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        }
+        final item = items[index];
+        if (item.isHeader) {
+          return _DateHeader(label: item.headerLabel!);
+        }
+        // Determine if this is the last item in its group (for timeline line)
+        final isLast = index == items.length - 1 ||
+            items[index + 1].isHeader;
+        return _TimelineTile(
+          log: item.log!,
+          isLast: isLast,
+        );
+      },
+    );
+  }
+}
+
+class _TimelineItem {
+  final bool isHeader;
+  final String? headerLabel;
+  final AuditLogEntity? log;
+
+  const _TimelineItem._({this.isHeader = false, this.headerLabel, this.log});
+
+  factory _TimelineItem.header(String label) =>
+      _TimelineItem._(isHeader: true, headerLabel: label);
+
+  factory _TimelineItem.entry(AuditLogEntity log) =>
+      _TimelineItem._(log: log);
+}
+
+// ── Date Header ───────────────────────────────────────────────────────────────
+
+class _DateHeader extends StatelessWidget {
+  const _DateHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSizing.md, bottom: AppSizing.sm),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: AppTypography.overline.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
+          const SizedBox(width: AppSizing.sm),
+          Expanded(
+            child: Divider(
+              color: AppColors.surface300,
+              thickness: 1,
+              height: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Timeline Tile ─────────────────────────────────────────────────────────────
+
+class _TimelineTile extends StatelessWidget {
+  const _TimelineTile({required this.log, required this.isLast});
 
   final AuditLogEntity log;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
     final color = _categoryColor(log.action);
     final icon = _categoryIcon(log.action);
 
-    return Container(
-      margin: const EdgeInsets.symmetric(
-        horizontal: AppSizing.pagePadding,
-        vertical: AppSizing.xs,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Timeline spine ──────────────────────────────────────────────
+          SizedBox(
+            width: 40,
+            child: Column(
+              children: [
+                // Dot
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.35),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+                // Line
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      color: AppColors.surface300,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: AppSizing.sm),
+
+          // ── Card ────────────────────────────────────────────────────────
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: AppSizing.sm),
+              child: _LogCard(log: log, color: color, icon: icon),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+// ── Log Card ──────────────────────────────────────────────────────────────────
+
+class _LogCard extends StatelessWidget {
+  const _LogCard({
+    required this.log,
+    required this.color,
+    required this.icon,
+  });
+
+  final AuditLogEntity log;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasOld = log.oldValue != null && log.oldValue!.isNotEmpty;
+    final hasNew = log.newValue != null && log.newValue!.isNotEmpty;
+    final hasDetails = hasOld || hasNew;
+
+    return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border(
-          left: BorderSide(color: color, width: 3),
-        ),
+        boxShadow: AppColors.shadowSm,
       ),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(
-          horizontal: AppSizing.md,
-          vertical: AppSizing.xs,
-        ),
-        childrenPadding: const EdgeInsets.only(
-          left: AppSizing.md,
-          right: AppSizing.md,
-          bottom: AppSizing.md,
-        ),
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        title: Text(
-          _actionLabel(log.action),
-          style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  log.performedByName ?? 'System',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+      child: hasDetails
+          ? ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(
+                horizontal: AppSizing.md,
+                vertical: AppSizing.xs,
+              ),
+              childrenPadding: const EdgeInsets.only(
+                left: AppSizing.md,
+                right: AppSizing.md,
+                bottom: AppSizing.md,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+              ),
+              collapsedShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+              ),
+              leading: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              title: Text(
+                _actionLabel(log.action),
+                style: AppTypography.labelL.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              subtitle: _LogSubtitle(log: log),
+              children: [_ExpandedContent(log: log)],
+            )
+          : Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizing.md,
+                vertical: AppSizing.sm + 2,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: color, size: 18),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+                  const SizedBox(width: AppSizing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _actionLabel(log.action),
+                          style: AppTypography.labelL.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        _LogSubtitle(log: log),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                _timeAgo(log.createdAt),
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+    );
+  }
+}
+
+class _LogSubtitle extends StatelessWidget {
+  const _LogSubtitle({required this.log});
+
+  final AuditLogEntity log;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
         children: [
-          _ExpandedContent(log: log),
+          Expanded(
+            child: Text(
+              log.performedByName ?? 'System',
+              style: AppTypography.bodyS.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            _timeOnly(log.createdAt),
+            style: AppTypography.labelS.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
+          const SizedBox(width: AppSizing.xs),
+          Text(
+            _timeAgo(log.createdAt),
+            style: AppTypography.labelS.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
         ],
       ),
     );
@@ -479,7 +858,7 @@ class _ExpandedContent extends StatelessWidget {
     if (!hasOld && !hasNew) {
       return Text(
         'No details available',
-        style: AppTypography.bodySmall.copyWith(
+        style: AppTypography.bodyS.copyWith(
           color: AppColors.textSecondary,
           fontStyle: FontStyle.italic,
         ),
@@ -494,7 +873,7 @@ class _ExpandedContent extends StatelessWidget {
         if (hasOld) ...[
           Text(
             'Before',
-            style: AppTypography.labelSmall.copyWith(
+            style: AppTypography.labelS.copyWith(
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w600,
             ),
@@ -506,7 +885,7 @@ class _ExpandedContent extends StatelessWidget {
         if (hasNew) ...[
           Text(
             'After',
-            style: AppTypography.labelSmall.copyWith(
+            style: AppTypography.labelS.copyWith(
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w600,
             ),
@@ -530,7 +909,7 @@ class _JsonTable extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSizing.sm),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        color: AppColors.surface100,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       ),
       child: Column(
@@ -543,7 +922,7 @@ class _JsonTable extends StatelessWidget {
               children: [
                 Text(
                   '${entry.key}: ',
-                  style: AppTypography.bodySmall.copyWith(
+                  style: AppTypography.bodyS.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
                   ),
@@ -551,7 +930,7 @@ class _JsonTable extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '${entry.value}',
-                    style: AppTypography.bodySmall,
+                    style: AppTypography.bodyS,
                   ),
                 ),
               ],
@@ -617,7 +996,7 @@ class _FilterSheetState extends State<_FilterSheet> {
 
           Text(
             'Filter Audit Logs',
-            style: AppTypography.titleLarge,
+            style: AppTypography.h3,
           ),
           const SizedBox(height: AppSizing.md),
 
@@ -730,7 +1109,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                     Navigator.of(context).pop();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.brand,
                     foregroundColor: AppColors.white,
                     padding: const EdgeInsets.symmetric(
                         vertical: AppSizing.sm + 2),
