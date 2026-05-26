@@ -69,14 +69,17 @@ class _TaskPageState extends State<TaskPage> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        title: Text('Tasks', style: AppTypography.headlineMedium),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary, size: 20),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: Text('Tasks',
+            style: AppTypography.headlineMedium
+                .copyWith(color: AppColors.textPrimary)),
       ),
       floatingActionButton: widget.args.canManage
-          ? FloatingActionButton(
-              backgroundColor: AppColors.primary,
-              onPressed: () => _showCreateSheet(context),
-              child: const Icon(Icons.add, color: AppColors.white),
-            )
+          ? _GradientFab(onPressed: () => _showCreateSheet(context))
           : null,
       body: BlocConsumer<TaskBloc, TaskState>(
         listener: (context, state) {
@@ -88,7 +91,7 @@ class _TaskPageState extends State<TaskPage> {
         },
         builder: (context, state) {
           return RefreshIndicator(
-            color: AppColors.primary,
+            color: AppColors.brand,
             onRefresh: () async {
               _load();
               await Future.delayed(const Duration(milliseconds: 500));
@@ -96,6 +99,12 @@ class _TaskPageState extends State<TaskPage> {
             child: CustomScrollView(
               controller: _scroll,
               slivers: [
+                // Gradient header stats card
+                SliverToBoxAdapter(
+                  child: _StatsHeader(state: state),
+                ),
+
+                // Filter chips
                 SliverToBoxAdapter(
                   child: _Filters(
                     statusFilter: _statusFilter,
@@ -110,10 +119,11 @@ class _TaskPageState extends State<TaskPage> {
                     },
                   ),
                 ),
+
                 if (state is TaskListLoading)
                   const SliverFillRemaining(
                     child: Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
+                      child: CircularProgressIndicator(color: AppColors.brand),
                     ),
                   )
                 else if (state is TaskListLoaded) ...[
@@ -135,7 +145,7 @@ class _TaskPageState extends State<TaskPage> {
                             const SizedBox(height: AppSizing.sm),
                         itemBuilder: (ctx, i) {
                           final task = state.tasks[i];
-                          return TaskCard(
+                          return _TaskCardDecorated(
                             task: task,
                             onTap: () => context
                                 .push(
@@ -161,7 +171,7 @@ class _TaskPageState extends State<TaskPage> {
                           padding: EdgeInsets.all(AppSizing.md),
                           child: Center(
                             child: CircularProgressIndicator(
-                              color: AppColors.primary,
+                              color: AppColors.brand,
                             ),
                           ),
                         ),
@@ -194,6 +204,165 @@ class _TaskPageState extends State<TaskPage> {
         child: _CreateTaskSheet(
           flatId: widget.args.flatId,
           members: widget.args.members,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Gradient FAB ──────────────────────────────────────────────────────────────
+
+class _GradientFab extends StatelessWidget {
+  const _GradientFab({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: AppColors.brandGradient,
+          shape: BoxShape.circle,
+          boxShadow: AppColors.shadowMd,
+        ),
+        child: const Icon(Icons.add_rounded, color: AppColors.white, size: 28),
+      ),
+    );
+  }
+}
+
+// ── Stats Header Card ─────────────────────────────────────────────────────────
+
+class _StatsHeader extends StatelessWidget {
+  const _StatsHeader({required this.state});
+  final TaskState state;
+
+  @override
+  Widget build(BuildContext context) {
+    int total = 0;
+    int pending = 0;
+    int done = 0;
+
+    if (state is TaskListLoaded) {
+      final tasks = (state as TaskListLoaded).tasks;
+      total = tasks.length;
+      pending = tasks.where((t) => t.isPending || t.isInProgress).length;
+      done = tasks.where((t) => t.isCompleted).length;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSizing.pagePadding, AppSizing.md,
+          AppSizing.pagePadding, AppSizing.sm),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSizing.lg, vertical: AppSizing.md),
+        decoration: BoxDecoration(
+          gradient: AppColors.brandGradient,
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          boxShadow: AppColors.shadowMd,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _StatPill(label: 'Total', count: total,
+                color: AppColors.white.withValues(alpha: 0.25)),
+            _StatPill(label: 'Pending', count: pending,
+                color: AppColors.warning.withValues(alpha: 0.35)),
+            _StatPill(label: 'Done', count: done,
+                color: AppColors.success.withValues(alpha: 0.35)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatPill extends StatelessWidget {
+  const _StatPill({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+
+  final String label;
+  final int count;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSizing.md, vertical: AppSizing.sm),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+      ),
+      child: Column(
+        children: [
+          Text(
+            '$count',
+            style: AppTypography.h3.copyWith(
+              color: AppColors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          Text(
+            label,
+            style: AppTypography.labelS.copyWith(
+              color: AppColors.white.withValues(alpha: 0.85),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Task Card with Left Border ────────────────────────────────────────────────
+
+class _TaskCardDecorated extends StatelessWidget {
+  const _TaskCardDecorated({required this.task, required this.onTap});
+
+  final dynamic task;
+  final VoidCallback onTap;
+
+  Color _borderColor() {
+    if (task.isCompleted) return AppColors.success;
+    if (task.isOverdue) return AppColors.error;
+    return AppColors.brand;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          boxShadow: AppColors.shadowSm,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Left accent border
+            Container(
+              width: 4,
+              decoration: BoxDecoration(
+                color: _borderColor(),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(AppSizing.radiusMd),
+                  bottomLeft: Radius.circular(AppSizing.radiusMd),
+                ),
+              ),
+            ),
+            Expanded(
+              child: TaskCard(task: task, onTap: onTap),
+            ),
+          ],
         ),
       ),
     );
@@ -242,7 +411,7 @@ class _Filters extends StatelessWidget {
               label: 'In Progress',
               selected: statusFilter == 'in_progress',
               onTap: () => onStatusChanged('in_progress'),
-              color: const Color(0xFF3B82F6),
+              color: AppColors.info,
             ),
             const SizedBox(width: AppSizing.xs),
             _Chip(
@@ -283,7 +452,7 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.primary;
+    final c = color ?? AppColors.brand;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -334,17 +503,17 @@ class _EmptyState extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
+                color: AppColors.brand.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.check_circle_outline_rounded,
                 size: 36,
-                color: AppColors.primary,
+                color: AppColors.brand,
               ),
             ),
             const SizedBox(height: AppSizing.md),
-            Text('No Tasks Yet', style: AppTypography.headlineSmall),
+            Text('All clear!', style: AppTypography.headlineSmall),
             const SizedBox(height: AppSizing.xs),
             Text(
               canManage
@@ -434,7 +603,7 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
+          colorScheme: const ColorScheme.light(primary: AppColors.brand),
         ),
         child: child!,
       ),
@@ -569,7 +738,7 @@ class _SubTasksInput extends StatelessWidget {
                 const Icon(
                   Icons.check_box_outline_blank_rounded,
                   size: 18,
-                  color: AppColors.primary,
+                  color: AppColors.brand,
                 ),
                 const SizedBox(width: AppSizing.sm),
                 Expanded(child: Text(e.value, style: AppTypography.bodyMedium)),
@@ -609,7 +778,7 @@ class _SubTasksInput extends StatelessWidget {
             TextButton(
               onPressed: onAdd,
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
+                foregroundColor: AppColors.brand,
                 padding:
                     const EdgeInsets.symmetric(horizontal: AppSizing.sm),
                 minimumSize: Size.zero,

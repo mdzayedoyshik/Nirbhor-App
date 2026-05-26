@@ -131,12 +131,17 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary, size: 20),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
         title: Text(AppStrings.expenseListTitle,
-            style: AppTypography.headlineMedium),
+            style: AppTypography.headlineMedium
+                .copyWith(color: AppColors.textPrimary)),
       ),
       floatingActionButton: widget.canManage
-          ? FloatingActionButton(
-              backgroundColor: AppColors.primary,
+          ? _GradientFab(
               onPressed: () => context
                   .push(
                     AppRoutes.recordExpense,
@@ -148,7 +153,6 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
                   .then((_) {
                 if (mounted) _loadExpenses();
               }),
-              child: const Icon(Icons.add, color: AppColors.white),
             )
           : null,
       body: BlocConsumer<ExpenseBloc, ExpenseState>(
@@ -163,7 +167,7 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
         },
         builder: (context, state) {
           return RefreshIndicator(
-            color: AppColors.primary,
+            color: AppColors.brand,
             onRefresh: () async {
               _loadExpenses();
               await Future.delayed(const Duration(milliseconds: 600));
@@ -215,11 +219,7 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
 
                 // List content
                 if (state is ExpenseListLoading)
-                  const SliverFillRemaining(
-                    child: Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
-                    ),
-                  )
+                  const SliverToBoxAdapter(child: _ShimmerRows())
                 else if (state is ExpenseError)
                   SliverFillRemaining(
                     child: Center(
@@ -233,30 +233,14 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
                   )
                 else if (state is ExpenseListLoaded) ...[
                   if (state.expenses.isEmpty)
-                    SliverFillRemaining(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.receipt_long_outlined,
-                                size: 48, color: AppColors.textSecondary),
-                            const SizedBox(height: AppSizing.md),
-                            Text(
-                              AppStrings.noExpensesRecorded,
-                              style: AppTypography.bodyMedium
-                                  .copyWith(color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
+                    const SliverFillRemaining(child: _EmptyState())
                   else ...[
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: AppSizing.pagePadding),
                       sliver: SliverList.separated(
                         itemCount: state.expenses.length,
-                        separatorBuilder: (_, _) =>
+                        separatorBuilder: (context, index) =>
                             const SizedBox(height: AppSizing.md),
                         itemBuilder: (context, index) {
                           final expense = state.expenses[index];
@@ -284,7 +268,7 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
                           padding: EdgeInsets.all(AppSizing.md),
                           child: Center(
                             child: CircularProgressIndicator(
-                                color: AppColors.primary),
+                                color: AppColors.brand),
                           ),
                         ),
                       ),
@@ -300,6 +284,32 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
     );
   }
 }
+
+// ── Gradient FAB ──────────────────────────────────────────────────────────────
+
+class _GradientFab extends StatelessWidget {
+  const _GradientFab({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: AppColors.brandGradient,
+          shape: BoxShape.circle,
+          boxShadow: AppColors.shadowMd,
+        ),
+        child: const Icon(Icons.add_rounded, color: AppColors.white, size: 28),
+      ),
+    );
+  }
+}
+
+// ── Month Picker ──────────────────────────────────────────────────────────────
 
 class _MonthPicker extends StatelessWidget {
   const _MonthPicker({
@@ -326,13 +336,16 @@ class _MonthPicker extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary),
+            icon: const Icon(Icons.chevron_left_rounded,
+                color: AppColors.textPrimary),
             onPressed: onPrevious,
           ),
-          Text(label, style: AppTypography.titleLarge),
+          Text(label,
+              style: AppTypography.titleLarge
+                  .copyWith(color: AppColors.textPrimary)),
           IconButton(
             icon: Icon(
-              Icons.chevron_right,
+              Icons.chevron_right_rounded,
               color: canGoNext()
                   ? AppColors.textPrimary
                   : AppColors.textSecondary,
@@ -344,6 +357,8 @@ class _MonthPicker extends StatelessWidget {
     );
   }
 }
+
+// ── Summary Row ───────────────────────────────────────────────────────────────
 
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({required this.summary});
@@ -426,6 +441,8 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
+// ── Filter Row ────────────────────────────────────────────────────────────────
+
 class _FilterRow extends StatelessWidget {
   const _FilterRow({
     required this.approvedFilter,
@@ -456,12 +473,14 @@ class _FilterRow extends StatelessWidget {
             label: 'Pending',
             selected: approvedFilter == false,
             onTap: () => onApprovedFilterChanged(false),
+            color: AppColors.warning,
           ),
           const SizedBox(width: AppSizing.xs),
           _Chip(
             label: 'Approved',
             selected: approvedFilter == true,
             onTap: () => onApprovedFilterChanged(true),
+            color: AppColors.success,
           ),
           const SizedBox(width: AppSizing.md),
           _Chip(
@@ -508,10 +527,11 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = color ?? AppColors.primary;
+    final activeColor = color ?? AppColors.brand;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: selected
@@ -527,6 +547,149 @@ class _Chip extends StatelessWidget {
           style: AppTypography.labelSmall.copyWith(
             color: selected ? activeColor : AppColors.textSecondary,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Empty State ───────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppColors.brand.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.receipt_long_outlined,
+              size: 36,
+              color: AppColors.brand,
+            ),
+          ),
+          const SizedBox(height: AppSizing.md),
+          Text(
+            AppStrings.noExpensesRecorded,
+            style: AppTypography.bodyMedium
+                .copyWith(color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Shimmer Placeholder Rows ──────────────────────────────────────────────────
+
+class _ShimmerRows extends StatefulWidget {
+  const _ShimmerRows();
+
+  @override
+  State<_ShimmerRows> createState() => _ShimmerRowsState();
+}
+
+class _ShimmerRowsState extends State<_ShimmerRows>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _anim = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, child) => Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSizing.pagePadding, vertical: AppSizing.sm),
+        child: Column(
+          children: List.generate(
+            3,
+            (_) => Opacity(
+              opacity: _anim.value,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: AppSizing.md),
+                padding: const EdgeInsets.all(AppSizing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.surface200,
+                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface300,
+                        borderRadius:
+                            BorderRadius.circular(AppSizing.radiusMd),
+                      ),
+                    ),
+                    const SizedBox(width: AppSizing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                              height: 12,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: AppColors.surface300,
+                                borderRadius: BorderRadius.circular(
+                                    AppSizing.radiusFull),
+                              )),
+                          const SizedBox(height: AppSizing.xs),
+                          Container(
+                              height: 10,
+                              width: 120,
+                              decoration: BoxDecoration(
+                                color: AppColors.surface300,
+                                borderRadius: BorderRadius.circular(
+                                    AppSizing.radiusFull),
+                              )),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSizing.md),
+                    Container(
+                        height: 14,
+                        width: 60,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface300,
+                          borderRadius:
+                              BorderRadius.circular(AppSizing.radiusFull),
+                        )),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),

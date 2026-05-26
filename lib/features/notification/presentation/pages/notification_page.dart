@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_snackbar.dart';
@@ -53,11 +54,12 @@ class _NotificationPageState extends State<NotificationPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        foregroundColor: AppColors.textPrimary,
         title: Text(
           'Notifications',
-          style: AppTypography.titleLarge.copyWith(color: AppColors.white),
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
         ),
         actions: [
           BlocBuilder<NotificationBloc, NotificationState>(
@@ -66,15 +68,25 @@ class _NotificationPageState extends State<NotificationPage> {
               if (state is NotificationListLoaded) count = state.unreadCount;
               if (state is NotificationError) count = state.unreadCount;
               if (count == 0) return const SizedBox.shrink();
-              return IconButton(
-                icon: const Icon(Icons.done_all, color: AppColors.white),
-                tooltip: 'Mark all read',
+              return TextButton.icon(
                 onPressed: () => context
                     .read<NotificationBloc>()
                     .add(const NotificationMarkAllReadRequested()),
+                icon: const Icon(
+                  Icons.done_all_rounded,
+                  size: AppSizing.iconSm + 2,
+                  color: AppColors.brand,
+                ),
+                label: Text(
+                  'Mark all read',
+                  style: AppTypography.labelM.copyWith(
+                    color: AppColors.brand,
+                  ),
+                ),
               );
             },
           ),
+          const SizedBox(width: AppSizing.xs),
         ],
       ),
       body: BlocConsumer<NotificationBloc, NotificationState>(
@@ -86,13 +98,14 @@ class _NotificationPageState extends State<NotificationPage> {
         builder: (context, state) {
           if (state is NotificationListLoading) {
             return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+              child: CircularProgressIndicator(color: AppColors.brand),
             );
           }
 
           final notifications = switch (state) {
             NotificationListLoaded(notifications: final n) => n,
-            NotificationError(notifications: final n) => n ?? <NotificationEntity>[],
+            NotificationError(notifications: final n) =>
+              n ?? <NotificationEntity>[],
             _ => <NotificationEntity>[],
           };
 
@@ -102,7 +115,7 @@ class _NotificationPageState extends State<NotificationPage> {
 
           if (notifications.isEmpty && state is! NotificationListLoading) {
             return RefreshIndicator(
-              color: AppColors.primary,
+              color: AppColors.brand,
               onRefresh: () async {
                 context
                     .read<NotificationBloc>()
@@ -111,19 +124,34 @@ class _NotificationPageState extends State<NotificationPage> {
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.25),
                   Center(
                     child: Column(
                       children: [
-                        Icon(
-                          Icons.notifications_none_outlined,
-                          size: 64,
-                          color: AppColors.textSecondary,
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: AppColors.brand.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.notifications_none_rounded,
+                            size: 40,
+                            color: AppColors.brand,
+                          ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSizing.md),
                         Text(
-                          'No notifications yet',
-                          style: AppTypography.bodyMedium.copyWith(
+                          "You're all caught up",
+                          style: AppTypography.h4.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: AppSizing.xs),
+                        Text(
+                          'No new notifications right now.',
+                          style: AppTypography.bodyM.copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
@@ -135,8 +163,22 @@ class _NotificationPageState extends State<NotificationPage> {
             );
           }
 
+          // ── Split into Today / Earlier ───────────────────────────────────
+          final now = DateTime.now();
+          final todayStart = DateTime(now.year, now.month, now.day);
+          final todayItems = notifications
+              .where((n) =>
+                  (DateTime.tryParse(n.createdAt)?.toLocal() ?? now)
+                      .isAfter(todayStart))
+              .toList();
+          final earlierItems = notifications
+              .where((n) =>
+                  !(DateTime.tryParse(n.createdAt)?.toLocal() ?? now)
+                      .isAfter(todayStart))
+              .toList();
+
           return RefreshIndicator(
-            color: AppColors.primary,
+            color: AppColors.brand,
             onRefresh: () async {
               context
                   .read<NotificationBloc>()
@@ -145,27 +187,30 @@ class _NotificationPageState extends State<NotificationPage> {
             child: ListView.builder(
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: notifications.length + (isLoadingMore ? 1 : 0),
+              padding: const EdgeInsets.only(bottom: AppSizing.pagePadding),
+              itemCount: _sectionItemCount(
+                    todayItems,
+                    earlierItems,
+                  ) +
+                  (isLoadingMore ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index == notifications.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                        strokeWidth: 2,
-                      ),
+                final built = _buildSectionItem(
+                  context,
+                  index,
+                  todayItems,
+                  earlierItems,
+                );
+                if (built != null) return built;
+
+                // Loading more indicator
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.brand,
+                      strokeWidth: 2,
                     ),
-                  );
-                }
-                final notification = notifications[index];
-                return _NotificationTile(
-                  notification: notification,
-                  args: widget.args,
-                  onDismissed: () => context
-                      .read<NotificationBloc>()
-                      .add(NotificationDeleteRequested(notification.id)),
-                  onTap: () => _handleTap(context, notification),
+                  ),
                 );
               },
             ),
@@ -173,6 +218,62 @@ class _NotificationPageState extends State<NotificationPage> {
         },
       ),
     );
+  }
+
+  int _sectionItemCount(
+    List<NotificationEntity> today,
+    List<NotificationEntity> earlier,
+  ) {
+    int count = 0;
+    if (today.isNotEmpty) count += 1 + today.length; // header + items
+    if (earlier.isNotEmpty) count += 1 + earlier.length;
+    return count;
+  }
+
+  Widget? _buildSectionItem(
+    BuildContext context,
+    int index,
+    List<NotificationEntity> today,
+    List<NotificationEntity> earlier,
+  ) {
+    int cursor = 0;
+
+    if (today.isNotEmpty) {
+      if (index == cursor) return _SectionHeader(label: 'Today');
+      cursor++;
+      final localIndex = index - cursor;
+      if (localIndex < today.length) {
+        final n = today[localIndex];
+        return _NotificationTile(
+          notification: n,
+          args: widget.args,
+          onDismissed: () => context
+              .read<NotificationBloc>()
+              .add(NotificationDeleteRequested(n.id)),
+          onTap: () => _handleTap(context, n),
+        );
+      }
+      cursor += today.length;
+    }
+
+    if (earlier.isNotEmpty) {
+      if (index == cursor) return _SectionHeader(label: 'Earlier');
+      cursor++;
+      final localIndex = index - cursor;
+      if (localIndex < earlier.length) {
+        final n = earlier[localIndex];
+        return _NotificationTile(
+          notification: n,
+          args: widget.args,
+          onDismissed: () => context
+              .read<NotificationBloc>()
+              .add(NotificationDeleteRequested(n.id)),
+          onTap: () => _handleTap(context, n),
+        );
+      }
+    }
+
+    return null;
   }
 
   void _handleTap(BuildContext context, NotificationEntity n) {
@@ -219,6 +320,32 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 }
 
+// ── Section header ─────────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSizing.pagePadding,
+        AppSizing.md,
+        AppSizing.pagePadding,
+        AppSizing.sp8,
+      ),
+      child: Text(
+        label,
+        style: AppTypography.overline.copyWith(
+          color: AppColors.textTertiary,
+        ),
+      ),
+    );
+  }
+}
+
 // ── Notification Tile ─────────────────────────────────────────────────────────
 
 class _NotificationTile extends StatelessWidget {
@@ -245,83 +372,130 @@ class _NotificationTile extends StatelessWidget {
       onDismissed: (_) => onDismissed(),
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        color: AppColors.error,
-        child: const Icon(Icons.delete_outline, color: Colors.white, size: 26),
+        padding: const EdgeInsets.only(right: AppSizing.pagePadding),
+        decoration: BoxDecoration(
+          color: AppColors.error,
+          borderRadius: BorderRadius.circular(AppSizing.r12),
+        ),
+        child: const Icon(
+          Icons.delete_outline_rounded,
+          color: AppColors.white,
+          size: 26,
+        ),
       ),
       child: InkWell(
         onTap: onTap,
         child: Container(
-          color: isUnread
-              ? AppColors.primary.withValues(alpha: 0.05)
-              : Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          margin: const EdgeInsets.symmetric(
+            horizontal: AppSizing.sp12,
+            vertical: AppSizing.sp4,
+          ),
+          decoration: BoxDecoration(
+            color: isUnread
+                ? AppColors.brand.withValues(alpha: 0.05)
+                : AppColors.surface,
+            borderRadius: BorderRadius.circular(AppSizing.r12),
+            boxShadow: AppColors.shadowSm,
+          ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Leading icon
+              // ── Colored left border (unread indicator) ────────────────
               Container(
-                width: 42,
-                height: 42,
+                width: 4,
                 decoration: BoxDecoration(
-                  color: typeInfo.color.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
+                  color: isUnread ? AppColors.brand : AppColors.transparent,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(AppSizing.r12),
+                    bottomLeft: Radius.circular(AppSizing.r12),
+                  ),
                 ),
-                child: Icon(typeInfo.icon, color: typeInfo.color, size: 22),
               ),
-              const SizedBox(width: 12),
 
-              // Content
+              // ── Content ───────────────────────────────────────────────
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      notification.title,
-                      style: AppTypography.bodyMedium.copyWith(
-                        fontWeight: isUnread ? FontWeight.w600 : FontWeight.normal,
-                      ),
-                    ),
-                    if (notification.message != null &&
-                        notification.message!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        notification.message!,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSizing.sp12,
+                    vertical: AppSizing.sp12,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Leading icon
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: typeInfo.color.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                        child: Icon(
+                          typeInfo.icon,
+                          color: typeInfo.color,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: AppSizing.sp12),
+
+                      // Text content
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              notification.title,
+                              style: AppTypography.labelM.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: isUnread
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                              ),
+                            ),
+                            if (notification.message != null &&
+                                notification.message!.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                notification.message!,
+                                style: AppTypography.bodyS.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(width: AppSizing.sp8),
+
+                      // Trailing: time + unread dot
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            _timeAgo(notification.createdAt),
+                            style: AppTypography.labelS.copyWith(
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                          if (isUnread) ...[
+                            const SizedBox(height: 6),
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.brand,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              // Trailing: time + unread dot
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _timeAgo(notification.createdAt),
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                    ),
                   ),
-                  if (isUnread) ...[
-                    const SizedBox(height: 6),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF6C63FF), // AppColors.primary
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ],
+                ),
               ),
             ],
           ),

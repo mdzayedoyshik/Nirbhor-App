@@ -69,12 +69,17 @@ class _ComplaintPageState extends State<ComplaintPage> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        title: Text('Complaints', style: AppTypography.headlineMedium),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary, size: 20),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: Text('Complaints',
+            style: AppTypography.headlineMedium
+                .copyWith(color: AppColors.textPrimary)),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary,
+      floatingActionButton: _GradientFab(
         onPressed: () => _showRaiseSheet(context),
-        child: const Icon(Icons.add, color: AppColors.white),
       ),
       body: BlocConsumer<ComplaintBloc, ComplaintState>(
         listener: (context, state) {
@@ -88,7 +93,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
         },
         builder: (context, state) {
           return RefreshIndicator(
-            color: AppColors.primary,
+            color: AppColors.brand,
             onRefresh: () async {
               _load();
               await Future.delayed(const Duration(milliseconds: 500));
@@ -96,6 +101,12 @@ class _ComplaintPageState extends State<ComplaintPage> {
             child: CustomScrollView(
               controller: _scroll,
               slivers: [
+                // Summary stats strip
+                SliverToBoxAdapter(
+                  child: _StatsStrip(state: state),
+                ),
+
+                // Filters
                 SliverToBoxAdapter(
                   child: _Filters(
                     statusFilter: _statusFilter,
@@ -110,11 +121,12 @@ class _ComplaintPageState extends State<ComplaintPage> {
                     },
                   ),
                 ),
+
                 if (state is ComplaintListLoading)
                   const SliverFillRemaining(
                     child: Center(
                       child:
-                          CircularProgressIndicator(color: AppColors.primary),
+                          CircularProgressIndicator(color: AppColors.brand),
                     ),
                   )
                 else if (state is ComplaintListLoaded) ...[
@@ -160,7 +172,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
                           padding: EdgeInsets.all(AppSizing.md),
                           child: Center(
                             child: CircularProgressIndicator(
-                                color: AppColors.primary),
+                                color: AppColors.brand),
                           ),
                         ),
                       ),
@@ -190,6 +202,130 @@ class _ComplaintPageState extends State<ComplaintPage> {
       builder: (_) => BlocProvider.value(
         value: context.read<ComplaintBloc>(),
         child: _RaiseComplaintSheet(flatId: widget.args.flatId),
+      ),
+    );
+  }
+}
+
+// ── Gradient FAB ──────────────────────────────────────────────────────────────
+
+class _GradientFab extends StatelessWidget {
+  const _GradientFab({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: AppColors.brandGradient,
+          shape: BoxShape.circle,
+          boxShadow: AppColors.shadowMd,
+        ),
+        child: const Icon(Icons.add_rounded, color: AppColors.white, size: 28),
+      ),
+    );
+  }
+}
+
+// ── Stats Strip ───────────────────────────────────────────────────────────────
+
+class _StatsStrip extends StatelessWidget {
+  const _StatsStrip({required this.state});
+  final ComplaintState state;
+
+  @override
+  Widget build(BuildContext context) {
+    int open = 0;
+    int inProgress = 0;
+    int resolved = 0;
+
+    if (state is ComplaintListLoaded) {
+      final complaints = (state as ComplaintListLoaded).complaints;
+      open = complaints.where((c) => c.isOpen).length;
+      inProgress = complaints.where((c) => c.isInProgress).length;
+      resolved = complaints.where((c) => c.isResolved).length;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSizing.pagePadding, AppSizing.md,
+          AppSizing.pagePadding, AppSizing.sm),
+      child: Row(
+        children: [
+          _StatTile(
+            label: 'Open',
+            count: open,
+            background: AppColors.error.withValues(alpha: 0.08),
+            textColor: AppColors.error,
+            borderColor: AppColors.error.withValues(alpha: 0.2),
+          ),
+          const SizedBox(width: AppSizing.sm),
+          _StatTile(
+            label: 'In Progress',
+            count: inProgress,
+            background: AppColors.warning.withValues(alpha: 0.08),
+            textColor: AppColors.warning,
+            borderColor: AppColors.warning.withValues(alpha: 0.2),
+          ),
+          const SizedBox(width: AppSizing.sm),
+          _StatTile(
+            label: 'Resolved',
+            count: resolved,
+            background: AppColors.success.withValues(alpha: 0.08),
+            textColor: AppColors.success,
+            borderColor: AppColors.success.withValues(alpha: 0.2),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({
+    required this.label,
+    required this.count,
+    required this.background,
+    required this.textColor,
+    required this.borderColor,
+  });
+
+  final String label;
+  final int count;
+  final Color background;
+  final Color textColor;
+  final Color borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSizing.sm, vertical: AppSizing.sm),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          border: Border.all(color: borderColor),
+        ),
+        child: Column(
+          children: [
+            Text(
+              '$count',
+              style: AppTypography.h3.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              label,
+              style: AppTypography.labelS.copyWith(color: textColor),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -227,14 +363,14 @@ class _Filters extends StatelessWidget {
               label: 'Open',
               selected: statusFilter == 'open',
               onTap: () => onStatusChanged('open'),
-              color: AppColors.warning,
+              color: AppColors.error,
             ),
             const SizedBox(width: AppSizing.xs),
             _Chip(
               label: 'In Progress',
               selected: statusFilter == 'in_progress',
               onTap: () => onStatusChanged('in_progress'),
-              color: const Color(0xFF3B82F6),
+              color: AppColors.warning,
             ),
             const SizedBox(width: AppSizing.xs),
             _Chip(
@@ -275,7 +411,7 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.primary;
+    final c = color ?? AppColors.brand;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -327,17 +463,19 @@ class _EmptyState extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
+                color: AppColors.success.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.chat_bubble_outline_rounded,
+                Icons.handshake_outlined,
                 size: 36,
-                color: AppColors.primary,
+                color: AppColors.success,
               ),
             ),
             const SizedBox(height: AppSizing.md),
-            Text('No Complaints', style: AppTypography.headlineSmall),
+            Text('No complaints — great teamwork!',
+                style: AppTypography.headlineSmall,
+                textAlign: TextAlign.center),
             const SizedBox(height: AppSizing.xs),
             Text(
               'Everything looks good! Raise a complaint if something needs attention.',

@@ -82,18 +82,50 @@ class _EmailPageState extends State<EmailPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: AppSizing.xxl),
-                    Text(
-                      AppStrings.welcomeTitle,
-                      style: AppTypography.displayLarge,
-                    ),
-                    const SizedBox(height: AppSizing.xs),
-                    Text(
-                      AppStrings.emailSubtitle,
-                      style: AppTypography.bodyLarge.copyWith(
-                        color: AppColors.textSecondary,
+
+                    // ── Brand logo mark ───────────────────────────────────
+                    Center(
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.brandGradient,
+                          borderRadius: BorderRadius.circular(AppSizing.r20),
+                          boxShadow: AppColors.shadowBrand,
+                        ),
+                        child: const Icon(
+                          Icons.home_rounded,
+                          color: AppColors.white,
+                          size: 44,
+                        ),
                       ),
                     ),
+
+                    const SizedBox(height: AppSizing.lg),
+
+                    // ── Title ─────────────────────────────────────────────
+                    Text(
+                      'Welcome to Nirbhor',
+                      style: AppTypography.h1.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: AppSizing.xs),
+
+                    // ── Subtitle ──────────────────────────────────────────
+                    Text(
+                      AppStrings.emailSubtitle,
+                      style: AppTypography.bodyL.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
                     const SizedBox(height: AppSizing.xl),
+
+                    // ── Email field ───────────────────────────────────────
                     AppTextField(
                       controller: _emailCtrl,
                       label: AppStrings.emailLabel,
@@ -111,39 +143,70 @@ class _EmailPageState extends State<EmailPage> {
                         return null;
                       },
                     ),
+
                     const SizedBox(height: AppSizing.lg),
-                    AppButton(
+
+                    // ── Continue button (gradient wrapper) ────────────────
+                    _GradientButton(
                       label: AppStrings.continueLabel,
                       loading: emailLoading,
-                      onPressed: anyLoading ? null : () => _submit(context),
+                      disabled: anyLoading,
+                      onPressed: () => _submit(context),
                     ),
+
                     const SizedBox(height: AppSizing.md),
+
+                    // ── "or" divider ──────────────────────────────────────
                     Row(
                       children: [
-                        const Expanded(child: Divider(color: AppColors.border)),
+                        Expanded(
+                          child: Divider(
+                            color: AppColors.brand.withValues(alpha: 0.2),
+                          ),
+                        ),
                         Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppSizing.sm,
                           ),
                           child: Text(
                             AppStrings.orDivider,
-                            style: AppTypography.bodySmall,
+                            style: AppTypography.labelM.copyWith(
+                              color: AppColors.brand,
+                            ),
                           ),
                         ),
-                        const Expanded(child: Divider(color: AppColors.border)),
+                        Expanded(
+                          child: Divider(
+                            color: AppColors.brand.withValues(alpha: 0.2),
+                          ),
+                        ),
                       ],
                     ),
+
                     const SizedBox(height: AppSizing.md),
+
+                    // ── Google button ─────────────────────────────────────
                     AppButton(
                       label: AppStrings.continueWithGoogle,
                       variant: AppButtonVariant.outlined,
                       loading: googleLoading,
+                      icon: Image.network(
+                        'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                        width: 20,
+                        height: 20,
+                        errorBuilder: (ctx, err, stack) => const Icon(
+                          Icons.g_mobiledata_rounded,
+                          size: 22,
+                          color: AppColors.brand,
+                        ),
+                      ),
                       onPressed: anyLoading
                           ? null
                           : () => context.read<AuthBloc>().add(
                               const AuthGoogleSignInRequested(),
                             ),
                     ),
+
                     const SizedBox(height: AppSizing.xxl),
                   ],
                 ),
@@ -152,6 +215,58 @@ class _EmailPageState extends State<EmailPage> {
           ),
         );
       },
+    );
+  }
+}
+
+// ── Gradient button ────────────────────────────────────────────────────────────
+
+class _GradientButton extends StatelessWidget {
+  final String label;
+  final bool loading;
+  final bool disabled;
+  final VoidCallback onPressed;
+
+  const _GradientButton({
+    required this.label,
+    required this.loading,
+    required this.disabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: (loading || disabled) ? null : onPressed,
+      child: AnimatedOpacity(
+        opacity: disabled ? 0.6 : 1.0,
+        duration: const Duration(milliseconds: 200),
+        child: Container(
+          height: AppSizing.buttonHeight,
+          decoration: BoxDecoration(
+            gradient: AppColors.brandGradient,
+            borderRadius: BorderRadius.circular(AppSizing.r16),
+            boxShadow: AppColors.shadowMd,
+          ),
+          alignment: Alignment.center,
+          child: loading
+              ? const SizedBox(
+                  width: AppSizing.spinnerSize,
+                  height: AppSizing.spinnerSize,
+                  child: CircularProgressIndicator(
+                    strokeWidth: AppSizing.borderWidthLg,
+                    color: AppColors.white,
+                  ),
+                )
+              : Text(
+                  label,
+                  style: AppTypography.labelL.copyWith(
+                    color: AppColors.white,
+                    fontSize: 15,
+                  ),
+                ),
+        ),
+      ),
     );
   }
 }

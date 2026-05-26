@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -10,7 +12,6 @@ import '../../../../core/router/app_router.dart';
 import '../args/complete_setup_page_args.dart';
 import '../args/otp_page_args.dart';
 import '../args/reset_password_page_args.dart';
-import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../bloc/auth_bloc.dart';
 
@@ -27,8 +28,21 @@ class _OtpPageState extends State<OtpPage> {
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
+  static const int _resendCooldown = 30;
+  int _secondsLeft = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    for (final f in _focusNodes) {
+      f.addListener(() => setState(() {}));
+    }
+  }
+
   @override
   void dispose() {
+    _timer?.cancel();
     for (final c in _controllers) {
       c.dispose();
     }
@@ -48,6 +62,19 @@ class _OtpPageState extends State<OtpPage> {
       _focusNodes[index - 1].requestFocus();
     }
     setState(() {});
+  }
+
+  void _startResendCooldown() {
+    setState(() => _secondsLeft = _resendCooldown);
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_secondsLeft <= 1) {
+        t.cancel();
+        setState(() => _secondsLeft = 0);
+      } else {
+        setState(() => _secondsLeft--);
+      }
+    });
   }
 
   void _submit(BuildContext context) {
@@ -108,13 +135,42 @@ class _OtpPageState extends State<OtpPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: AppSizing.md),
-                  Text(AppStrings.verifyEmailTitle,
-                      style: AppTypography.headlineLarge),
-                  const SizedBox(height: AppSizing.sm),
+                  // Logo mark
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.brandGradient,
+                      borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+                      boxShadow: AppColors.shadowMd,
+                    ),
+                    child: const Icon(
+                      Icons.home_rounded,
+                      color: AppColors.white,
+                      size: AppSizing.iconLg,
+                    ),
+                  ),
+                  const SizedBox(height: AppSizing.lg),
                   Text(
-                    '${AppStrings.otpSentPrefix}${widget.args.email}',
-                    style: AppTypography.bodyMedium
-                        .copyWith(color: AppColors.textSecondary),
+                    AppStrings.verifyEmailTitle,
+                    style: AppTypography.h1,
+                  ),
+                  const SizedBox(height: AppSizing.xs),
+                  RichText(
+                    text: TextSpan(
+                      style: AppTypography.bodyM
+                          .copyWith(color: AppColors.textSecondary),
+                      children: [
+                        const TextSpan(text: 'We sent a 6-digit code to '),
+                        TextSpan(
+                          text: widget.args.email,
+                          style: AppTypography.bodyM.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: AppSizing.xl),
                   _OtpBoxesRow(
@@ -123,43 +179,58 @@ class _OtpPageState extends State<OtpPage> {
                     onChanged: _onFieldChanged,
                   ),
                   const SizedBox(height: AppSizing.xl),
-                  AppButton(
+                  // Gradient confirm button
+                  _GradientButton(
                     label: AppStrings.verifyLabel,
                     loading: loading,
                     onPressed: () => _submit(context),
                   ),
                   const SizedBox(height: AppSizing.md),
                   Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(AppStrings.didntReceiveCode,
-                            style: AppTypography.bodySmall),
-                        GestureDetector(
-                          onTap: loading
-                              ? null
-                              : () {
-                                  final hint = widget.args.hint;
-                                  if (hint == null) {
-                                    // forgot password - resend not implemented; user goes back
-                                  } else {
-                                    // re-check email to re-send OTP
-                                    context.read<AuthBloc>().add(
-                                          AuthEmailCheckRequested(
-                                              widget.args.email),
-                                        );
-                                  }
-                                },
-                          child: Text(
-                            AppStrings.resendCode,
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                    child: _secondsLeft > 0
+                        ? Text(
+                            'Resend code in ${_secondsLeft}s',
+                            style: AppTypography.bodyM
+                                .copyWith(color: AppColors.textSecondary),
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                AppStrings.didntReceiveCode,
+                                style: AppTypography.bodyM
+                                    .copyWith(color: AppColors.textSecondary),
+                              ),
+                              TextButton(
+                                onPressed: loading
+                                    ? null
+                                    : () {
+                                        _startResendCooldown();
+                                        final hint = widget.args.hint;
+                                        if (hint != null) {
+                                          context.read<AuthBloc>().add(
+                                                AuthEmailCheckRequested(
+                                                    widget.args.email),
+                                              );
+                                        }
+                                      },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSizing.xs),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  AppStrings.resendCode,
+                                  style: AppTypography.bodyM.copyWith(
+                                    color: AppColors.brand,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ],
               ),
@@ -170,6 +241,8 @@ class _OtpPageState extends State<OtpPage> {
     );
   }
 }
+
+// ── OTP Boxes ─────────────────────────────────────────────────────────────────
 
 class _OtpBoxesRow extends StatelessWidget {
   final List<TextEditingController> controllers;
@@ -188,19 +261,21 @@ class _OtpBoxesRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(6, (i) {
         return SizedBox(
-          width: AppSizing.otpFieldWidth,
-          height: AppSizing.otpFieldHeight,
+          width: 48,
+          height: 56,
           child: TextField(
             controller: controllers[i],
             focusNode: focusNodes[i],
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             maxLength: 1,
-            style: AppTypography.headlineSmall,
+            style: AppTypography.h3.copyWith(
+              color: AppColors.textPrimary,
+            ),
             decoration: InputDecoration(
               counterText: '',
               filled: true,
-              fillColor: AppColors.surfaceVariant,
+              fillColor: AppColors.surface100,
               contentPadding: EdgeInsets.zero,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
@@ -212,14 +287,64 @@ class _OtpBoxesRow extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: AppSizing.borderWidthLg),
+                borderSide: const BorderSide(
+                    color: AppColors.brand, width: AppSizing.borderWidthLg),
               ),
             ),
             onChanged: (v) => onChanged(v, i),
           ),
         );
       }),
+    );
+  }
+}
+
+// ── Gradient Button ───────────────────────────────────────────────────────────
+
+class _GradientButton extends StatelessWidget {
+  final String label;
+  final bool loading;
+  final VoidCallback? onPressed;
+
+  const _GradientButton({
+    required this.label,
+    required this.loading,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: AppSizing.buttonHeight,
+      decoration: BoxDecoration(
+        gradient: AppColors.brandGradient,
+        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+        boxShadow: AppColors.shadowMd,
+      ),
+      child: Material(
+        color: AppColors.transparent,
+        child: InkWell(
+          onTap: loading ? null : onPressed,
+          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          child: Center(
+            child: loading
+                ? const SizedBox(
+                    width: AppSizing.spinnerSize,
+                    height: AppSizing.spinnerSize,
+                    child: CircularProgressIndicator(
+                      color: AppColors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : Text(
+                    label,
+                    style: AppTypography.labelL.copyWith(
+                      color: AppColors.white,
+                    ),
+                  ),
+          ),
+        ),
+      ),
     );
   }
 }

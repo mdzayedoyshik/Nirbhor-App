@@ -36,41 +36,197 @@ String _todayIso() {
   return '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
 }
 
-class MealPage extends StatelessWidget {
+// ── Tab index constants ────────────────────────────────────────────────────────
+
+const _kTabMeals = 0;
+
+// ── Page root ─────────────────────────────────────────────────────────────────
+
+class MealPage extends StatefulWidget {
   const MealPage({super.key, required this.args});
 
   final MealPageArgs args;
 
   @override
+  State<MealPage> createState() => _MealPageState();
+}
+
+class _MealPageState extends State<MealPage> {
+  int _selectedTab = _kTabMeals;
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.white,
-          title: const Text('Meals'),
-          elevation: 0,
-          bottom: const TabBar(
-            indicatorColor: AppColors.white,
-            labelColor: AppColors.white,
-            unselectedLabelColor: Color(0xCCFFFFFF),
-            indicatorWeight: 3,
-            tabs: [
-              Tab(text: 'Daily'),
-              Tab(text: 'Pool'),
-              Tab(text: 'Preferences'),
-            ],
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          // Custom gradient header
+          _MealPageHeader(
+            selectedTab: _selectedTab,
+            onTabChanged: (index) => setState(() => _selectedTab = index),
           ),
+
+          // Tab body
+          Expanded(
+            child: IndexedStack(
+              index: _selectedTab,
+              children: [
+                _DailyTab(args: widget.args),
+                _PoolTab(args: widget.args),
+                _PrefsTab(args: widget.args),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Custom header with gradient + pill tabs ───────────────────────────────────
+
+class _MealPageHeader extends StatelessWidget {
+  final int selectedTab;
+  final ValueChanged<int> onTabChanged;
+
+  const _MealPageHeader({
+    required this.selectedTab,
+    required this.onTabChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: AppColors.brandGradient,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(AppSizing.r24),
+          bottomRight: Radius.circular(AppSizing.r24),
         ),
-        body: TabBarView(
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSizing.pagePadding,
+          topPad + AppSizing.md,
+          AppSizing.pagePadding,
+          AppSizing.lg,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _DailyTab(args: args),
-            _PoolTab(args: args),
-            _PrefsTab(args: args),
+            // Back button + title row
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.of(context).maybePop(),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(AppSizing.r12),
+                    ),
+                    child: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: AppColors.white,
+                      size: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSizing.sm),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Meals',
+                      style: AppTypography.h2.copyWith(
+                        color: AppColors.white,
+                      ),
+                    ),
+                    Text(
+                      _currentMonthLabel(),
+                      style: AppTypography.bodyS.copyWith(
+                        color: AppColors.white.withValues(alpha: 0.75),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: AppSizing.lg),
+
+            // Pill toggle tabs
+            _PillTabBar(
+              selectedIndex: selectedTab,
+              onChanged: onTabChanged,
+              labels: const ['Meals', 'Pool', 'Preferences'],
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  String _currentMonthLabel() {
+    final now = DateTime.now();
+    return '${_months[now.month - 1]} ${now.year}';
+  }
+}
+
+// ── Pill tab bar ──────────────────────────────────────────────────────────────
+
+class _PillTabBar extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+  final List<String> labels;
+
+  const _PillTabBar({
+    required this.selectedIndex,
+    required this.onChanged,
+    required this.labels,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppSizing.rFull),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: List.generate(labels.length, (i) {
+          final selected = i == selectedIndex;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? AppColors.white
+                      : AppColors.transparent,
+                  borderRadius: BorderRadius.circular(AppSizing.rFull),
+                ),
+                alignment: Alignment.center,
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: AppTypography.labelM.copyWith(
+                    color: selected
+                        ? AppColors.brand
+                        : AppColors.white.withValues(alpha: 0.85),
+                  ),
+                  child: Text(labels[i]),
+                ),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -162,7 +318,7 @@ class _DailyTabState extends State<_DailyTab>
         };
 
         return RefreshIndicator(
-          color: AppColors.primary,
+          color: AppColors.brand,
           onRefresh: () async {
             context.read<MealBloc>().add(MealDailyDateChanged(
                   flatId: widget.args.flatId,
@@ -172,37 +328,41 @@ class _DailyTabState extends State<_DailyTab>
           },
           child: CustomScrollView(
             slivers: [
-              // Date navigation
+              // Date navigation strip
               SliverToBoxAdapter(
-                child: Container(
-                  color: AppColors.primary,
+                child: Padding(
                   padding: const EdgeInsets.fromLTRB(
-                      AppSizing.pagePadding, 0, AppSizing.pagePadding, AppSizing.md),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left,
-                            color: AppColors.white),
-                        onPressed: isActionLoading ? null : () => _changeDate(-1),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                      Expanded(
-                        child: Text(
-                          _formatDate(_selectedDate),
-                          style: AppTypography.titleMedium
-                              .copyWith(color: AppColors.white),
-                          textAlign: TextAlign.center,
+                      AppSizing.pagePadding, AppSizing.md, AppSizing.pagePadding, 0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizing.sm, vertical: AppSizing.xs),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: AppColors.shadowSm,
+                    ),
+                    child: Row(
+                      children: [
+                        _NavIconButton(
+                          icon: Icons.chevron_left_rounded,
+                          onPressed: isActionLoading ? null : () => _changeDate(-1),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right,
-                            color: AppColors.white),
-                        onPressed: isActionLoading ? null : () => _changeDate(1),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
+                        Expanded(
+                          child: Text(
+                            _formatDate(_selectedDate),
+                            style: AppTypography.labelL.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        _NavIconButton(
+                          icon: Icons.chevron_right_rounded,
+                          onPressed: isActionLoading ? null : () => _changeDate(1),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -210,7 +370,7 @@ class _DailyTabState extends State<_DailyTab>
               if (isLoading)
                 const SliverFillRemaining(
                   child: Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
+                    child: CircularProgressIndicator(color: AppColors.brand),
                   ),
                 )
               else if (logsData != null && config != null) ...[
@@ -267,44 +427,68 @@ class _DailyTabState extends State<_DailyTab>
                     ),
                   ),
 
-                // Action loading overlay
+                // Action loading bar
                 if (isActionLoading)
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.all(AppSizing.sm),
+                      padding: const EdgeInsets.fromLTRB(
+                          AppSizing.pagePadding, AppSizing.sm, AppSizing.pagePadding, 0),
                       child: LinearProgressIndicator(
-                        color: AppColors.primary,
+                        color: AppColors.brand,
                         backgroundColor:
-                            AppColors.primary.withValues(alpha: 0.1),
+                            AppColors.brand.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppSizing.rFull),
+                      ),
+                    ),
+                  ),
+
+                // Section label
+                if (logsData.logs.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                          AppSizing.pagePadding, AppSizing.md, AppSizing.pagePadding, AppSizing.xs),
+                      child: Text(
+                        'Member Logs',
+                        style: AppTypography.labelL.copyWith(
+                          color: AppColors.textSecondary,
+                          letterSpacing: 0.3,
+                        ),
                       ),
                     ),
                   ),
 
                 // Member logs list
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
-                      AppSizing.pagePadding, AppSizing.md, AppSizing.pagePadding, AppSizing.xxl),
-                  sliver: SliverList.separated(
-                    itemCount: logsData.logs.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: AppSizing.sm),
-                    itemBuilder: (context, i) {
-                      final entry = logsData.logs[i];
-                      final isOwn =
-                          entry.flatMemberId == widget.args.myMemberId;
-                      return MemberMealRow(
-                        flatId: widget.args.flatId,
-                        currentDate: _selectedDate,
-                        entry: entry,
-                        config: config,
-                        flatToggle: logsData.flatToggle,
-                        isManager: widget.args.canManage,
-                        isOwn: isOwn,
-                        isToday: _selectedDate == _todayIso(),
-                      );
-                    },
+                if (logsData.logs.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _EmptyMealState(),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSizing.pagePadding, 0, AppSizing.pagePadding, AppSizing.xxl),
+                    sliver: SliverList.separated(
+                      itemCount: logsData.logs.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: AppSizing.sm),
+                      itemBuilder: (context, i) {
+                        final entry = logsData.logs[i];
+                        final isOwn =
+                            entry.flatMemberId == widget.args.myMemberId;
+                        return MemberMealRow(
+                          flatId: widget.args.flatId,
+                          currentDate: _selectedDate,
+                          entry: entry,
+                          config: config,
+                          flatToggle: logsData.flatToggle,
+                          isManager: widget.args.canManage,
+                          isOwn: isOwn,
+                          isToday: _selectedDate == _todayIso(),
+                        );
+                      },
+                    ),
                   ),
-                ),
               ],
             ],
           ),
@@ -380,44 +564,48 @@ class _PoolTabState extends State<_PoolTab>
     return BlocBuilder<MealPoolBloc, MealPoolState>(
       builder: (context, state) {
         return RefreshIndicator(
-          color: AppColors.primary,
+          color: AppColors.brand,
           onRefresh: () async {
             _load();
             await Future.delayed(const Duration(milliseconds: 500));
           },
           child: CustomScrollView(
             slivers: [
-              // Month navigation
+              // Month navigation strip
               SliverToBoxAdapter(
-                child: Container(
-                  color: AppColors.primary,
+                child: Padding(
                   padding: const EdgeInsets.fromLTRB(
-                      AppSizing.pagePadding, 0, AppSizing.pagePadding, AppSizing.md),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left,
-                            color: AppColors.white),
-                        onPressed: _prevMonth,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                      Expanded(
-                        child: Text(
-                          '${_months[_month - 1]} $_year',
-                          style: AppTypography.titleMedium
-                              .copyWith(color: AppColors.white),
-                          textAlign: TextAlign.center,
+                      AppSizing.pagePadding, AppSizing.md, AppSizing.pagePadding, 0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizing.sm, vertical: AppSizing.xs),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: AppColors.shadowSm,
+                    ),
+                    child: Row(
+                      children: [
+                        _NavIconButton(
+                          icon: Icons.chevron_left_rounded,
+                          onPressed: _prevMonth,
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right,
-                            color: AppColors.white),
-                        onPressed: _nextMonth,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
+                        Expanded(
+                          child: Text(
+                            '${_months[_month - 1]} $_year',
+                            style: AppTypography.labelL.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        _NavIconButton(
+                          icon: Icons.chevron_right_rounded,
+                          onPressed: _nextMonth,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -425,7 +613,7 @@ class _PoolTabState extends State<_PoolTab>
               if (state is MealPoolLoading)
                 const SliverFillRemaining(
                   child: Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
+                    child: CircularProgressIndicator(color: AppColors.brand),
                   ),
                 )
               else if (state is MealPoolError)
@@ -436,69 +624,68 @@ class _PoolTabState extends State<_PoolTab>
                   ),
                 )
               else if (state is MealPoolLoaded) ...[
-                // Summary cards
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSizing.pagePadding),
-                    child: Column(
-                      children: [
-                        // Status badge
-                        if (state.pool.isClosed)
-                          Container(
-                            width: double.infinity,
-                            padding:
-                                const EdgeInsets.symmetric(vertical: AppSizing.sm),
-                            decoration: BoxDecoration(
-                              color: AppColors.success.withValues(alpha: 0.1),
-                              borderRadius:
-                                  BorderRadius.circular(AppSizing.radiusMd),
-                              border: Border.all(
-                                  color: AppColors.success
-                                      .withValues(alpha: 0.35)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.lock_rounded,
-                                    size: 14, color: AppColors.success),
-                                const SizedBox(width: AppSizing.xs),
-                                Text(
-                                  'Pool Closed — Final',
-                                  style: AppTypography.titleMedium.copyWith(
-                                      color: AppColors.success),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (state.pool.isClosed)
-                          const SizedBox(height: AppSizing.md),
-
-                        // 3 stat cards
-                        Row(
+                // Status badge
+                if (state.pool.isClosed)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                          AppSizing.pagePadding, AppSizing.md, AppSizing.pagePadding, 0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizing.md, vertical: AppSizing.sm),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                          border: Border.all(
+                              color: AppColors.success.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _PoolStatCard(
-                              label: 'Total Expense',
-                              value:
-                                  '৳${state.pool.totalExpense.toStringAsFixed(0)}',
-                              icon: Icons.receipt_outlined,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: AppSizing.sm),
-                            _PoolStatCard(
-                              label: 'Total Points',
-                              value: state.pool.totalPoints.toStringAsFixed(1),
-                              icon: Icons.star_outline_rounded,
-                              color: const Color(0xFFF59E0B),
-                            ),
-                            const SizedBox(width: AppSizing.sm),
-                            _PoolStatCard(
-                              label: 'Per Point',
-                              value:
-                                  '৳${state.pool.perPointCost.toStringAsFixed(2)}',
-                              icon: Icons.calculate_outlined,
-                              color: AppColors.success,
+                            const Icon(Icons.lock_rounded,
+                                size: 14, color: AppColors.success),
+                            const SizedBox(width: AppSizing.xs),
+                            Text(
+                              'Pool Closed — Final',
+                              style: AppTypography.labelM
+                                  .copyWith(color: AppColors.success),
                             ),
                           ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // 3 stat cards in a grid
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSizing.pagePadding, AppSizing.md, AppSizing.pagePadding, 0),
+                    child: Row(
+                      children: [
+                        _PoolStatCard(
+                          label: 'Total Expense',
+                          value: '৳${state.pool.totalExpense.toStringAsFixed(0)}',
+                          icon: Icons.receipt_long_rounded,
+                          gradient: AppColors.brandGradient,
+                        ),
+                        const SizedBox(width: AppSizing.sm),
+                        _PoolStatCard(
+                          label: 'Total Points',
+                          value: state.pool.totalPoints.toStringAsFixed(1),
+                          icon: Icons.stars_rounded,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        const SizedBox(width: AppSizing.sm),
+                        _PoolStatCard(
+                          label: 'Per Point',
+                          value: '৳${state.pool.perPointCost.toStringAsFixed(2)}',
+                          icon: Icons.calculate_rounded,
+                          gradient: AppColors.successGradient,
                         ),
                       ],
                     ),
@@ -506,12 +693,17 @@ class _PoolTabState extends State<_PoolTab>
                 ),
 
                 // Breakdown header
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
-                      AppSizing.pagePadding, 0, AppSizing.pagePadding, AppSizing.sm),
-                  sliver: SliverToBoxAdapter(
-                    child: Text('Member Breakdown',
-                        style: AppTypography.headlineSmall),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSizing.pagePadding, AppSizing.lg, AppSizing.pagePadding, AppSizing.xs),
+                    child: Text(
+                      'Member Breakdown',
+                      style: AppTypography.labelL.copyWith(
+                        color: AppColors.textSecondary,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
                   ),
                 ),
 
@@ -579,7 +771,7 @@ class _PrefsTabState extends State<_PrefsTab>
       builder: (context, state) {
         if (state is MealPrefsLoading || state is MealPrefsInitial) {
           return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary));
+              child: CircularProgressIndicator(color: AppColors.brand));
         }
         if (state is MealPrefsError && state.prefs == null) {
           return _ErrorView(
@@ -610,51 +802,68 @@ class _PrefsTabState extends State<_PrefsTab>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Section title + description
                   Text(
                     'Weekly Meal Preferences',
-                    style: AppTypography.headlineSmall,
+                    style: AppTypography.h3.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: AppSizing.xs),
                   Text(
-                    'Set your default meals for each day. These are used when you haven\'t toggled a specific day.',
-                    style: AppTypography.bodySmall
+                    'Set your default meals for each day. Used when you haven\'t toggled a specific day.',
+                    style: AppTypography.bodyS
                         .copyWith(color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: AppSizing.lg),
 
-                  // Grid header row
+                  // Grid header row with colored shift icons
                   Padding(
                     padding: const EdgeInsets.only(bottom: AppSizing.sm),
                     child: Row(
                       children: [
-                        const SizedBox(width: 48),
+                        const SizedBox(width: 52),
                         ...['breakfast', 'lunch', 'dinner'].map((shift) {
                           final color = _shiftColors[shift]!;
                           return Expanded(
                             child: Column(
                               children: [
                                 Container(
-                                  width: 32,
-                                  height: 32,
+                                  width: 36,
+                                  height: 36,
                                   decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.1),
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        color,
+                                        color.withValues(alpha: 0.7),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
                                     borderRadius: BorderRadius.circular(
-                                        AppSizing.radiusMd),
+                                        AppSizing.r12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: color.withValues(alpha: 0.3),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
                                   child: Icon(
                                     _shiftIcons[shift],
                                     size: 16,
-                                    color: color,
+                                    color: AppColors.white,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: AppSizing.xs),
                                 Text(
                                   shift == 'breakfast'
                                       ? 'B'
                                       : shift == 'lunch'
                                           ? 'L'
                                           : 'D',
-                                  style: AppTypography.labelSmall
+                                  style: AppTypography.labelS
                                       .copyWith(color: color),
                                 ),
                               ],
@@ -683,13 +892,18 @@ class _PrefsTabState extends State<_PrefsTab>
                             borderRadius:
                                 BorderRadius.circular(AppSizing.radiusMd),
                             border: Border.all(color: AppColors.border),
+                            boxShadow: AppColors.shadowSm,
                           ),
                           child: Row(
                             children: [
                               SizedBox(
-                                width: 48,
-                                child: Text(shortDay,
-                                    style: AppTypography.titleMedium),
+                                width: 52,
+                                child: Text(
+                                  shortDay,
+                                  style: AppTypography.labelL.copyWith(
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
                               ),
                               ...[
                                 ('breakfast', pref.breakfast),
@@ -712,29 +926,34 @@ class _PrefsTabState extends State<_PrefsTab>
                                               )),
                                       child: AnimatedContainer(
                                         duration:
-                                            const Duration(milliseconds: 150),
-                                        width: 32,
-                                        height: 32,
+                                            const Duration(milliseconds: 200),
+                                        curve: Curves.easeInOut,
+                                        width: 36,
+                                        height: 36,
                                         decoration: BoxDecoration(
                                           color: value
-                                              ? color.withValues(alpha: 0.15)
-                                              : AppColors.surfaceVariant,
-                                          borderRadius: BorderRadius.circular(
-                                              AppSizing.radiusMd),
-                                          border: Border.all(
-                                            color: value
-                                                ? color.withValues(alpha: 0.4)
-                                                : AppColors.border,
-                                          ),
+                                              ? color
+                                              : AppColors.surface100,
+                                          shape: BoxShape.circle,
+                                          boxShadow: value
+                                              ? [
+                                                  BoxShadow(
+                                                    color: color.withValues(
+                                                        alpha: 0.35),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ]
+                                              : null,
                                         ),
                                         child: Icon(
                                           value
                                               ? Icons.check_rounded
-                                              : Icons.close_rounded,
+                                              : Icons.remove_rounded,
                                           size: 16,
                                           color: value
-                                              ? color
-                                              : AppColors.textHint,
+                                              ? AppColors.white
+                                              : AppColors.textDisabled,
                                         ),
                                       ),
                                     ),
@@ -756,33 +975,51 @@ class _PrefsTabState extends State<_PrefsTab>
                 left: AppSizing.pagePadding,
                 right: AppSizing.pagePadding,
                 bottom: AppSizing.lg,
-                child: FilledButton(
-                  onPressed: isSaving
-                      ? null
-                      : () => context.read<MealPrefsBloc>().add(
-                            MealPrefsSaveRequested(
-                              flatId: widget.args.flatId,
-                              memberId: widget.args.myMemberId,
-                            ),
-                          ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    disabledBackgroundColor:
-                        AppColors.primary.withValues(alpha: 0.6),
-                    padding:
-                        const EdgeInsets.symmetric(vertical: AppSizing.sm + 4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                    ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    gradient: isSaving
+                        ? null
+                        : AppColors.brandGradient,
+                    color: isSaving
+                        ? AppColors.brand.withValues(alpha: 0.6)
+                        : null,
+                    boxShadow: isSaving ? null : AppColors.shadowBrand,
                   ),
-                  child: isSaving
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppColors.white),
-                        )
-                      : const Text('Save Preferences'),
+                  child: FilledButton(
+                    onPressed: isSaving
+                        ? null
+                        : () => context.read<MealPrefsBloc>().add(
+                              MealPrefsSaveRequested(
+                                flatId: widget.args.flatId,
+                                memberId: widget.args.myMemberId,
+                              ),
+                            ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.transparent,
+                      disabledBackgroundColor: AppColors.transparent,
+                      minimumSize: const Size(double.infinity, 52),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: AppSizing.sm + 4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppSizing.radiusMd),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: isSaving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: AppColors.white),
+                          )
+                        : Text(
+                            'Save Preferences',
+                            style: AppTypography.labelL
+                                .copyWith(color: AppColors.white),
+                          ),
+                  ),
                 ),
               ),
           ],
@@ -794,7 +1031,7 @@ class _PrefsTabState extends State<_PrefsTab>
 
 // ── Shift summary card ────────────────────────────────────────────────────────
 
-class _ShiftSummaryCard extends StatelessWidget {
+class _ShiftSummaryCard extends StatefulWidget {
   final IconData icon;
   final String label;
   final int membersCount;
@@ -814,60 +1051,113 @@ class _ShiftSummaryCard extends StatelessWidget {
   });
 
   @override
+  State<_ShiftSummaryCard> createState() => _ShiftSummaryCardState();
+}
+
+class _ShiftSummaryCardState extends State<_ShiftSummaryCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+    );
+    _scaleAnim = Tween<double>(begin: 1.0, end: 0.93).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSizing.sm),
-      decoration: BoxDecoration(
-        color: enabled
-            ? color.withValues(alpha: 0.08)
-            : AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(
-          color: enabled ? color.withValues(alpha: 0.3) : AppColors.border,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) => _controller.reverse(),
+      onTapCancel: () => _controller.reverse(),
+      child: ScaleTransition(
+        scale: _scaleAnim,
+        child: Container(
+          padding: const EdgeInsets.all(AppSizing.sm + 2),
+          decoration: BoxDecoration(
+            color: widget.enabled
+                ? widget.color.withValues(alpha: 0.08)
+                : AppColors.surface100,
+            borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+            border: Border.all(
+              color: widget.enabled
+                  ? widget.color.withValues(alpha: 0.3)
+                  : AppColors.border,
+            ),
+            boxShadow: widget.enabled ? AppColors.shadowSm : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon,
-                  size: 14,
-                  color: enabled ? color : AppColors.textHint),
-              const SizedBox(width: 4),
+              // Icon container
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: widget.enabled
+                      ? widget.color.withValues(alpha: 0.15)
+                      : AppColors.surface200,
+                  borderRadius: BorderRadius.circular(AppSizing.r8),
+                ),
+                child: Icon(
+                  widget.enabled ? widget.icon : widget.icon,
+                  size: 16,
+                  color: widget.enabled ? widget.color : AppColors.textDisabled,
+                ),
+              ),
+              const SizedBox(height: AppSizing.xs),
               Flexible(
                 child: Text(
-                  label,
-                  style: AppTypography.labelSmall.copyWith(
-                    color: enabled ? color : AppColors.textHint,
+                  widget.label,
+                  style: AppTypography.labelS.copyWith(
+                    color: widget.enabled
+                        ? widget.color
+                        : AppColors.textDisabled,
                     fontWeight: FontWeight.w600,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(height: 2),
+              Text(
+                widget.enabled ? '${widget.total}' : '—',
+                style: AppTypography.h2.copyWith(
+                  color: widget.enabled ? widget.color : AppColors.textDisabled,
+                  height: 1.1,
+                ),
+              ),
+              if (widget.enabled && widget.guestsCount > 0)
+                Text(
+                  '+${widget.guestsCount}g',
+                  style: AppTypography.labelS.copyWith(
+                    color: widget.color.withValues(alpha: 0.7),
+                    fontSize: 10,
+                  ),
+                )
+              else if (!widget.enabled)
+                Text(
+                  'off',
+                  style: AppTypography.labelS.copyWith(
+                    color: AppColors.textDisabled,
+                    fontSize: 10,
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            enabled ? '$total' : '—',
-            style: AppTypography.headlineMedium.copyWith(
-              color: enabled ? color : AppColors.textHint,
-              fontSize: 20,
-            ),
-          ),
-          if (enabled && guestsCount > 0)
-            Text(
-              '+$guestsCount guests',
-              style: AppTypography.labelSmall
-                  .copyWith(color: color.withValues(alpha: 0.7), fontSize: 10),
-            ),
-          if (!enabled)
-            Text(
-              'off',
-              style: AppTypography.labelSmall
-                  .copyWith(color: AppColors.textHint, fontSize: 10),
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -887,25 +1177,39 @@ class _FlatToggleCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSizing.md, vertical: AppSizing.sm),
+            horizontal: AppSizing.md, vertical: AppSizing.sm + 2),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           border: Border.all(color: AppColors.border),
+          boxShadow: AppColors.shadowSm,
         ),
         child: Row(
           children: [
-            const Icon(Icons.toggle_on_outlined,
-                size: 18, color: AppColors.primary),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.brand.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppSizing.r8),
+              ),
+              child: const Icon(Icons.tune_rounded,
+                  size: 18, color: AppColors.brand),
+            ),
             const SizedBox(width: AppSizing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Flat Shifts', style: AppTypography.titleMedium),
+                  Text(
+                    'Flat Shifts',
+                    style: AppTypography.labelL.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   Text(
                     'Manage which shifts are active today',
-                    style: AppTypography.labelSmall
+                    style: AppTypography.labelS
                         .copyWith(color: AppColors.textSecondary),
                   ),
                 ],
@@ -916,20 +1220,30 @@ class _FlatToggleCard extends StatelessWidget {
                 final active = flatToggle.isEnabled(shift);
                 final color = _shiftColors[shift]!;
                 return Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Container(
-                    width: 8,
-                    height: 8,
+                  padding: const EdgeInsets.only(left: AppSizing.xs),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 10,
+                    height: 10,
                     decoration: BoxDecoration(
-                      color: active ? color : AppColors.textHint,
+                      color: active ? color : AppColors.border,
                       shape: BoxShape.circle,
+                      boxShadow: active
+                          ? [
+                              BoxShadow(
+                                color: color.withValues(alpha: 0.4),
+                                blurRadius: 4,
+                              )
+                            ]
+                          : null,
                     ),
                   ),
                 );
               }).toList(),
             ),
             const SizedBox(width: AppSizing.sm),
-            const Icon(Icons.chevron_right, size: 16, color: AppColors.textHint),
+            const Icon(Icons.chevron_right_rounded,
+                size: 18, color: AppColors.textDisabled),
           ],
         ),
       ),
@@ -943,13 +1257,13 @@ class _PoolStatCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-  final Color color;
+  final LinearGradient gradient;
 
   const _PoolStatCard({
     required this.label,
     required this.value,
     required this.icon,
-    required this.color,
+    required this.gradient,
   });
 
   @override
@@ -958,29 +1272,107 @@ class _PoolStatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSizing.sm + 2),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.06),
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
+          border: Border.all(color: AppColors.border),
+          boxShadow: AppColors.shadowSm,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 16, color: color),
+            // Gradient icon container
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                gradient: gradient,
+                borderRadius: BorderRadius.circular(AppSizing.r8),
+                boxShadow: [
+                  BoxShadow(
+                    color: gradient.colors.first.withValues(alpha: 0.35),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(icon, size: 16, color: AppColors.white),
+            ),
             const SizedBox(height: AppSizing.xs),
             Text(
               value,
-              style: AppTypography.titleLarge
-                  .copyWith(color: color, fontWeight: FontWeight.w700),
+              style: AppTypography.h4.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
             Text(
               label,
-              style: AppTypography.labelSmall
+              style: AppTypography.labelS
                   .copyWith(color: AppColors.textSecondary, fontSize: 10),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Empty meal state ──────────────────────────────────────────────────────────
+
+class _EmptyMealState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSizing.pagePadding),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              '\u{1F37D}',
+              style: TextStyle(fontSize: 56),
+            ),
+            const SizedBox(height: AppSizing.md),
+            Text(
+              'No meal logs yet',
+              style: AppTypography.h3.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSizing.xs),
+            Text(
+              'Logs will appear here once members start tracking meals.',
+              style: AppTypography.bodyS
+                  .copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Navigation icon button ────────────────────────────────────────────────────
+
+class _NavIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  const _NavIconButton({required this.icon, this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Icon(icon,
+          color: onPressed == null
+              ? AppColors.textDisabled
+              : AppColors.textPrimary),
+      onPressed: onPressed,
+      iconSize: 22,
+      padding: const EdgeInsets.all(AppSizing.xs),
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
     );
   }
 }
@@ -1001,16 +1393,35 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.error_outline_rounded,
+                  size: 32, color: AppColors.error),
+            ),
             const SizedBox(height: AppSizing.md),
-            Text(message,
-                style: AppTypography.bodyMedium
-                    .copyWith(color: AppColors.textSecondary),
-                textAlign: TextAlign.center),
+            Text(
+              message,
+              style: AppTypography.bodyM
+                  .copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: AppSizing.md),
-            OutlinedButton(
+            OutlinedButton.icon(
               onPressed: onRetry,
-              child: const Text('Retry'),
+              icon: const Icon(Icons.refresh_rounded, size: 16),
+              label: const Text('Retry'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.brand,
+                side: const BorderSide(color: AppColors.brand),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                ),
+              ),
             ),
           ],
         ),

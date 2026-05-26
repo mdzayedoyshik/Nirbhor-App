@@ -7,6 +7,7 @@ import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/theme/theme_cubit.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../audit_log/presentation/args/audit_log_page_args.dart';
 import '../../../../core/widgets/app_dialog.dart';
@@ -121,6 +122,51 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: AppSizing.sm),
+
+                    // ── Preferences (Theme) ──────────────────────────────────
+                    _SectionLabel(label: 'Preferences'),
+                    const SizedBox(height: AppSizing.sm),
+                    _SettingsCard(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizing.md,
+                            vertical: AppSizing.sp12,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface100,
+                                  borderRadius: BorderRadius.circular(
+                                      AppSizing.radiusSm),
+                                ),
+                                child: const Icon(
+                                  Icons.palette_outlined,
+                                  color: AppColors.brand,
+                                  size: AppSizing.iconMd,
+                                ),
+                              ),
+                              const SizedBox(width: AppSizing.md),
+                              Expanded(
+                                child: Text(
+                                  'Theme',
+                                  style: AppTypography.labelM,
+                                ),
+                              ),
+                              const _ThemeToggle(),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSizing.lg),
+
+                    // ── Flat Details ─────────────────────────────────────────
+                    _SectionLabel(label: 'Flat Details'),
+                    const SizedBox(height: AppSizing.sm),
                     AppTextField(
                       controller: _nameCtrl,
                       label: AppStrings.flatNameLabel,
@@ -169,41 +215,78 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                           : () => _submit(context),
                     ),
                     const SizedBox(height: AppSizing.xxl),
-                    // Audit log
-                    Card(
-                      elevation: 0,
-                      color: AppColors.surfaceVariant,
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSizing.radiusMd),
-                      ),
-                      child: ListTile(
-                        leading: const Icon(
-                          Icons.history,
-                          color: AppColors.primary,
-                        ),
-                        title: Text(
-                          'Audit Log',
-                          style: AppTypography.bodyMedium,
-                        ),
-                        subtitle: Text(
-                          'View all changes made in this flat',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+
+                    // ── Activity Section ─────────────────────────────────────
+                    _SectionLabel(label: 'Activity'),
+                    const SizedBox(height: AppSizing.sm),
+                    _SettingsCard(
+                      children: [
+                        Material(
+                          color: AppColors.transparent,
+                          child: InkWell(
+                            onTap: () => context.push(
+                              AppRoutes.auditLog,
+                              extra:
+                                  AuditLogPageArgs(flatId: widget.flat.id),
+                            ),
+                            borderRadius:
+                                BorderRadius.circular(AppSizing.radiusLg),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSizing.md,
+                                vertical: AppSizing.sp12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surface100,
+                                      borderRadius: BorderRadius.circular(
+                                          AppSizing.radiusSm),
+                                    ),
+                                    child: const Icon(
+                                      Icons.history_rounded,
+                                      color: AppColors.brand,
+                                      size: AppSizing.iconMd,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSizing.md),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Audit Log',
+                                          style: AppTypography.labelM,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'View all changes in this flat',
+                                          style: AppTypography.bodyS.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: AppColors.textTertiary,
+                                    size: AppSizing.iconMd,
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                        trailing: const Icon(
-                          Icons.chevron_right,
-                          color: AppColors.textSecondary,
-                        ),
-                        onTap: () => context.push(
-                          AppRoutes.auditLog,
-                          extra: AuditLogPageArgs(flatId: widget.flat.id),
-                        ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: AppSizing.md),
-                    // Danger zone
+                    const SizedBox(height: AppSizing.lg),
+
+                    // ── Danger Zone ──────────────────────────────────────────
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(AppSizing.md),
@@ -211,7 +294,8 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                         border: Border.all(
                           color: AppColors.error.withValues(alpha: 0.4),
                         ),
-                        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+                        borderRadius:
+                            BorderRadius.circular(AppSizing.radiusLg),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,6 +337,7 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: AppSizing.xl),
                   ],
                 ),
               ),
@@ -260,6 +345,147 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
           ),
         );
       },
+    );
+  }
+}
+
+// ── Theme Toggle (3-way pill segmented) ──────────────────────────────────────
+
+class _ThemeToggle extends StatelessWidget {
+  const _ThemeToggle();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ThemeCubit, ThemeState>(
+      builder: (context, themeState) {
+        final current = themeState.mode;
+        return Container(
+          height: 34,
+          decoration: BoxDecoration(
+            color: AppColors.surface200,
+            borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ThemePill(
+                icon: Icons.light_mode_rounded,
+                label: 'Light',
+                selected: current == ThemeMode.light,
+                onTap: () => context
+                    .read<ThemeCubit>()
+                    .setTheme(ThemeMode.light),
+              ),
+              _ThemePill(
+                icon: Icons.dark_mode_rounded,
+                label: 'Dark',
+                selected: current == ThemeMode.dark,
+                onTap: () => context
+                    .read<ThemeCubit>()
+                    .setTheme(ThemeMode.dark),
+              ),
+              _ThemePill(
+                icon: Icons.settings_brightness_rounded,
+                label: 'System',
+                selected: current == ThemeMode.system,
+                onTap: () => context
+                    .read<ThemeCubit>()
+                    .setTheme(ThemeMode.system),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ThemePill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ThemePill({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizing.sp8,
+          vertical: AppSizing.sp4,
+        ),
+        decoration: BoxDecoration(
+          gradient: selected ? AppColors.brandGradient : null,
+          borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+          boxShadow: selected ? AppColors.shadowSm : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: selected ? AppColors.white : AppColors.textSecondary,
+            ),
+            const SizedBox(width: AppSizing.sp4),
+            Text(
+              label,
+              style: AppTypography.labelS.copyWith(
+                color: selected ? AppColors.white : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Section Label ─────────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: AppSizing.xs),
+      child: Text(
+        label.toUpperCase(),
+        style: AppTypography.overline.copyWith(
+          color: AppColors.textTertiary,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Settings Card ─────────────────────────────────────────────────────────────
+
+class _SettingsCard extends StatelessWidget {
+  final List<Widget> children;
+  const _SettingsCard({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        boxShadow: AppColors.shadowSm,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(children: children),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -11,7 +12,13 @@ import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../../core/widgets/gradient_card.dart';
+import '../../../../core/widgets/main_shell.dart';
+import '../../../../core/widgets/quick_action_button.dart';
+import '../../../../core/widgets/section_header.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../audit_log/presentation/args/audit_log_page_args.dart';
+import '../../../complaint/presentation/args/complaint_page_args.dart';
 import '../../../expense/presentation/args/expense_list_args.dart';
 import '../../../meal/presentation/args/meal_page_args.dart';
 import '../../../notification/presentation/args/notification_page_args.dart';
@@ -19,7 +26,6 @@ import '../../../notification/presentation/bloc/notification_bloc.dart';
 import '../../../notification/presentation/bloc/notification_state.dart';
 import '../../../summary/presentation/args/summary_page_args.dart';
 import '../../../task/presentation/args/task_page_args.dart';
-import '../../../complaint/presentation/args/complaint_page_args.dart';
 import '../../../wallet/presentation/args/wallet_page_args.dart';
 import '../../../wallet/presentation/bloc/wallet/wallet_bloc.dart';
 import '../../domain/entities/flat_entity.dart';
@@ -40,542 +46,661 @@ class FlatHomeView extends StatelessWidget {
     return flat.memberByUserId(authState.user.id);
   }
 
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  String _greetingEmoji() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return '☀️';
+    if (hour < 17) return '🌤️';
+    return '🌙';
+  }
+
   @override
   Widget build(BuildContext context) {
     final me = _myMember(context);
     final canManage = me?.canManage ?? false;
 
+    // Build wallet args once so both the hero card and shell tab can use them
+    final walletArgs = WalletPageArgs(flatId: flat.id, canManage: canManage);
+
     return BlocListener<FlatBloc, FlatState>(
       listener: (context, state) {
         if (state is FlatError) AppSnackbar.error(context, state.message);
       },
-      child: RefreshIndicator(
-        color: AppColors.primary,
-        onRefresh: () async {
-          context.read<FlatBloc>().add(FlatRefreshRequested(flat.id));
-          await Future.delayed(const Duration(milliseconds: 600));
-        },
-        child: CustomScrollView(
-          slivers: [
-            // --- App Bar ---
-            SliverAppBar(
-              expandedHeight: 200,
-              pinned: true,
-              backgroundColor: AppColors.primary,
-              actions: [
-                // Notification bell with badge
-                BlocBuilder<NotificationBloc, NotificationState>(
-                  builder: (context, notifState) {
-                    int count = 0;
-                    if (notifState is NotificationUnreadCountLoaded) {
-                      count = notifState.unreadCount;
-                    } else if (notifState is NotificationListLoaded) {
-                      count = notifState.unreadCount;
-                    } else if (notifState is NotificationError) {
-                      count = notifState.unreadCount;
-                    }
-                    return Stack(
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.notifications_outlined,
-                            color: AppColors.white,
-                          ),
-                          onPressed: () => context.push(
-                            AppRoutes.notifications,
-                            extra: NotificationPageArgs(
-                              flatId: flat.id,
-                              canManage: me?.canManage ?? false,
-                              myMemberId: me?.flatMemberId ?? '',
-                            ),
-                          ),
-                        ),
-                        if (count > 0)
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: const BoxDecoration(
-                                color: AppColors.error,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                count > 99 ? '99+' : '$count',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-                if (canManage)
-                  IconButton(
-                    icon: const Icon(
-                      Icons.settings_outlined,
-                      color: AppColors.white,
-                    ),
-                    onPressed: () =>
-                        context.push(AppRoutes.flatSettings, extra: flat),
-                  ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.person_outline,
-                    color: AppColors.white,
-                  ),
-                  onPressed: () => context.push(AppRoutes.profile),
-                ),
-              ],
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.primary, AppColors.primaryDark],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSizing.pagePadding,
-                    80,
-                    AppSizing.pagePadding,
-                    AppSizing.md,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Row(
-                        children: [
-                          AppAvatar(
-                            imageUrl: flat.photoUrl,
-                            name: flat.name,
-                            radius: 28,
-                            backgroundColor:
-                                AppColors.white.withValues(alpha: 0.2),
-                            textColor: AppColors.white,
-                          ),
-                          const SizedBox(width: AppSizing.md),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  flat.name,
-                                  style:
-                                      AppTypography.headlineMedium.copyWith(
-                                    color: AppColors.white,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                if (flat.address != null)
-                                  Text(
-                                    flat.address!,
-                                    style: AppTypography.bodySmall.copyWith(
-                                      color: AppColors.white
-                                          .withValues(alpha: 0.8),
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSizing.sm),
-                      GestureDetector(
-                        onTap: () => _showQrSheet(context),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizing.sm,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(
-                              AppSizing.radiusFull,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.qr_code,
-                                size: 14,
-                                color: AppColors.white,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${AppStrings.joinCode}: ${flat.joinCode}',
-                                style: AppTypography.labelSmall.copyWith(
-                                  color: AppColors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.copy,
-                                size: 12,
-                                color: AppColors.white,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+      child: MainShell(
+        selectedIndex: 0,
+        walletPageArgs: walletArgs,
+        child: RefreshIndicator(
+          color: AppColors.brand,
+          onRefresh: () async {
+            context.read<FlatBloc>().add(FlatRefreshRequested(flat.id));
+            await Future.delayed(const Duration(milliseconds: 600));
+          },
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── 1. HEADER ──────────────────────────────────────────
+                    _HomeHeader(
+                      flat: flat,
+                      me: me,
+                      greeting: _greeting(),
+                      greetingEmoji: _greetingEmoji(),
+                    )
+                        .animate()
+                        .fadeIn(duration: 300.ms)
+                        .slideY(begin: -0.1, end: 0, duration: 300.ms),
 
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: AppSizing.md),
+                    const SizedBox(height: AppSizing.sp16),
 
-                  // --- Financial summary card (wallet balance + flat balance + contribution status) ---
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizing.pagePadding,
-                    ),
-                    child: _FinancialSummaryCard(
+                    // ── 2. WALLET HERO CARD ────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizing.pagePadding,
+                      ),
+                      child: _WalletHeroCard(
+                        flat: flat,
+                        me: me,
+                        canManage: canManage,
+                      ),
+                    )
+                        .animate()
+                        .fadeIn(duration: 400.ms, delay: 80.ms)
+                        .slideY(begin: 0.08, end: 0, duration: 400.ms),
+
+                    const SizedBox(height: AppSizing.sp24),
+
+                    // ── 3. QUICK ACTIONS ───────────────────────────────────
+                    _QuickActionsRow(
                       flat: flat,
                       me: me,
                       canManage: canManage,
-                    ),
-                  ),
+                    )
+                        .animate()
+                        .fadeIn(duration: 400.ms, delay: 140.ms)
+                        .slideY(begin: 0.08, end: 0, duration: 400.ms),
 
-                  const SizedBox(height: AppSizing.md),
+                    const SizedBox(height: AppSizing.sp24),
 
-                  // --- Stats row ---
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizing.pagePadding,
-                    ),
-                    child: Row(
-                      children: [
-                        _StatCard(
-                          label: AppStrings.memberCount,
-                          value: '${flat.activeMembers.length}',
-                          icon: Icons.group_outlined,
-                        ),
-                        const SizedBox(width: AppSizing.sm),
-                        _StatCard(
-                          label: AppStrings.totalExpenses,
-                          value: '৳${flat.totalFixedExpenses.toStringAsFixed(0)}',
-                          icon: Icons.receipt_long_outlined,
-                        ),
-                        if (me != null) ...[
-                          const SizedBox(width: AppSizing.sm),
-                          _StatCard(
-                            label: AppStrings.myContribution,
-                            value: '৳${me.fixedContribution.toStringAsFixed(0)}',
-                            icon: Icons.currency_exchange_outlined,
-                            accent: true,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: AppSizing.lg),
-
-                  // --- Quick actions ---
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizing.pagePadding,
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _ActionButton(
-                            label: AppStrings.expensesActionLabel,
-                            icon: Icons.receipt_outlined,
-                            onTap: () => context.push(
-                              AppRoutes.expenses,
-                              extra: ExpenseListArgs(
-                                flatId: flat.id,
-                                canManage: canManage,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSizing.md),
-                        Expanded(
-                          child: _ActionButton(
-                            label: 'Members',
-                            icon: Icons.group_outlined,
-                            onTap: () => context
-                                .push(AppRoutes.flatMembers, extra: flat)
-                                .then((_) {
-                              if (context.mounted) {
-                                context
-                                    .read<FlatBloc>()
-                                    .add(FlatRefreshRequested(flat.id));
-                              }
-                            }),
-                          ),
-                        ),
-                        const SizedBox(width: AppSizing.md),
-                        Expanded(
-                          child: _ActionButton(
-                            label: 'Meals',
-                            icon: Icons.restaurant_outlined,
-                            onTap: () {
-                              final member = me;
-                              if (member == null) return;
-                              context.push(
-                                AppRoutes.meals,
-                                extra: MealPageArgs(
-                                  flatId: flat.id,
-                                  canManage: canManage,
-                                  myMemberId: member.flatMemberId,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: AppSizing.md),
-                        Expanded(
-                          child: _ActionButton(
-                            label: 'Invite',
-                            icon: Icons.qr_code_rounded,
-                            onTap: () => _showQrSheet(context),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSizing.sm),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizing.pagePadding,
-                    ),
-                    child: _ActionButton(
-                      label: 'Tasks',
-                      icon: Icons.task_alt_rounded,
-                      onTap: () {
-                        final member = me;
-                        if (member == null) return;
-                        context.push(
-                          AppRoutes.tasks,
-                          extra: TaskPageArgs(
-                            flatId: flat.id,
-                            canManage: canManage,
-                            myMemberId: member.flatMemberId,
-                            members: flat.activeMembers,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: AppSizing.sm),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizing.pagePadding,
-                    ),
-                    child: _ActionButton(
-                      label: 'Complaints',
-                      icon: Icons.report_problem_outlined,
-                      onTap: () {
-                        final member = me;
-                        if (member == null) return;
-                        context.push(
-                          AppRoutes.complaints,
-                          extra: ComplaintPageArgs(
-                            flatId: flat.id,
-                            canManage: canManage,
-                            myMemberId: member.flatMemberId,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: AppSizing.sm),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizing.pagePadding,
-                    ),
-                    child: _ActionButton(
-                      label: 'Monthly Summary',
-                      icon: Icons.bar_chart_rounded,
-                      onTap: () {
-                        final member = me;
-                        if (member == null) return;
-                        context.push(
-                          AppRoutes.summary,
-                          extra: SummaryPageArgs(
-                            flatId: flat.id,
-                            isManager: canManage,
-                            myMemberId: member.flatMemberId,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: AppSizing.lg),
-
-                  // --- Manager actions ---
-                  if (canManage) ...[
+                    // ── 4. THIS MONTH STATS ────────────────────────────────
+                    SectionHeader(
+                      eyebrow: 'overview',
+                      title: 'This Month',
+                    )
+                        .animate()
+                        .fadeIn(duration: 350.ms, delay: 180.ms),
+                    const SizedBox(height: AppSizing.sp12),
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSizing.pagePadding,
                       ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: BlocBuilder<JoinRequestsBloc,
-                                JoinRequestsState>(
-                              builder: (context, reqState) {
-                                int? pendingCount;
-                                if (reqState is JoinRequestsLoaded) {
-                                  pendingCount = reqState.requests
-                                      .where((r) => r.isPending)
-                                      .length;
-                                  if (pendingCount == 0) pendingCount = null;
-                                }
-                                return _ActionButton(
-                                  label: AppStrings.joinRequestsLabel,
-                                  icon: Icons.group_add_outlined,
-                                  badge: pendingCount,
-                                  onTap: () {
-                                    context
-                                        .push(
-                                          AppRoutes.flatRequests,
-                                          extra: flat.id,
-                                        )
-                                        .then((_) {
-                                      if (context.mounted) {
-                                        context.read<JoinRequestsBloc>().add(
-                                          JoinRequestsLoadRequested(flat.id),
-                                        );
-                                        context.read<FlatBloc>().add(
-                                          FlatRefreshRequested(flat.id),
-                                        );
-                                      }
-                                    });
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: AppSizing.md),
-                          Expanded(
-                            child: _ActionButton(
-                              label: AppStrings.fixedExpensesTitle,
-                              icon: Icons.receipt_long_outlined,
-                              onTap: () => context.push(
-                                AppRoutes.flatExpenses,
-                                extra: {
-                                  'flatId': flat.id,
-                                  'canManage': canManage,
-                                },
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSizing.lg),
-                  ],
+                      child: _ThisMonthGrid(flat: flat, me: me),
+                    )
+                        .animate()
+                        .fadeIn(duration: 400.ms, delay: 200.ms)
+                        .slideY(begin: 0.08, end: 0, duration: 400.ms),
 
-                  // --- Members section ---
-                  _SectionHeader(
-                    title: AppStrings.membersSection,
-                    actionLabel: AppStrings.viewAll,
-                    onAction: () => context
-                        .push(AppRoutes.flatMembers, extra: flat)
-                        .then((_) {
-                      if (context.mounted) {
-                        context
-                            .read<FlatBloc>()
-                            .add(FlatRefreshRequested(flat.id));
-                      }
-                    }),
-                  ),
-                  const SizedBox(height: AppSizing.sm),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizing.pagePadding,
-                    ),
-                    child: Column(
-                      children: flat.activeMembers
-                          .take(3)
-                          .map(
-                            (m) => Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppSizing.sm,
-                              ),
-                              child: MemberTile(member: m),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
+                    const SizedBox(height: AppSizing.sp24),
 
-                  const SizedBox(height: AppSizing.lg),
+                    // ── 5. PENDING ACTIONS (manager only) ─────────────────
+                    if (canManage) ...[
+                      _PendingActionsSection(flat: flat)
+                          .animate()
+                          .fadeIn(duration: 400.ms, delay: 220.ms),
+                      const SizedBox(height: AppSizing.sp24),
+                    ],
 
-                  // --- Fixed expenses section ---
-                  _SectionHeader(
-                    title: AppStrings.expensesSection,
-                    actionLabel: canManage
-                        ? AppStrings.manageLabel
-                        : AppStrings.viewAll,
-                    onAction: () => context.push(
-                      AppRoutes.flatExpenses,
-                      extra: {'flatId': flat.id, 'canManage': canManage},
-                    ),
-                  ),
-                  const SizedBox(height: AppSizing.sm),
-                  if (flat.fixedExpenses.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizing.pagePadding,
-                      ),
-                      child: Text(
-                        AppStrings.noExpenses,
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                    // ── 6. MEMBERS GLIMPSE ─────────────────────────────────
+                    SectionHeader(
+                      title: AppStrings.membersSection,
+                      actionLabel: AppStrings.viewAll,
+                      onAction: () => context
+                          .push(AppRoutes.flatMembers, extra: flat)
+                          .then((_) {
+                        if (context.mounted) {
+                          context
+                              .read<FlatBloc>()
+                              .add(FlatRefreshRequested(flat.id));
+                        }
+                      }),
+                    )
+                        .animate()
+                        .fadeIn(duration: 350.ms, delay: 240.ms),
+                    const SizedBox(height: AppSizing.sp12),
+                    _MembersRow(flat: flat, me: me)
+                        .animate()
+                        .fadeIn(duration: 400.ms, delay: 260.ms),
+
+                    const SizedBox(height: AppSizing.sp24),
+
+                    // ── 7. FIXED EXPENSES ──────────────────────────────────
+                    SectionHeader(
+                      title: AppStrings.expensesSection,
+                      actionLabel: canManage
+                          ? AppStrings.manageLabel
+                          : AppStrings.viewAll,
+                      onAction: () => context.push(
+                        AppRoutes.flatExpenses,
+                        extra: {
+                          'flatId': flat.id,
+                          'canManage': canManage,
+                        },
                       ),
                     )
-                  else
+                        .animate()
+                        .fadeIn(duration: 350.ms, delay: 280.ms),
+                    const SizedBox(height: AppSizing.sp12),
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSizing.pagePadding,
                       ),
-                      child: Column(
-                        children: flat.fixedExpenses
-                            .take(3)
-                            .map(
-                              (e) => Padding(
-                                padding:
-                                    const EdgeInsets.only(bottom: AppSizing.sm),
-                                child: ExpenseTile(expense: e),
+                      child: flat.fixedExpenses.isEmpty
+                          ? Text(
+                              AppStrings.noExpenses,
+                              style: AppTypography.bodyM.copyWith(
+                                color: AppColors.textSecondary,
                               ),
                             )
-                            .toList(),
+                          : Column(
+                              children: flat.fixedExpenses
+                                  .take(3)
+                                  .map(
+                                    (e) => Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: AppSizing.sp8,
+                                      ),
+                                      child: ExpenseTile(expense: e),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                    )
+                        .animate()
+                        .fadeIn(duration: 400.ms, delay: 300.ms),
+
+                    const SizedBox(height: AppSizing.sp48),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── 1. Header ─────────────────────────────────────────────────────────────────
+
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({
+    required this.flat,
+    required this.me,
+    required this.greeting,
+    required this.greetingEmoji,
+  });
+
+  final FlatEntity flat;
+  final FlatMemberEntity? me;
+  final String greeting;
+  final String greetingEmoji;
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
+    final user = authState is AuthAuthenticated ? authState.user : null;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppSizing.pagePadding,
+        AppSizing.sp16,
+        AppSizing.pagePadding,
+        AppSizing.sp8,
+      ),
+      child: Row(
+        children: [
+          // Avatar
+          GestureDetector(
+            onTap: () => context.push(AppRoutes.profile),
+            child: AppAvatar(
+              imageUrl: user?.avatarUrl,
+              name: user?.name ?? flat.name,
+              radius: AppSizing.avatar40 / 2,
+              backgroundColor: AppColors.brand.withValues(alpha: 0.15),
+              textColor: AppColors.brand,
+            ),
+          ),
+
+          const SizedBox(width: AppSizing.sp12),
+
+          // Greeting text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$greeting, ${user?.name.split(' ').first ?? 'there'} $greetingEmoji',
+                  style: AppTypography.h4.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  flat.name,
+                  style: AppTypography.bodyS.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+
+          // Notification bell
+          BlocBuilder<NotificationBloc, NotificationState>(
+            builder: (context, notifState) {
+              int count = 0;
+              if (notifState is NotificationUnreadCountLoaded) {
+                count = notifState.unreadCount;
+              } else if (notifState is NotificationListLoaded) {
+                count = notifState.unreadCount;
+              } else if (notifState is NotificationError) {
+                count = notifState.unreadCount;
+              }
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      count > 0
+                          ? Icons.notifications_rounded
+                          : Icons.notifications_outlined,
+                      color: count > 0
+                          ? AppColors.brand
+                          : AppColors.textSecondary,
+                    ),
+                    onPressed: () => context.push(
+                      AppRoutes.notifications,
+                      extra: NotificationPageArgs(
+                        flatId: flat.id,
+                        canManage: me?.canManage ?? false,
+                        myMemberId: me?.flatMemberId ?? '',
                       ),
                     ),
-
-                  const SizedBox(height: AppSizing.xxl),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
                 ],
+              );
+            },
+          ),
+
+          // Settings (manager)
+          if (me?.canManage ?? false)
+            IconButton(
+              icon: const Icon(
+                Icons.settings_outlined,
+                color: AppColors.textSecondary,
+              ),
+              onPressed: () => context.push(AppRoutes.flatSettings, extra: flat),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 2. Wallet Hero Card ───────────────────────────────────────────────────────
+
+class _WalletHeroCard extends StatelessWidget {
+  const _WalletHeroCard({
+    required this.flat,
+    required this.me,
+    required this.canManage,
+  });
+
+  final FlatEntity flat;
+  final FlatMemberEntity? me;
+  final bool canManage;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<WalletBloc, WalletState>(
+      builder: (context, walletState) {
+        final summary = switch (walletState) {
+          WalletSummaryLoaded(summary: final s) => s,
+          WalletActionLoading(summary: final s) => s,
+          WalletPaymentSubmitSuccess(summary: final s) => s,
+          WalletError(summary: final s) when s != null => s,
+          _ => null,
+        };
+
+        return GestureDetector(
+          onTap: () => context.push(
+            AppRoutes.walletHome,
+            extra: WalletPageArgs(flatId: flat.id, canManage: canManage),
+          ),
+          child: GradientCard(
+            gradient: AppColors.brandGradient,
+            radius: AppSizing.r24,
+            padding: const EdgeInsets.all(AppSizing.sp24),
+            shadows: AppColors.shadowBrand,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Overline label
+                Text(
+                  'YOUR BALANCE',
+                  style: AppTypography.overline.copyWith(
+                    color: AppColors.white.withValues(alpha: 0.7),
+                    letterSpacing: 1.8,
+                  ),
+                ),
+                const SizedBox(height: AppSizing.sp8),
+
+                // Balance amount
+                if (summary == null)
+                  const SizedBox(
+                    height: 44,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.white,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  )
+                else ...[
+                  Text(
+                    '${summary.isNegative ? '−' : ''}৳${summary.walletBalance.abs().toStringAsFixed(0)}',
+                    style: AppTypography.amountXL.copyWith(
+                      color: AppColors.white,
+                    ),
+                  ),
+                  if (summary.hasPendingRequests) ...[
+                    const SizedBox(height: AppSizing.sp4),
+                    Text(
+                      '${summary.pendingPaymentRequests.length} pending request${summary.pendingPaymentRequests.length > 1 ? 's' : ''}',
+                      style: AppTypography.bodyS.copyWith(
+                        color: AppColors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                ],
+
+                const SizedBox(height: AppSizing.sp20),
+
+                // Ghost action pills
+                Row(
+                  children: [
+                    _GhostPill(
+                      icon: Icons.add_rounded,
+                      label: 'Deposit',
+                      onTap: () => context.push(
+                        AppRoutes.walletHome,
+                        extra: WalletPageArgs(
+                          flatId: flat.id,
+                          canManage: canManage,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSizing.sp8),
+                    _GhostPill(
+                      icon: Icons.send_rounded,
+                      label: 'Request',
+                      onTap: () => context.push(
+                        AppRoutes.walletRequests,
+                        extra: WalletPageArgs(
+                          flatId: flat.id,
+                          canManage: canManage,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSizing.sp8),
+                    _GhostPill(
+                      icon: Icons.history_rounded,
+                      label: 'History',
+                      onTap: () => context.push(
+                        AppRoutes.walletTransactions,
+                        extra: flat.id,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _GhostPill extends StatelessWidget {
+  const _GhostPill({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizing.sp12,
+          vertical: AppSizing.sp8,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(AppSizing.rFull),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: AppColors.white),
+            const SizedBox(width: AppSizing.sp4),
+            Text(
+              label,
+              style: AppTypography.labelS.copyWith(
+                color: AppColors.white,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── 3. Quick Actions Row ──────────────────────────────────────────────────────
+
+class _QuickActionsRow extends StatelessWidget {
+  const _QuickActionsRow({
+    required this.flat,
+    required this.me,
+    required this.canManage,
+  });
+
+  final FlatEntity flat;
+  final FlatMemberEntity? me;
+  final bool canManage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(title: 'Quick Actions'),
+        const SizedBox(height: AppSizing.sp12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+          child: Row(
+            children: [
+              QuickActionButton(
+                icon: Icons.restaurant_rounded,
+                label: 'Meals',
+                onTap: () {
+                  if (me == null) return;
+                  context.push(
+                    AppRoutes.meals,
+                    extra: MealPageArgs(
+                      flatId: flat.id,
+                      canManage: canManage,
+                      myMemberId: me!.flatMemberId,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: AppSizing.sp12),
+              QuickActionButton(
+                icon: Icons.group_outlined,
+                label: 'Members',
+                onTap: () => context
+                    .push(AppRoutes.flatMembers, extra: flat)
+                    .then((_) {
+                  if (context.mounted) {
+                    context
+                        .read<FlatBloc>()
+                        .add(FlatRefreshRequested(flat.id));
+                  }
+                }),
+              ),
+              const SizedBox(width: AppSizing.sp12),
+              QuickActionButton(
+                icon: Icons.task_alt_rounded,
+                label: 'Tasks',
+                onTap: () {
+                  if (me == null) return;
+                  context.push(
+                    AppRoutes.tasks,
+                    extra: TaskPageArgs(
+                      flatId: flat.id,
+                      canManage: canManage,
+                      myMemberId: me!.flatMemberId,
+                      members: flat.activeMembers,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: AppSizing.sp12),
+              QuickActionButton(
+                icon: Icons.receipt_long_outlined,
+                label: 'Expenses',
+                onTap: () => context.push(
+                  AppRoutes.expenses,
+                  extra: ExpenseListArgs(
+                    flatId: flat.id,
+                    canManage: canManage,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSizing.sp12),
+              QuickActionButton(
+                icon: Icons.report_problem_outlined,
+                label: 'Complaints',
+                onTap: () {
+                  if (me == null) return;
+                  context.push(
+                    AppRoutes.complaints,
+                    extra: ComplaintPageArgs(
+                      flatId: flat.id,
+                      canManage: canManage,
+                      myMemberId: me!.flatMemberId,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: AppSizing.sp12),
+              QuickActionButton(
+                icon: Icons.bar_chart_rounded,
+                label: 'Summary',
+                onTap: () {
+                  if (me == null) return;
+                  context.push(
+                    AppRoutes.summary,
+                    extra: SummaryPageArgs(
+                      flatId: flat.id,
+                      isManager: canManage,
+                      myMemberId: me!.flatMemberId,
+                    ),
+                  );
+                },
+              ),
+              if (canManage) ...[
+                const SizedBox(width: AppSizing.sp12),
+                QuickActionButton(
+                  icon: Icons.history_edu_rounded,
+                  label: 'Audit',
+                  onTap: () => context.push(
+                    AppRoutes.auditLog,
+                    extra: AuditLogPageArgs(flatId: flat.id),
+                  ),
+                ),
+                const SizedBox(width: AppSizing.sp12),
+                // Join-request badge
+                BlocBuilder<JoinRequestsBloc, JoinRequestsState>(
+                  builder: (context, reqState) {
+                    int pendingCount = 0;
+                    if (reqState is JoinRequestsLoaded) {
+                      pendingCount =
+                          reqState.requests.where((r) => r.isPending).length;
+                    }
+                    return QuickActionButton(
+                      icon: Icons.group_add_outlined,
+                      label: 'Requests',
+                      badge: pendingCount,
+                      onTap: () => context
+                          .push(AppRoutes.flatRequests, extra: flat.id)
+                          .then((_) {
+                        if (context.mounted) {
+                          context.read<JoinRequestsBloc>().add(
+                            JoinRequestsLoadRequested(flat.id),
+                          );
+                          context
+                              .read<FlatBloc>()
+                              .add(FlatRefreshRequested(flat.id));
+                        }
+                      }),
+                    );
+                  },
+                ),
+              ],
+              // Invite / QR code
+              const SizedBox(width: AppSizing.sp12),
+              QuickActionButton(
+                icon: Icons.qr_code_rounded,
+                label: 'Invite',
+                onTap: () => _showQrSheet(context),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -602,7 +727,10 @@ class FlatHomeView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),
               ),
             ),
-            Text('Invite to ${flat.name}', style: AppTypography.titleLarge),
+            Text(
+              'Invite to ${flat.name}',
+              style: AppTypography.titleLarge,
+            ),
             const SizedBox(height: AppSizing.xs),
             Text(
               'Share this QR code or join code with others',
@@ -658,7 +786,8 @@ class FlatHomeView extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: const BorderSide(color: AppColors.primary),
-                  padding: const EdgeInsets.symmetric(vertical: AppSizing.sm),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: AppSizing.sm),
                 ),
               ),
             ),
@@ -670,410 +799,340 @@ class FlatHomeView extends StatelessWidget {
   }
 }
 
-// ── Financial summary card ────────────────────────────────────────────────────
+// ── 4. This Month Grid ────────────────────────────────────────────────────────
 
-class _FinancialSummaryCard extends StatelessWidget {
-  const _FinancialSummaryCard({
-    required this.flat,
-    required this.me,
-    required this.canManage,
-  });
+class _ThisMonthGrid extends StatelessWidget {
+  const _ThisMonthGrid({required this.flat, required this.me});
 
   final FlatEntity flat;
   final FlatMemberEntity? me;
-  final bool canManage;
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<WalletBloc, WalletState>(
-      builder: (context, walletState) {
-        final summary = switch (walletState) {
-          WalletSummaryLoaded(summary: final s) => s,
-          WalletActionLoading(summary: final s) => s,
-          WalletPaymentSubmitSuccess(summary: final s) => s,
-          WalletError(summary: final s) when s != null => s,
-          _ => null,
-        };
-        final flatWallet = switch (walletState) {
-          WalletSummaryLoaded(flatWallet: final fw) => fw,
-          WalletActionLoading(flatWallet: final fw) => fw,
-          WalletPaymentSubmitSuccess(flatWallet: final fw) => fw,
-          _ => null,
-        };
-
-        if (summary == null) {
-          return Container(
-            padding: const EdgeInsets.all(AppSizing.md),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: const Center(
-              child: SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          );
-        }
-
-        final isNeg = summary.isNegative;
-        final balanceColor = isNeg ? AppColors.error : AppColors.success;
-        final paid = summary.hasPaidFixedThisMonth;
-
-        return GestureDetector(
-          onTap: () => context.push(
-            AppRoutes.walletHome,
-            extra: WalletPageArgs(flatId: flat.id, canManage: canManage),
+    return Row(
+      children: [
+        // Meal stat card
+        Expanded(
+          child: _StatMiniCard(
+            emoji: '🍽️',
+            label: 'Members',
+            value: '${flat.activeMembers.length}',
+            subtitle: 'active',
+            accentColor: AppColors.info,
           ),
-          child: Container(
-            padding: const EdgeInsets.all(AppSizing.md),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isNeg
-                    ? [
-                        AppColors.error.withValues(alpha: 0.08),
-                        AppColors.error.withValues(alpha: 0.04),
-                      ]
-                    : [
-                        AppColors.primary.withValues(alpha: 0.08),
-                        AppColors.primary.withValues(alpha: 0.03),
-                      ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-              border: Border.all(
-                color: isNeg
-                    ? AppColors.error.withValues(alpha: 0.3)
-                    : AppColors.primary.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top row: balance + contribution status badge
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'My Wallet',
-                            style: AppTypography.labelSmall.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${isNeg ? '−' : ''}৳${summary.walletBalance.abs().toStringAsFixed(0)}',
-                            style: AppTypography.headlineMedium.copyWith(
-                              color: balanceColor,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Contribution status badge
-                    if (me != null && me!.fixedContribution > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizing.sm,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: paid
-                              ? AppColors.success.withValues(alpha: 0.12)
-                              : AppColors.warning.withValues(alpha: 0.15),
-                          borderRadius:
-                              BorderRadius.circular(AppSizing.radiusFull),
-                          border: Border.all(
-                            color: paid
-                                ? AppColors.success.withValues(alpha: 0.4)
-                                : AppColors.warning.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              paid
-                                  ? Icons.check_circle_outline_rounded
-                                  : Icons.schedule_rounded,
-                              size: 13,
-                              color: paid ? AppColors.success : AppColors.warning,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              paid ? 'Paid' : 'Due',
-                              style: AppTypography.labelSmall.copyWith(
-                                color: paid
-                                    ? AppColors.success
-                                    : AppColors.warning,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+        ),
+        const SizedBox(width: AppSizing.sp12),
+        // Fixed contribution card
+        Expanded(
+          child: BlocBuilder<WalletBloc, WalletState>(
+            builder: (context, walletState) {
+              final summary = switch (walletState) {
+                WalletSummaryLoaded(summary: final s) => s,
+                WalletActionLoading(summary: final s) => s,
+                WalletPaymentSubmitSuccess(summary: final s) => s,
+                WalletError(summary: final s) when s != null => s,
+                _ => null,
+              };
 
-                if (flatWallet != null) ...[
-                  const SizedBox(height: AppSizing.sm),
-                  Divider(color: AppColors.border, height: 1),
-                  const SizedBox(height: AppSizing.sm),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.account_balance_rounded,
-                        size: 14,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Flat Pool  ',
-                        style: AppTypography.labelSmall.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      Text(
-                        '৳${flatWallet.balance.abs().toStringAsFixed(0)}',
-                        style: AppTypography.titleMedium.copyWith(
-                          color: flatWallet.isNegative
-                              ? AppColors.error
-                              : AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (flatWallet.isNegative) ...[
-                        const SizedBox(width: 4),
-                        Text(
-                          '(deficit)',
-                          style: AppTypography.labelSmall.copyWith(
-                            color: AppColors.error,
-                          ),
-                        ),
-                      ],
-                      const Spacer(),
-                      // Pending request alert
-                      if (summary.hasPendingRequests)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius:
-                                BorderRadius.circular(AppSizing.radiusFull),
-                          ),
-                          child: Text(
-                            '${summary.pendingPaymentRequests.length} request${summary.pendingPaymentRequests.length > 1 ? 's' : ''}',
-                            style: AppTypography.labelSmall.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                    ],
+              final paid = summary?.hasPaidFixedThisMonth ?? false;
+              final contribution = me?.fixedContribution ?? 0;
+
+              return _StatMiniCard(
+                emoji: '💰',
+                label: 'Contribution',
+                value: '৳${contribution.toStringAsFixed(0)}',
+                subtitle: contribution > 0 ? (paid ? 'paid' : 'due') : 'none',
+                accentColor:
+                    paid ? AppColors.success : AppColors.warning,
+                showStatus: contribution > 0,
+                statusPaid: paid,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatMiniCard extends StatelessWidget {
+  const _StatMiniCard({
+    required this.emoji,
+    required this.label,
+    required this.value,
+    required this.subtitle,
+    required this.accentColor,
+    this.showStatus = false,
+    this.statusPaid = false,
+  });
+
+  final String emoji;
+  final String label;
+  final String value;
+  final String subtitle;
+  final Color accentColor;
+  final bool showStatus;
+  final bool statusPaid;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizing.sp16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(AppSizing.r16),
+        boxShadow: AppColors.shadowSm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 20)),
+              const Spacer(),
+              if (showStatus)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSizing.sp8,
+                    vertical: 3,
                   ),
-                ],
-
-                const SizedBox(height: AppSizing.xs),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Tap to open wallet →',
-                      style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                  decoration: BoxDecoration(
+                    color: (statusPaid ? AppColors.success : AppColors.warning)
+                        .withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppSizing.rFull),
+                  ),
+                  child: Text(
+                    statusPaid ? 'Paid' : 'Due',
+                    style: AppTypography.labelS.copyWith(
+                      color: statusPaid
+                          ? AppColors.success
+                          : AppColors.warning,
+                      fontWeight: FontWeight.w700,
                     ),
-                  ],
+                  ),
                 ),
-              ],
+            ],
+          ),
+          const SizedBox(height: AppSizing.sp8),
+          Text(
+            value,
+            style: AppTypography.amountL.copyWith(
+              color: AppColors.textPrimary,
             ),
           ),
+          Text(
+            '$label · $subtitle',
+            style: AppTypography.labelS.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 5. Pending Actions (manager) ──────────────────────────────────────────────
+
+class _PendingActionsSection extends StatelessWidget {
+  const _PendingActionsSection({required this.flat});
+
+  final FlatEntity flat;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<JoinRequestsBloc, JoinRequestsState>(
+      builder: (context, reqState) {
+        final pendingCount = reqState is JoinRequestsLoaded
+            ? reqState.requests.where((r) => r.isPending).length
+            : 0;
+
+        if (pendingCount == 0) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionHeader(
+              eyebrow: 'action needed',
+              title: 'Pending',
+            ),
+            const SizedBox(height: AppSizing.sp12),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizing.pagePadding,
+              ),
+              child: _PendingCard(
+                icon: Icons.group_add_outlined,
+                accentColor: AppColors.warning,
+                title: '$pendingCount join request${pendingCount > 1 ? 's' : ''}',
+                subtitle: 'Awaiting your approval',
+                actionLabel: 'Review',
+                onAction: () => context
+                    .push(AppRoutes.flatRequests, extra: flat.id)
+                    .then((_) {
+                  if (context.mounted) {
+                    context.read<JoinRequestsBloc>().add(
+                      JoinRequestsLoadRequested(flat.id),
+                    );
+                    context
+                        .read<FlatBloc>()
+                        .add(FlatRefreshRequested(flat.id));
+                  }
+                }),
+              ),
+            ),
+          ],
         );
       },
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final bool accent;
-
-  const _StatCard({
-    required this.label,
-    required this.value,
+class _PendingCard extends StatelessWidget {
+  const _PendingCard({
     required this.icon,
-    this.accent = false,
+    required this.accentColor,
+    required this.title,
+    required this.subtitle,
+    required this.actionLabel,
+    required this.onAction,
   });
+
+  final IconData icon;
+  final Color accentColor;
+  final String title;
+  final String subtitle;
+  final String actionLabel;
+  final VoidCallback onAction;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(AppSizing.sm + 2),
-        decoration: BoxDecoration(
-          color: accent
-              ? AppColors.primary.withValues(alpha: 0.08)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(
-            color: accent
-                ? AppColors.primary.withValues(alpha: 0.3)
-                : AppColors.border,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(AppSizing.r16),
+        border: Border(
+          left: BorderSide(color: accentColor, width: 4),
+        ),
+        boxShadow: AppColors.shadowSm,
+      ),
+      child: ListTile(
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: accentColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AppSizing.r12),
+          ),
+          child: Icon(icon, size: AppSizing.iconMd, color: accentColor),
+        ),
+        title: Text(title, style: AppTypography.labelL),
+        subtitle: Text(
+          subtitle,
+          style: AppTypography.bodyS.copyWith(color: AppColors.textSecondary),
+        ),
+        trailing: TextButton(
+          onPressed: onAction,
+          style: TextButton.styleFrom(
+            foregroundColor: accentColor,
+            padding: const EdgeInsets.symmetric(horizontal: AppSizing.sp12),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text(
+            actionLabel,
+            style: AppTypography.labelM.copyWith(color: accentColor),
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              icon,
-              size: AppSizing.iconSm + 4,
-              color: accent ? AppColors.primary : AppColors.textSecondary,
-            ),
-            const SizedBox(height: AppSizing.xs),
-            Text(
-              value,
-              style: AppTypography.titleLarge.copyWith(
-                color: accent ? AppColors.primary : AppColors.textPrimary,
-              ),
-            ),
-            Text(label, style: AppTypography.labelSmall),
-          ],
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSizing.sp16,
+          vertical: AppSizing.sp8,
         ),
       ),
     );
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final int? badge;
+// ── 6. Members Row ────────────────────────────────────────────────────────────
 
-  const _ActionButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.badge,
-  });
+class _MembersRow extends StatelessWidget {
+  const _MembersRow({required this.flat, required this.me});
+
+  final FlatEntity flat;
+  final FlatMemberEntity? me;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
+    // Show up to 5 in the horizontal row; rest shown via "View All"
+    final members = flat.activeMembers.take(5).toList();
+
+    return Column(
       children: [
-        Material(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-            child: Container(
-              padding: const EdgeInsets.all(AppSizing.md),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.border),
-                borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    icon,
-                    size: AppSizing.iconSm + 4,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: AppSizing.xs),
-                  Flexible(
-                    child: Text(
-                      label,
-                      style: AppTypography.titleMedium.copyWith(
-                        color: AppColors.primary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        // Horizontal avatar row
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+          child: Row(
+            children: members.map((m) {
+              return Padding(
+                padding: const EdgeInsets.only(right: AppSizing.sp16),
+                child: _MemberChip(member: m),
+              );
+            }).toList(),
           ),
         ),
-        if (badge != null && badge! > 0)
-          Positioned(
-            top: -6,
-            right: -6,
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.error,
-                borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-              ),
-              child: Text(
-                badge! > 99 ? '99+' : '$badge',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
+        const SizedBox(height: AppSizing.sp16),
+        // Full list preview (top 3)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+          child: Column(
+            children: flat.activeMembers
+                .take(3)
+                .map(
+                  (m) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSizing.sp8),
+                    child: MemberTile(member: m),
+                  ),
+                )
+                .toList(),
           ),
+        ),
       ],
     );
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String? actionLabel;
-  final VoidCallback? onAction;
+class _MemberChip extends StatelessWidget {
+  const _MemberChip({required this.member});
 
-  const _SectionHeader({required this.title, this.actionLabel, this.onAction});
+  final FlatMemberEntity member;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: AppTypography.headlineSmall),
-          if (actionLabel != null && onAction != null)
-            TextButton(
-              onPressed: onAction,
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                actionLabel!,
-                style: AppTypography.titleMedium.copyWith(
-                  color: AppColors.primary,
-                ),
-              ),
+    return Column(
+      children: [
+        AppAvatar(
+          name: member.name,
+          radius: AppSizing.avatar40 / 2,
+          backgroundColor: AppColors.brand.withValues(alpha: 0.1),
+          textColor: AppColors.brand,
+        ),
+        const SizedBox(height: AppSizing.sp4),
+        Text(
+          member.name.split(' ').first,
+          style: AppTypography.labelS.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        if (member.fixedContribution > 0)
+          Text(
+            '৳${member.fixedContribution.toStringAsFixed(0)}',
+            style: AppTypography.labelS.copyWith(
+              color: AppColors.textTertiary,
+              fontSize: 10,
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }

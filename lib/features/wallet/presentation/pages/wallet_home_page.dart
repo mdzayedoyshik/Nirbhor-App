@@ -81,7 +81,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
   Widget _buildBody(BuildContext context, WalletState state) {
     if (state is WalletLoading) {
       return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary));
+          child: CircularProgressIndicator(color: AppColors.brand));
     }
 
     final (summary, flatWallet) = switch (state) {
@@ -119,7 +119,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
     final isLoading = state is WalletActionLoading;
 
     return RefreshIndicator(
-      color: AppColors.primary,
+      color: AppColors.brand,
       onRefresh: () async {
         context
             .read<WalletBloc>()
@@ -144,6 +144,15 @@ class _WalletHomePageState extends State<WalletHomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Quick actions row ──────────────────────
+                  _QuickActionsRow(
+                    flatId: widget.args.flatId,
+                    args: widget.args,
+                    summary: summary,
+                    isLoading: isLoading,
+                  ),
+                  const SizedBox(height: AppSizing.lg),
+
                   // ── Flat Cash Pool ─────────────────────────
                   if (flatWallet != null) ...[
                     _FlatPoolCard(
@@ -213,7 +222,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
                           extra: widget.args.flatId,
                         ),
                         style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
+                          foregroundColor: AppColors.brand,
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -221,40 +230,17 @@ class _WalletHomePageState extends State<WalletHomePage> {
                         child: Text(
                           AppStrings.seeAllTransactions,
                           style: AppTypography.titleMedium
-                              .copyWith(color: AppColors.primary),
+                              .copyWith(color: AppColors.brand),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: AppSizing.sm),
                   if (summary.recentTransactions.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: AppSizing.md),
-                      child: Center(
-                        child: Text(
-                          'No recent transactions.',
-                          style: AppTypography.bodyMedium
-                              .copyWith(color: AppColors.textSecondary),
-                        ),
-                      ),
-                    )
+                    _EmptyTransactionsState()
                   else
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius:
-                            BorderRadius.circular(AppSizing.radiusMd),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizing.md, vertical: AppSizing.xs),
-                      child: Column(
-                        children: summary.recentTransactions
-                            .map((t) => TransactionRow(transaction: t))
-                            .toList(),
-                      ),
-                    ),
+                    _TransactionsList(
+                        transactions: summary.recentTransactions),
 
                   const SizedBox(height: AppSizing.xl),
 
@@ -325,87 +311,233 @@ class _HeroBalanceCard extends StatelessWidget {
     final isNeg = summary.isNegative;
     return Container(
       width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(
+        AppSizing.pagePadding,
+        AppSizing.sm,
+        AppSizing.pagePadding,
+        0,
+      ),
       padding: const EdgeInsets.fromLTRB(
-        AppSizing.pagePadding,
         AppSizing.lg,
-        AppSizing.pagePadding,
+        AppSizing.xl,
+        AppSizing.lg,
         AppSizing.xl,
       ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isNeg
-              ? [
-                  AppColors.error,
-                  AppColors.error.withValues(alpha: 0.7),
-                ]
-              : [
-                  AppColors.primary,
-                  AppColors.primaryDark,
-                ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: isNeg ? AppColors.warmGradient : AppColors.brandGradient,
+        borderRadius: BorderRadius.circular(AppSizing.r24),
+        boxShadow: AppColors.shadowLg,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Text(
-            'Hi, ${summary.memberName}',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.white.withValues(alpha: 0.85),
-            ),
-          ),
-          const SizedBox(height: AppSizing.xs),
-          Text(
-            '${isNeg ? '−' : ''}৳${summary.walletBalance.abs().toStringAsFixed(0)}',
-            style: AppTypography.headlineMedium.copyWith(
-              color: AppColors.white,
-              fontSize: 40,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppSizing.xs),
-          Row(
-            children: [
-              Icon(
-                isNeg
-                    ? Icons.warning_amber_rounded
-                    : Icons.check_circle_outline_rounded,
-                color: AppColors.white.withValues(alpha: 0.9),
-                size: 14,
+          // Decorative pill — top right
+          Positioned(
+            top: -20,
+            right: -20,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.white.withValues(alpha: 0.08),
               ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  isNeg
-                      ? 'You owe ৳${summary.walletBalance.abs().toStringAsFixed(0)} — please deposit soon'
-                      : AppStrings.walletCurrentBalance,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.white.withValues(alpha: 0.9),
+            ),
+          ),
+          // Decorative pill — bottom left
+          Positioned(
+            bottom: -30,
+            left: -10,
+            child: Container(
+              width: 130,
+              height: 130,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.white.withValues(alpha: 0.06),
+              ),
+            ),
+          ),
+          // Content
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Greeting + status pill row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Hi, ${summary.memberName}',
+                    style: AppTypography.bodyM.copyWith(
+                      color: AppColors.white.withValues(alpha: 0.85),
+                    ),
                   ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizing.sm, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.2),
+                      borderRadius:
+                          BorderRadius.circular(AppSizing.radiusFull),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isNeg
+                              ? Icons.warning_amber_rounded
+                              : Icons.check_circle_outline_rounded,
+                          color: AppColors.white,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isNeg ? 'Due' : 'Healthy',
+                          style: AppTypography.labelS.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizing.md),
+              // Balance label
+              Text(
+                AppStrings.walletCurrentBalance,
+                style: AppTypography.labelS.copyWith(
+                  color: AppColors.white.withValues(alpha: 0.7),
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: AppSizing.xs),
+              // Main amount
+              Text(
+                '${isNeg ? '−' : ''}৳${summary.walletBalance.abs().toStringAsFixed(0)}',
+                style: AppTypography.amountXL.copyWith(
+                  color: AppColors.white,
+                  fontSize: 44,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              if (isNeg) ...[
+                const SizedBox(height: AppSizing.sm),
+                Text(
+                  'You owe ৳${summary.walletBalance.abs().toStringAsFixed(0)} — please deposit soon',
+                  style: AppTypography.bodyS.copyWith(
+                    color: AppColors.white.withValues(alpha: 0.85),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Quick actions row ────────────────────────────────────────────────────────
+
+class _QuickActionsRow extends StatelessWidget {
+  const _QuickActionsRow({
+    required this.flatId,
+    required this.args,
+    required this.summary,
+    required this.isLoading,
+  });
+  final String flatId;
+  final WalletPageArgs args;
+  final WalletSummaryEntity summary;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _QuickActionButton(
+          icon: Icons.send_rounded,
+          label: 'Pay',
+          onTap: isLoading
+              ? null
+              : () => context.push(
+                    AppRoutes.walletSubmitPayment,
+                    extra: SubmitPaymentArgs(
+                      flatId: flatId,
+                      initialAmount: summary.suggestedTotalToPay > 0
+                          ? summary.suggestedTotalToPay
+                          : null,
+                    ),
+                  ),
+        ),
+        const SizedBox(width: AppSizing.sm),
+        _QuickActionButton(
+          icon: Icons.request_page_outlined,
+          label: 'Request',
+          onTap: () => context.push(
+            AppRoutes.walletRequests,
+            extra: args,
+          ),
+        ),
+        const SizedBox(width: AppSizing.sm),
+        _QuickActionButton(
+          icon: Icons.history_rounded,
+          label: 'History',
+          onTap: () => context.push(
+            AppRoutes.walletTransactions,
+            extra: flatId,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickActionButton extends StatelessWidget {
+  const _QuickActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+              vertical: AppSizing.md, horizontal: AppSizing.sm),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppSizing.r16),
+            boxShadow: AppColors.shadowSm,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: AppColors.brandGradient,
+                  borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                ),
+                child: Icon(icon, color: AppColors.white, size: 20),
+              ),
+              const SizedBox(height: AppSizing.xs),
+              Text(
+                label,
+                style: AppTypography.labelM.copyWith(
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
           ),
-          if (isNeg) ...[
-            const SizedBox(height: AppSizing.sm),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizing.sm, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-              ),
-              child: Text(
-                'Due',
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -422,6 +554,7 @@ class _FlatPoolCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isNeg = flatWallet.isNegative;
     final color = isNeg ? AppColors.error : AppColors.success;
+    final gradient = isNeg ? AppColors.warmGradient : AppColors.successGradient;
 
     return GestureDetector(
       onTap: () =>
@@ -431,25 +564,19 @@ class _FlatPoolCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          boxShadow: AppColors.shadowSm,
         ),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                gradient: gradient,
+                borderRadius: BorderRadius.circular(AppSizing.r12),
               ),
-              child: Icon(Icons.account_balance_rounded, color: color, size: 22),
+              child: const Icon(Icons.account_balance_rounded,
+                  color: AppColors.white, size: 22),
             ),
             const SizedBox(width: AppSizing.md),
             Expanded(
@@ -458,7 +585,7 @@ class _FlatPoolCard extends StatelessWidget {
                 children: [
                   Text(
                     AppStrings.flatWalletTitle,
-                    style: AppTypography.labelSmall
+                    style: AppTypography.labelS
                         .copyWith(color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 2),
@@ -466,7 +593,7 @@ class _FlatPoolCard extends StatelessWidget {
                     children: [
                       Text(
                         '${isNeg ? '−' : ''}৳${flatWallet.balance.abs().toStringAsFixed(0)}',
-                        style: AppTypography.titleLarge.copyWith(
+                        style: AppTypography.amountL.copyWith(
                           color: color,
                           fontWeight: FontWeight.w700,
                         ),
@@ -483,7 +610,7 @@ class _FlatPoolCard extends StatelessWidget {
                           ),
                           child: Text(
                             'Deficit',
-                            style: AppTypography.labelSmall.copyWith(
+                            style: AppTypography.labelS.copyWith(
                               color: AppColors.error,
                               fontWeight: FontWeight.w600,
                             ),
@@ -516,29 +643,32 @@ class _ContributionStrip extends StatelessWidget {
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(AppSizing.r16),
+        boxShadow: AppColors.shadowSm,
       ),
       child: Row(
         children: [
-          _StripItem(
+          _ContribItem(
             label: 'Fixed',
             value: '৳${summary.fixedContribution.toStringAsFixed(0)}',
             icon: Icons.receipt_long_outlined,
+            gradientColors: [const Color(0xFF4F6EF7), const Color(0xFF6B8EFF)],
           ),
-          _VerticalDivider(),
-          _StripItem(
+          _ContribDivider(),
+          _ContribItem(
             label: 'Meal',
             value:
                 '৳${summary.paymentHints.suggestedMealAmount.toStringAsFixed(0)}',
             icon: Icons.restaurant_outlined,
+            gradientColors: [const Color(0xFF10B981), const Color(0xFF34D399)],
           ),
-          _VerticalDivider(),
-          _StripItem(
+          _ContribDivider(),
+          _ContribItem(
             label: 'Household',
             value:
                 '৳${summary.paymentHints.suggestedHouseholdAmount.toStringAsFixed(0)}',
             icon: Icons.home_outlined,
+            gradientColors: [const Color(0xFF7C3AED), const Color(0xFFA855F7)],
           ),
         ],
       ),
@@ -546,38 +676,60 @@ class _ContributionStrip extends StatelessWidget {
   }
 }
 
-class _StripItem extends StatelessWidget {
-  const _StripItem(
-      {required this.label, required this.value, required this.icon});
+class _ContribItem extends StatelessWidget {
+  const _ContribItem({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.gradientColors,
+  });
   final String label;
   final String value;
   final IconData icon;
+  final List<Color> gradientColors;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(height: 4),
-          Text(value,
-              style: AppTypography.titleMedium
-                  .copyWith(fontWeight: FontWeight.w600)),
-          Text(label,
-              style: AppTypography.labelSmall
-                  .copyWith(color: AppColors.textSecondary)),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: gradientColors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(AppSizing.r12),
+            ),
+            child: Icon(icon, size: 18, color: AppColors.white),
+          ),
+          const SizedBox(height: AppSizing.xs),
+          Text(
+            value,
+            style: AppTypography.amountS
+                .copyWith(fontWeight: FontWeight.w700),
+          ),
+          Text(
+            label,
+            style: AppTypography.labelS
+                .copyWith(color: AppColors.textSecondary),
+          ),
         ],
       ),
     );
   }
 }
 
-class _VerticalDivider extends StatelessWidget {
+class _ContribDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 1,
-      height: 44,
+      height: 56,
       color: AppColors.border,
     );
   }
@@ -596,26 +748,37 @@ class _SuggestedDepositBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+        color: AppColors.brand.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppSizing.r16),
+        border: Border.all(color: AppColors.brand.withValues(alpha: 0.18)),
       ),
       child: Row(
         children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: AppColors.brandGradient,
+              borderRadius: BorderRadius.circular(AppSizing.r12),
+            ),
+            child: const Icon(Icons.savings_outlined,
+                color: AppColors.white, size: 22),
+          ),
+          const SizedBox(width: AppSizing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   AppStrings.suggestedDeposit,
-                  style: AppTypography.labelSmall
+                  style: AppTypography.labelS
                       .copyWith(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '৳${summary.suggestedTotalToPay.toStringAsFixed(0)}',
-                  style: AppTypography.titleLarge.copyWith(
-                    color: AppColors.primary,
+                  style: AppTypography.amountM.copyWith(
+                    color: AppColors.brand,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -624,6 +787,8 @@ class _SuggestedDepositBanner extends StatelessWidget {
                   'Fixed ৳${summary.fixedContribution.toStringAsFixed(0)} + Meal ৳${summary.paymentHints.suggestedMealAmount.toStringAsFixed(0)} + Household ৳${summary.paymentHints.suggestedHouseholdAmount.toStringAsFixed(0)}',
                   style: AppTypography.bodySmall
                       .copyWith(color: AppColors.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -693,19 +858,31 @@ class _RequestCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(AppSizing.r16),
+        border: Border.all(color: AppColors.brand.withValues(alpha: 0.25)),
+        boxShadow: AppColors.shadowSm,
       ),
       child: Row(
         children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: AppColors.brandGradient,
+              borderRadius: BorderRadius.circular(AppSizing.r12),
+            ),
+            child: const Icon(Icons.request_page_outlined,
+                color: AppColors.white, size: 20),
+          ),
+          const SizedBox(width: AppSizing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '৳${amount.toStringAsFixed(0)}',
-                  style: AppTypography.headlineMedium.copyWith(
-                    color: AppColors.primary,
+                  style: AppTypography.amountL.copyWith(
+                    color: AppColors.brand,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -727,6 +904,74 @@ class _RequestCard extends StatelessWidget {
             variant: AppButtonVariant.primary,
             height: AppSizing.buttonHeightSm,
             fullWidth: false,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Transactions list ─────────────────────────────────────────────────────────
+
+class _TransactionsList extends StatelessWidget {
+  const _TransactionsList({required this.transactions});
+  final List<dynamic> transactions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizing.r16),
+        boxShadow: AppColors.shadowSm,
+      ),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSizing.md, vertical: AppSizing.xs),
+      child: Column(
+        children:
+            transactions.map((t) => TransactionRow(transaction: t)).toList(),
+      ),
+    );
+  }
+}
+
+// ── Empty transactions state ──────────────────────────────────────────────────
+
+class _EmptyTransactionsState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+          vertical: AppSizing.xl, horizontal: AppSizing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface100,
+        borderRadius: BorderRadius.circular(AppSizing.r16),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              gradient: AppColors.brandGradient,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.receipt_long_outlined,
+                color: AppColors.white, size: 30),
+          ),
+          const SizedBox(height: AppSizing.md),
+          Text(
+            'No transactions yet',
+            style: AppTypography.h4.copyWith(color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: AppSizing.xs),
+          Text(
+            'Your recent payments will appear here.',
+            style: AppTypography.bodyS
+                .copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
