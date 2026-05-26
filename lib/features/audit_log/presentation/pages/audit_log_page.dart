@@ -50,9 +50,9 @@ const _kAllEntityTypes = [
 
 const _kFilterChips = [
   _ChipDef(label: 'All', entityType: null),
-  _ChipDef(label: 'Members', entityType: 'member'),
+  _ChipDef(label: 'Members', entityType: 'flat_member'),
   _ChipDef(label: 'Payments', entityType: 'payment'),
-  _ChipDef(label: 'Meals', entityType: 'meal'),
+  _ChipDef(label: 'Meals', entityType: 'meal_log'),
   _ChipDef(label: 'Expenses', entityType: 'expense'),
   _ChipDef(label: 'Tasks', entityType: 'task'),
 ];
@@ -232,9 +232,12 @@ class _AuditLogPageState extends State<AuditLogPage> {
           top: Radius.circular(AppSizing.radiusLg),
         ),
       ),
-      builder: (_) => _FilterSheet(
-        flatId: widget.args.flatId,
-        currentFilters: current,
+      builder: (sheetCtx) => BlocProvider.value(
+        value: context.read<AuditLogBloc>(),
+        child: _FilterSheet(
+          flatId: widget.args.flatId,
+          currentFilters: current,
+        ),
       ),
     );
   }
@@ -242,10 +245,8 @@ class _AuditLogPageState extends State<AuditLogPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        foregroundColor: context.textPrimColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
@@ -254,7 +255,7 @@ class _AuditLogPageState extends State<AuditLogPage> {
         ),
         title: Text(
           'Audit Log',
-          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+          style: AppTypography.h3.copyWith(color: context.textPrimColor),
         ),
         actions: [
           BlocBuilder<AuditLogBloc, AuditLogState>(
@@ -267,7 +268,7 @@ class _AuditLogPageState extends State<AuditLogPage> {
               return IconButton(
                 icon: Icon(
                   Icons.tune_rounded,
-                  color: hasActive ? AppColors.brand : AppColors.textSecondary,
+                  color: hasActive ? AppColors.brand : context.textSecColor,
                 ),
                 tooltip: 'Filter',
                 onPressed: () => _openFilterSheet(context, filters),
@@ -317,7 +318,7 @@ class _AuditLogPageState extends State<AuditLogPage> {
               if (hasActiveFilter && filters.action != null)
                 Container(
                   width: double.infinity,
-                  color: AppColors.surface,
+                  color: context.cardColor,
                   padding: const EdgeInsets.only(
                     left: AppSizing.pagePadding,
                     right: AppSizing.pagePadding,
@@ -416,7 +417,7 @@ class _FilterChipRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.surface,
+      color: context.cardColor,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizing.pagePadding,
         vertical: AppSizing.sm,
@@ -479,7 +480,7 @@ class _PillChip extends StatelessWidget {
         child: Text(
           label,
           style: AppTypography.labelM.copyWith(
-            color: isActive ? AppColors.white : AppColors.textSecondary,
+            color: isActive ? AppColors.white : context.textSecColor,
           ),
         ),
       ),
@@ -512,13 +513,13 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: AppSizing.md),
           Text(
             'No activity yet',
-            style: AppTypography.h4.copyWith(color: AppColors.textPrimary),
+            style: AppTypography.h4.copyWith(color: context.textPrimColor),
           ),
           const SizedBox(height: AppSizing.xs),
           Text(
             'Actions taken in this flat will appear here',
             style: AppTypography.bodyS.copyWith(
-              color: AppColors.textSecondary,
+              color: context.textSecColor,
             ),
           ),
         ],
@@ -726,7 +727,7 @@ class _LogCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
         boxShadow: AppColors.shadowSm,
       ),
@@ -759,7 +760,7 @@ class _LogCard extends StatelessWidget {
               title: Text(
                 _actionLabel(log.action),
                 style: AppTypography.labelL.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.textPrimColor,
                 ),
               ),
               subtitle: _LogSubtitle(log: log),
@@ -789,7 +790,7 @@ class _LogCard extends StatelessWidget {
                         Text(
                           _actionLabel(log.action),
                           style: AppTypography.labelL.copyWith(
-                            color: AppColors.textPrimary,
+                            color: context.textPrimColor,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -819,7 +820,7 @@ class _LogSubtitle extends StatelessWidget {
             child: Text(
               log.performedByName ?? 'System',
               style: AppTypography.bodyS.copyWith(
-                color: AppColors.textSecondary,
+                color: context.textSecColor,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -859,7 +860,7 @@ class _ExpandedContent extends StatelessWidget {
       return Text(
         'No details available',
         style: AppTypography.bodyS.copyWith(
-          color: AppColors.textSecondary,
+          color: context.textSecColor,
           fontStyle: FontStyle.italic,
         ),
       );
@@ -874,7 +875,7 @@ class _ExpandedContent extends StatelessWidget {
           Text(
             'Before',
             style: AppTypography.labelS.copyWith(
-              color: AppColors.textSecondary,
+              color: context.textSecColor,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -886,7 +887,7 @@ class _ExpandedContent extends StatelessWidget {
           Text(
             'After',
             style: AppTypography.labelS.copyWith(
-              color: AppColors.textSecondary,
+              color: context.textSecColor,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -924,7 +925,7 @@ class _JsonTable extends StatelessWidget {
                   '${entry.key}: ',
                   style: AppTypography.bodyS.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                    color: context.textSecColor,
                   ),
                 ),
                 Expanded(

@@ -50,6 +50,11 @@ class _AppTextFieldState extends State<AppTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveKeyboardType =
+        (widget.maxLines != 1 && widget.keyboardType == TextInputType.text)
+            ? TextInputType.multiline
+            : widget.keyboardType;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -58,7 +63,7 @@ class _AppTextFieldState extends State<AppTextField> {
         TextFormField(
           controller: widget.controller,
           obscureText: _obscure,
-          keyboardType: widget.keyboardType,
+          keyboardType: effectiveKeyboardType,
           textInputAction: widget.textInputAction,
           validator: widget.validator,
           onChanged: widget.onChanged,

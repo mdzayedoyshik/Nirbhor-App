@@ -44,8 +44,7 @@ import '../../features/wallet/presentation/bloc/transactions/transactions_bloc.d
 import '../../features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
 import '../../features/wallet/presentation/pages/all_wallets_page.dart';
 import '../../features/wallet/presentation/pages/payment_hints_page.dart';
-import '../../features/wallet/presentation/pages/payment_requests_page.dart';
-import '../../features/wallet/presentation/pages/payments_list_page.dart';
+import '../../features/wallet/presentation/pages/payments_hub_page.dart';
 import '../../features/wallet/presentation/pages/submit_payment_page.dart';
 import '../../features/wallet/presentation/pages/transaction_history_page.dart';
 import '../../features/wallet/presentation/pages/wallet_home_page.dart';
@@ -256,20 +255,25 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: AppRoutes.walletPayments,
-        redirect: (_, state) =>
-            state.extra is String ? null : AppRoutes.home,
-        builder: (_, state) => BlocProvider(
-          create: (_) => sl<PaymentsBloc>(),
-          child: PaymentsListPage(flatId: state.extra! as String),
-        ),
+        redirect: (_, state) {
+          // Redirect legacy walletPayments to walletRequests;
+          // pass a WalletPageArgs if possible, else go home
+          return AppRoutes.walletRequests;
+        },
       ),
       GoRoute(
         path: AppRoutes.walletRequests,
         redirect: (_, state) =>
             state.extra is WalletPageArgs ? null : AppRoutes.home,
-        builder: (_, state) => BlocProvider(
-          create: (_) => sl<PaymentRequestsBloc>(),
-          child: PaymentRequestsPage(args: state.extra! as WalletPageArgs),
+        builder: (_, state) => MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (_) => sl<PaymentRequestsBloc>()),
+            BlocProvider(create: (_) => sl<PaymentsBloc>()),
+          ],
+          child: BlocProvider.value(
+            value: sl<WalletBloc>(),
+            child: PaymentsHubPage(args: state.extra! as WalletPageArgs),
+          ),
         ),
       ),
       GoRoute(
@@ -457,6 +461,7 @@ GoRouter createRouter(AuthBloc authBloc) {
             child: ExpenseListPage(
               flatId: args.flatId,
               canManage: args.canManage,
+              memberCount: args.memberCount,
             ),
           );
         },

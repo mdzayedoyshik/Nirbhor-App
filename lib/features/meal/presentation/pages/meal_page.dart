@@ -57,7 +57,6 @@ class _MealPageState extends State<MealPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: Column(
         children: [
           // Custom gradient header
@@ -1101,6 +1100,7 @@ class _ShiftSummaryCardState extends State<_ShiftSummaryCard>
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Icon container
               Container(

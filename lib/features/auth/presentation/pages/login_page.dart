@@ -57,11 +57,9 @@ class _LoginPageState extends State<LoginPage> {
       builder: (context, state) {
         final loading = state is AuthLoading;
         return Scaffold(
-          backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
             elevation: 0,
-            leading: BackButton(color: AppColors.textPrimary),
+            leading: BackButton(color: context.textPrimColor),
           ),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -97,7 +95,7 @@ class _LoginPageState extends State<LoginPage> {
                     Text(
                       'Enter your password',
                       style: AppTypography.bodyM
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.textSecColor),
                     ),
                     const SizedBox(height: AppSizing.xs),
                     Text(
@@ -117,14 +115,14 @@ class _LoginPageState extends State<LoginPage> {
                       validator: (v) =>
                           v == null || v.isEmpty ? 'Password is required' : null,
                       style: AppTypography.bodyL
-                          .copyWith(color: AppColors.textPrimary),
+                          .copyWith(color: context.textPrimColor),
                       decoration: InputDecoration(
                         labelText: AppStrings.passwordLabel,
                         hintText: AppStrings.passwordHint,
                         labelStyle: AppTypography.labelM
-                            .copyWith(color: AppColors.textSecondary),
+                            .copyWith(color: context.textSecColor),
                         hintStyle: AppTypography.bodyM
-                            .copyWith(color: AppColors.textTertiary),
+                            .copyWith(color: context.textTerColor),
                         filled: true,
                         fillColor: AppColors.surface100,
                         contentPadding: const EdgeInsets.symmetric(
@@ -168,7 +166,7 @@ class _LoginPageState extends State<LoginPage> {
                             _obscure
                                 ? Icons.visibility_off_outlined
                                 : Icons.visibility_outlined,
-                            color: AppColors.textSecondary,
+                            color: context.textSecColor,
                             size: AppSizing.iconMd,
                           ),
                           onPressed: () =>

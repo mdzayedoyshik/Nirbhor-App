@@ -45,9 +45,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
       },
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
             elevation: 0,
             title: Text(AppStrings.walletTitle,
                 style: AppTypography.headlineMedium),
@@ -63,11 +61,11 @@ class _WalletHomePageState extends State<WalletHomePage> {
                 ),
               if (widget.args.canManage)
                 IconButton(
-                  icon: const Icon(Icons.receipt_long_outlined),
-                  tooltip: AppStrings.paymentsListTitle,
+                  icon: const Icon(Icons.payment_rounded),
+                  tooltip: 'Manage Payments',
                   onPressed: () => context.push(
-                    AppRoutes.walletPayments,
-                    extra: widget.args.flatId,
+                    AppRoutes.walletRequests,
+                    extra: widget.args,
                   ),
                 ),
             ],
@@ -102,7 +100,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
           children: [
             Text(AppStrings.somethingWentWrong,
                 style: AppTypography.bodyMedium
-                    .copyWith(color: AppColors.textSecondary)),
+                    .copyWith(color: context.textSecColor)),
             const SizedBox(height: AppSizing.md),
             AppButton(
               label: AppStrings.retry,
@@ -268,14 +266,14 @@ class _WalletHomePageState extends State<WalletHomePage> {
                   if (widget.args.canManage) ...[
                     const SizedBox(height: AppSizing.sm),
                     AppButton(
-                      label: AppStrings.paymentRequestsTitle,
+                      label: 'Manage Payments',
                       onPressed: () => context.push(
                         AppRoutes.walletRequests,
                         extra: widget.args,
                       ),
                       variant: AppButtonVariant.outlined,
                       fullWidth: true,
-                      icon: const Icon(Icons.request_page_outlined, size: 18),
+                      icon: const Icon(Icons.payment_rounded, size: 18),
                     ),
                     const SizedBox(height: AppSizing.sm),
                     AppButton(
@@ -512,7 +510,7 @@ class _QuickActionButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(
               vertical: AppSizing.md, horizontal: AppSizing.sm),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.cardColor,
             borderRadius: BorderRadius.circular(AppSizing.r16),
             boxShadow: AppColors.shadowSm,
           ),
@@ -532,7 +530,7 @@ class _QuickActionButton extends StatelessWidget {
               Text(
                 label,
                 style: AppTypography.labelM.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.textPrimColor,
                 ),
               ),
             ],
@@ -562,7 +560,7 @@ class _FlatPoolCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSizing.md),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           boxShadow: AppColors.shadowSm,
         ),
@@ -586,7 +584,7 @@ class _FlatPoolCard extends StatelessWidget {
                   Text(
                     AppStrings.flatWalletTitle,
                     style: AppTypography.labelS
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.textSecColor),
                   ),
                   const SizedBox(height: 2),
                   Row(
@@ -623,7 +621,7 @@ class _FlatPoolCard extends StatelessWidget {
               ),
             ),
             Icon(Icons.chevron_right_rounded,
-                color: AppColors.textSecondary, size: 20),
+                color: context.textSecColor, size: 20),
           ],
         ),
       ),
@@ -642,7 +640,7 @@ class _ContributionStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.r16),
         boxShadow: AppColors.shadowSm,
       ),
@@ -716,7 +714,7 @@ class _ContribItem extends StatelessWidget {
           Text(
             label,
             style: AppTypography.labelS
-                .copyWith(color: AppColors.textSecondary),
+                .copyWith(color: context.textSecColor),
           ),
         ],
       ),
@@ -772,7 +770,7 @@ class _SuggestedDepositBanner extends StatelessWidget {
                 Text(
                   AppStrings.suggestedDeposit,
                   style: AppTypography.labelS
-                      .copyWith(color: AppColors.textSecondary),
+                      .copyWith(color: context.textSecColor),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -786,7 +784,7 @@ class _SuggestedDepositBanner extends StatelessWidget {
                 Text(
                   'Fixed ৳${summary.fixedContribution.toStringAsFixed(0)} + Meal ৳${summary.paymentHints.suggestedMealAmount.toStringAsFixed(0)} + Household ৳${summary.paymentHints.suggestedHouseholdAmount.toStringAsFixed(0)}',
                   style: AppTypography.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                      .copyWith(color: context.textSecColor),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -857,7 +855,7 @@ class _RequestCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.r16),
         border: Border.all(color: AppColors.brand.withValues(alpha: 0.25)),
         boxShadow: AppColors.shadowSm,
@@ -890,7 +888,7 @@ class _RequestCard extends StatelessWidget {
                   Text(
                     note!,
                     style: AppTypography.bodySmall
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.textSecColor),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -921,7 +919,7 @@ class _TransactionsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.r16),
         boxShadow: AppColors.shadowSm,
       ),
@@ -964,13 +962,13 @@ class _EmptyTransactionsState extends StatelessWidget {
           const SizedBox(height: AppSizing.md),
           Text(
             'No transactions yet',
-            style: AppTypography.h4.copyWith(color: AppColors.textPrimary),
+            style: AppTypography.h4.copyWith(color: context.textPrimColor),
           ),
           const SizedBox(height: AppSizing.xs),
           Text(
             'Your recent payments will appear here.',
             style: AppTypography.bodyS
-                .copyWith(color: AppColors.textSecondary),
+                .copyWith(color: context.textSecColor),
             textAlign: TextAlign.center,
           ),
         ],

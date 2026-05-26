@@ -25,6 +25,8 @@ class _ComplaintPageState extends State<ComplaintPage> {
   String? _statusFilter;
   bool _mineOnly = false;
   final ScrollController _scroll = ScrollController();
+  // Cached last-loaded state so tab/filter switches don't flash a spinner
+  ComplaintListLoaded? _lastLoaded;
 
   @override
   void initState() {
@@ -65,18 +67,16 @@ class _ComplaintPageState extends State<ComplaintPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: context.textPrimColor, size: 20),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text('Complaints',
             style: AppTypography.headlineMedium
-                .copyWith(color: AppColors.textPrimary)),
+                .copyWith(color: context.textPrimColor)),
       ),
       floatingActionButton: _GradientFab(
         onPressed: () => _showRaiseSheet(context),
@@ -92,6 +92,19 @@ class _ComplaintPageState extends State<ComplaintPage> {
           }
         },
         builder: (context, state) {
+          // Update cache whenever fresh data arrives
+          if (state is ComplaintListLoaded) _lastLoaded = state;
+
+          // Resolve the display state: prefer live loaded state, fall back to
+          // cached data so that a reload never flashes an empty spinner.
+          final displayState = (state is ComplaintListLoaded)
+              ? state
+              : _lastLoaded;
+
+          // Only show the full-screen spinner on the very first load (no cache)
+          final isFirstLoad =
+              state is ComplaintListLoading && _lastLoaded == null;
+
           return RefreshIndicator(
             color: AppColors.brand,
             onRefresh: () async {
@@ -103,8 +116,17 @@ class _ComplaintPageState extends State<ComplaintPage> {
               slivers: [
                 // Summary stats strip
                 SliverToBoxAdapter(
-                  child: _StatsStrip(state: state),
+                  child: _StatsStrip(state: displayState ?? state),
                 ),
+
+                // Subtle refresh indicator at the top when reloading with data
+                if (state is ComplaintListLoading && _lastLoaded != null)
+                  const SliverToBoxAdapter(
+                    child: LinearProgressIndicator(
+                      color: AppColors.brand,
+                      backgroundColor: AppColors.transparent,
+                    ),
+                  ),
 
                 // Filters
                 SliverToBoxAdapter(
@@ -122,15 +144,15 @@ class _ComplaintPageState extends State<ComplaintPage> {
                   ),
                 ),
 
-                if (state is ComplaintListLoading)
+                if (isFirstLoad)
                   const SliverFillRemaining(
                     child: Center(
                       child:
                           CircularProgressIndicator(color: AppColors.brand),
                     ),
                   )
-                else if (state is ComplaintListLoaded) ...[
-                  if (state.complaints.isEmpty)
+                else if (displayState != null) ...[
+                  if (displayState.complaints.isEmpty)
                     SliverFillRemaining(
                       child: _EmptyState(
                         onCreate: () => _showRaiseSheet(context),
@@ -142,11 +164,11 @@ class _ComplaintPageState extends State<ComplaintPage> {
                         horizontal: AppSizing.pagePadding,
                       ),
                       sliver: SliverList.separated(
-                        itemCount: state.complaints.length,
+                        itemCount: displayState.complaints.length,
                         separatorBuilder: (_, _) =>
                             const SizedBox(height: AppSizing.sm),
                         itemBuilder: (ctx, i) {
-                          final c = state.complaints[i];
+                          final c = displayState.complaints[i];
                           return ComplaintCard(
                             complaint: c,
                             onTap: () => context
@@ -166,7 +188,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
                         },
                       ),
                     ),
-                    if (state.isLoadingMore)
+                    if (displayState.isLoadingMore)
                       const SliverToBoxAdapter(
                         child: Padding(
                           padding: EdgeInsets.all(AppSizing.md),
@@ -193,7 +215,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizing.radiusLg),
@@ -418,7 +440,7 @@ class _Chip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? c.withValues(alpha: 0.1) : AppColors.surface,
+          color: selected ? c.withValues(alpha: 0.1) : context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusFull),
           border: Border.all(color: selected ? c : AppColors.border),
         ),
@@ -427,13 +449,13 @@ class _Chip extends StatelessWidget {
           children: [
             if (icon != null) ...[
               Icon(icon, size: 13,
-                  color: selected ? c : AppColors.textSecondary),
+                  color: selected ? c : context.textSecColor),
               const SizedBox(width: 4),
             ],
             Text(
               label,
               style: AppTypography.labelSmall.copyWith(
-                color: selected ? c : AppColors.textSecondary,
+                color: selected ? c : context.textSecColor,
                 fontWeight:
                     selected ? FontWeight.w600 : FontWeight.w500,
               ),

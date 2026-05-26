@@ -12,15 +12,14 @@ import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_snackbar.dart';
-import '../../../../core/widgets/gradient_card.dart';
-import '../../../../core/widgets/main_shell.dart';
 import '../../../../core/widgets/quick_action_button.dart';
 import '../../../../core/widgets/section_header.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../audit_log/presentation/args/audit_log_page_args.dart';
 import '../../../complaint/presentation/args/complaint_page_args.dart';
-import '../../../expense/presentation/args/expense_list_args.dart';
+import '../../../expense/presentation/pages/expense_list_page.dart';
 import '../../../meal/presentation/args/meal_page_args.dart';
+import '../../../meal/presentation/pages/meal_page.dart';
 import '../../../notification/presentation/args/notification_page_args.dart';
 import '../../../notification/presentation/bloc/notification_bloc.dart';
 import '../../../notification/presentation/bloc/notification_state.dart';
@@ -28,23 +27,600 @@ import '../../../summary/presentation/args/summary_page_args.dart';
 import '../../../task/presentation/args/task_page_args.dart';
 import '../../../wallet/presentation/args/wallet_page_args.dart';
 import '../../../wallet/presentation/bloc/wallet/wallet_bloc.dart';
+import '../../../wallet/presentation/pages/wallet_home_page.dart';
 import '../../domain/entities/flat_entity.dart';
 import '../../domain/entities/flat_member_entity.dart';
 import '../bloc/flat_bloc.dart';
 import '../bloc/join_requests_bloc.dart';
-import '../widgets/expense_tile.dart';
 import '../widgets/member_tile.dart';
 
-class FlatHomeView extends StatelessWidget {
-  final FlatEntity flat;
+// ── Nav items ─────────────────────────────────────────────────────────────────
 
+class _NavItem {
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+  });
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+}
+
+const _navItems = [
+  _NavItem(
+    icon: Icons.home_outlined,
+    activeIcon: Icons.home_rounded,
+    label: 'Home',
+  ),
+  _NavItem(
+    icon: Icons.restaurant_outlined,
+    activeIcon: Icons.restaurant_rounded,
+    label: 'Meals',
+  ),
+  _NavItem(
+    icon: Icons.account_balance_wallet_outlined,
+    activeIcon: Icons.account_balance_wallet_rounded,
+    label: 'Wallet',
+  ),
+  _NavItem(
+    icon: Icons.receipt_long_outlined,
+    activeIcon: Icons.receipt_long_rounded,
+    label: 'Expenses',
+  ),
+  _NavItem(
+    icon: Icons.grid_view_outlined,
+    activeIcon: Icons.grid_view_rounded,
+    label: 'More',
+  ),
+];
+
+// ── Shell widget ──────────────────────────────────────────────────────────────
+
+class FlatHomeView extends StatefulWidget {
+  final FlatEntity flat;
   const FlatHomeView({super.key, required this.flat});
 
-  FlatMemberEntity? _myMember(BuildContext context) {
+  @override
+  State<FlatHomeView> createState() => _FlatHomeViewState();
+}
+
+class _FlatHomeViewState extends State<FlatHomeView> {
+  int _tab = 0;
+  // true = tab has been loaded at least once; start only home as loaded
+  final List<bool> _loaded = [true, false, false, false];
+
+  FlatMemberEntity? _myMember() {
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return null;
-    return flat.memberByUserId(authState.user.id);
+    return widget.flat.memberByUserId(authState.user.id);
   }
+
+  @override
+  void initState() {
+    super.initState();
+    // Load wallet summary eagerly so the home balance card shows immediately
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context
+            .read<WalletBloc>()
+            .add(WalletSummaryRequested(widget.flat.id));
+      }
+    });
+  }
+
+  void _switchTab(BuildContext context, int i) {
+    if (i == 4) {
+      Scaffold.of(context).openDrawer();
+      return;
+    }
+    if (i == _tab) return;
+    setState(() {
+      if (i < _loaded.length) _loaded[i] = true;
+      _tab = i;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final me = _myMember();
+    final canManage = me?.canManage ?? false;
+
+    return BlocListener<FlatBloc, FlatState>(
+      listener: (context, state) {
+        if (state is FlatError) AppSnackbar.error(context, state.message);
+      },
+      child: Builder(
+        builder: (scaffoldCtx) => Scaffold(
+          backgroundColor: scaffoldCtx.bgColor,
+          drawer: _MoreDrawer(flat: widget.flat, me: me, canManage: canManage),
+          body: GestureDetector(
+            onTap: () => FocusScope.of(scaffoldCtx).unfocus(),
+            behavior: HitTestBehavior.translucent,
+            child: IndexedStack(
+              index: _tab,
+              children: [
+                // Tab 0 — Home dashboard
+                _HomeDashboard(
+                  flat: widget.flat,
+                  me: me,
+                  canManage: canManage,
+                  onTabSelect: (i) => _switchTab(scaffoldCtx, i),
+                ),
+                // Tab 1 — Meals (lazy)
+                _loaded[1] && me != null
+                    ? MealPage(
+                        args: MealPageArgs(
+                          flatId: widget.flat.id,
+                          canManage: canManage,
+                          myMemberId: me.flatMemberId,
+                        ),
+                      )
+                    : const SizedBox.expand(),
+                // Tab 2 — Wallet (lazy)
+                _loaded[2]
+                    ? WalletHomePage(
+                        args: WalletPageArgs(
+                          flatId: widget.flat.id,
+                          canManage: canManage,
+                        ),
+                      )
+                    : const SizedBox.expand(),
+                // Tab 3 — Expenses (lazy)
+                _loaded[3]
+                    ? ExpenseListPage(
+                        flatId: widget.flat.id,
+                        canManage: canManage,
+                        memberCount: widget.flat.activeMembers.length,
+                      )
+                    : const SizedBox.expand(),
+              ],
+            ),
+          ),
+          bottomNavigationBar: _BottomNavBar(
+            selectedIndex: _tab,
+            onTap: (i) => _switchTab(scaffoldCtx, i),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Bottom navigation bar ─────────────────────────────────────────────────────
+
+class _BottomNavBar extends StatelessWidget {
+  const _BottomNavBar({
+    required this.selectedIndex,
+    required this.onTap,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.bottomNavBg,
+        border: Border(
+          top: BorderSide(
+            color: AppColors.surface200,
+            width: AppSizing.borderWidth,
+          ),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0C000000),
+            blurRadius: 16,
+            offset: Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: AppSizing.bottomNavHeight,
+          child: Row(
+            children: List.generate(_navItems.length, (i) {
+              final item = _navItems[i];
+              final isActive = i == selectedIndex;
+
+              // Notification badge on Home tab (index 0)
+              if (i == 0) {
+                return BlocBuilder<NotificationBloc, NotificationState>(
+                  builder: (ctx, state) {
+                    int count = 0;
+                    if (state is NotificationUnreadCountLoaded) {
+                      count = state.unreadCount;
+                    } else if (state is NotificationListLoaded) {
+                      count = state.unreadCount;
+                    } else if (state is NotificationError) {
+                      count = state.unreadCount;
+                    }
+                    return _NavTile(
+                      item: item,
+                      isActive: isActive,
+                      badge: count,
+                      onTap: () => onTap(i),
+                    );
+                  },
+                );
+              }
+
+              return _NavTile(
+                item: item,
+                isActive: isActive,
+                onTap: () => onTap(i),
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavTile extends StatelessWidget {
+  const _NavTile({
+    required this.item,
+    required this.isActive,
+    required this.onTap,
+    this.badge = 0,
+  });
+
+  final _NavItem item;
+  final bool isActive;
+  final VoidCallback onTap;
+  final int badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
+    final activeColor = AppColors.brand;
+    final inactiveColor =
+        isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                if (isActive)
+                  Container(
+                    width: 40,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: AppColors.brand.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppSizing.rFull),
+                    ),
+                  ),
+                Icon(
+                  isActive ? item.activeIcon : item.icon,
+                  size: AppSizing.iconMd,
+                  color: isActive ? activeColor : inactiveColor,
+                ),
+                if (badge > 0)
+                  Positioned(
+                    top: -4,
+                    right: -8,
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.error,
+                        borderRadius:
+                            BorderRadius.circular(AppSizing.rFull),
+                      ),
+                      child: Text(
+                        badge > 99 ? '99+' : '$badge',
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              item.label,
+              style: AppTypography.labelS.copyWith(
+                color: isActive ? activeColor : inactiveColor,
+                fontWeight:
+                    isActive ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── More Drawer ───────────────────────────────────────────────────────────────
+
+class _MoreDrawer extends StatelessWidget {
+  const _MoreDrawer({
+    required this.flat,
+    required this.me,
+    required this.canManage,
+  });
+
+  final FlatEntity flat;
+  final FlatMemberEntity? me;
+  final bool canManage;
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
+    final userName =
+        authState is AuthAuthenticated ? authState.user.name : flat.name;
+
+    return Drawer(
+      backgroundColor: context.bgColor,
+      child: SafeArea(
+        child: Column(
+          children: [
+            // ── Header ──────────────────────────────────────────────────────
+            DrawerHeader(
+              padding: EdgeInsets.zero,
+              decoration: const BoxDecoration(gradient: AppColors.brandGradient),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSizing.pagePadding,
+                  AppSizing.sp16,
+                  AppSizing.pagePadding,
+                  AppSizing.sp16,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AppAvatar(
+                      name: userName,
+                      radius: AppSizing.avatar40 / 2,
+                      backgroundColor:
+                          AppColors.white.withValues(alpha: 0.25),
+                      textColor: AppColors.white,
+                    ),
+                    const SizedBox(height: AppSizing.sp8),
+                    Text(
+                      userName,
+                      style: AppTypography.labelL.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      flat.name,
+                      style: AppTypography.bodyS.copyWith(
+                        color: AppColors.white.withValues(alpha: 0.8),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── Items ────────────────────────────────────────────────────────
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppSizing.sp8,
+                ),
+                children: [
+                  _DrawerItem(
+                    icon: Icons.bar_chart_rounded,
+                    label: 'Monthly Summary',
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (me == null) return;
+                      context.push(
+                        AppRoutes.summary,
+                        extra: SummaryPageArgs(
+                          flatId: flat.id,
+                          isManager: canManage,
+                          myMemberId: me!.flatMemberId,
+                        ),
+                      );
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.task_alt_rounded,
+                    label: 'Tasks',
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (me == null) return;
+                      context.push(
+                        AppRoutes.tasks,
+                        extra: TaskPageArgs(
+                          flatId: flat.id,
+                          canManage: canManage,
+                          myMemberId: me!.flatMemberId,
+                          members: flat.activeMembers,
+                        ),
+                      );
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.report_problem_outlined,
+                    label: 'Complaints',
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (me == null) return;
+                      context.push(
+                        AppRoutes.complaints,
+                        extra: ComplaintPageArgs(
+                          flatId: flat.id,
+                          canManage: canManage,
+                          myMemberId: me!.flatMemberId,
+                        ),
+                      );
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.group_outlined,
+                    label: 'Members',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context
+                          .push(AppRoutes.flatMembers, extra: flat)
+                          .then((_) {
+                        if (context.mounted) {
+                          context
+                              .read<FlatBloc>()
+                              .add(FlatRefreshRequested(flat.id));
+                        }
+                      });
+                    },
+                  ),
+                  if (canManage)
+                    _DrawerItem(
+                      icon: Icons.history_edu_rounded,
+                      label: 'Audit Log',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push(
+                          AppRoutes.auditLog,
+                          extra: AuditLogPageArgs(flatId: flat.id),
+                        );
+                      },
+                    ),
+                  _DrawerItem(
+                    icon: Icons.settings_outlined,
+                    label: 'Flat Settings',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push(AppRoutes.flatSettings, extra: flat);
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.notifications_outlined,
+                    label: 'Notifications',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push(
+                        AppRoutes.notifications,
+                        extra: NotificationPageArgs(
+                          flatId: flat.id,
+                          canManage: me?.canManage ?? false,
+                          myMemberId: me?.flatMemberId ?? '',
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(
+                    height: AppSizing.sp24,
+                    indent: AppSizing.pagePadding,
+                    endIndent: AppSizing.pagePadding,
+                  ),
+                  _DrawerItem(
+                    icon: Icons.person_outline_rounded,
+                    label: 'Profile',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push(AppRoutes.profile);
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.logout_rounded,
+                    label: 'Logout',
+                    iconColor: AppColors.error,
+                    labelColor: AppColors.error,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.read<AuthBloc>().add(AuthLogoutRequested());
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerItem extends StatelessWidget {
+  const _DrawerItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.iconColor,
+    this.labelColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? iconColor;
+  final Color? labelColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveIconColor = iconColor ?? AppColors.brand;
+    final effectiveLabelColor = labelColor ?? context.textPrimColor;
+
+    return ListTile(
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: effectiveIconColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppSizing.r12),
+        ),
+        child: Icon(icon, size: AppSizing.iconMd, color: effectiveIconColor),
+      ),
+      title: Text(
+        label,
+        style: AppTypography.labelL.copyWith(color: effectiveLabelColor),
+      ),
+      trailing: Icon(
+        Icons.chevron_right_rounded,
+        color: context.textTerColor,
+      ),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSizing.pagePadding,
+        vertical: 2,
+      ),
+    );
+  }
+}
+
+// ── Home Dashboard (Tab 0) ────────────────────────────────────────────────────
+
+class _HomeDashboard extends StatelessWidget {
+  const _HomeDashboard({
+    required this.flat,
+    required this.me,
+    required this.canManage,
+    required this.onTabSelect,
+  });
+
+  final FlatEntity flat;
+  final FlatMemberEntity? me;
+  final bool canManage;
+  final ValueChanged<int> onTabSelect;
 
   String _greeting() {
     final hour = DateTime.now().hour;
@@ -62,173 +638,92 @@ class FlatHomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final me = _myMember(context);
-    final canManage = me?.canManage ?? false;
+    return SafeArea(
+      child: RefreshIndicator(
+        color: AppColors.brand,
+        onRefresh: () async {
+          context.read<FlatBloc>().add(FlatRefreshRequested(flat.id));
+          await Future.delayed(const Duration(milliseconds: 600));
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── 1. HEADER ────────────────────────────────────────────────
+              _HomeHeader(
+                flat: flat,
+                me: me,
+                greeting: _greeting(),
+                greetingEmoji: _greetingEmoji(),
+              )
+                  .animate()
+                  .fadeIn(duration: 300.ms)
+                  .slideY(begin: -0.1, end: 0, duration: 300.ms),
 
-    // Build wallet args once so both the hero card and shell tab can use them
-    final walletArgs = WalletPageArgs(flatId: flat.id, canManage: canManage);
+              const SizedBox(height: AppSizing.sp16),
 
-    return BlocListener<FlatBloc, FlatState>(
-      listener: (context, state) {
-        if (state is FlatError) AppSnackbar.error(context, state.message);
-      },
-      child: MainShell(
-        selectedIndex: 0,
-        walletPageArgs: walletArgs,
-        child: RefreshIndicator(
-          color: AppColors.brand,
-          onRefresh: () async {
-            context.read<FlatBloc>().add(FlatRefreshRequested(flat.id));
-            await Future.delayed(const Duration(milliseconds: 600));
-          },
-          child: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── 1. HEADER ──────────────────────────────────────────
-                    _HomeHeader(
-                      flat: flat,
-                      me: me,
-                      greeting: _greeting(),
-                      greetingEmoji: _greetingEmoji(),
-                    )
-                        .animate()
-                        .fadeIn(duration: 300.ms)
-                        .slideY(begin: -0.1, end: 0, duration: 300.ms),
-
-                    const SizedBox(height: AppSizing.sp16),
-
-                    // ── 2. WALLET HERO CARD ────────────────────────────────
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizing.pagePadding,
-                      ),
-                      child: _WalletHeroCard(
-                        flat: flat,
-                        me: me,
-                        canManage: canManage,
-                      ),
-                    )
-                        .animate()
-                        .fadeIn(duration: 400.ms, delay: 80.ms)
-                        .slideY(begin: 0.08, end: 0, duration: 400.ms),
-
-                    const SizedBox(height: AppSizing.sp24),
-
-                    // ── 3. QUICK ACTIONS ───────────────────────────────────
-                    _QuickActionsRow(
-                      flat: flat,
-                      me: me,
-                      canManage: canManage,
-                    )
-                        .animate()
-                        .fadeIn(duration: 400.ms, delay: 140.ms)
-                        .slideY(begin: 0.08, end: 0, duration: 400.ms),
-
-                    const SizedBox(height: AppSizing.sp24),
-
-                    // ── 4. THIS MONTH STATS ────────────────────────────────
-                    SectionHeader(
-                      eyebrow: 'overview',
-                      title: 'This Month',
-                    )
-                        .animate()
-                        .fadeIn(duration: 350.ms, delay: 180.ms),
-                    const SizedBox(height: AppSizing.sp12),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizing.pagePadding,
-                      ),
-                      child: _ThisMonthGrid(flat: flat, me: me),
-                    )
-                        .animate()
-                        .fadeIn(duration: 400.ms, delay: 200.ms)
-                        .slideY(begin: 0.08, end: 0, duration: 400.ms),
-
-                    const SizedBox(height: AppSizing.sp24),
-
-                    // ── 5. PENDING ACTIONS (manager only) ─────────────────
-                    if (canManage) ...[
-                      _PendingActionsSection(flat: flat)
-                          .animate()
-                          .fadeIn(duration: 400.ms, delay: 220.ms),
-                      const SizedBox(height: AppSizing.sp24),
-                    ],
-
-                    // ── 6. MEMBERS GLIMPSE ─────────────────────────────────
-                    SectionHeader(
-                      title: AppStrings.membersSection,
-                      actionLabel: AppStrings.viewAll,
-                      onAction: () => context
-                          .push(AppRoutes.flatMembers, extra: flat)
-                          .then((_) {
-                        if (context.mounted) {
-                          context
-                              .read<FlatBloc>()
-                              .add(FlatRefreshRequested(flat.id));
-                        }
-                      }),
-                    )
-                        .animate()
-                        .fadeIn(duration: 350.ms, delay: 240.ms),
-                    const SizedBox(height: AppSizing.sp12),
-                    _MembersRow(flat: flat, me: me)
-                        .animate()
-                        .fadeIn(duration: 400.ms, delay: 260.ms),
-
-                    const SizedBox(height: AppSizing.sp24),
-
-                    // ── 7. FIXED EXPENSES ──────────────────────────────────
-                    SectionHeader(
-                      title: AppStrings.expensesSection,
-                      actionLabel: canManage
-                          ? AppStrings.manageLabel
-                          : AppStrings.viewAll,
-                      onAction: () => context.push(
-                        AppRoutes.flatExpenses,
-                        extra: {
-                          'flatId': flat.id,
-                          'canManage': canManage,
-                        },
-                      ),
-                    )
-                        .animate()
-                        .fadeIn(duration: 350.ms, delay: 280.ms),
-                    const SizedBox(height: AppSizing.sp12),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizing.pagePadding,
-                      ),
-                      child: flat.fixedExpenses.isEmpty
-                          ? Text(
-                              AppStrings.noExpenses,
-                              style: AppTypography.bodyM.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            )
-                          : Column(
-                              children: flat.fixedExpenses
-                                  .take(3)
-                                  .map(
-                                    (e) => Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: AppSizing.sp8,
-                                      ),
-                                      child: ExpenseTile(expense: e),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                    )
-                        .animate()
-                        .fadeIn(duration: 400.ms, delay: 300.ms),
-
-                    const SizedBox(height: AppSizing.sp48),
-                  ],
+              // ── 2. STATS ROW ─────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizing.pagePadding,
                 ),
-              ),
+                child: _StatsRow(
+                  flat: flat,
+                  me: me,
+                  canManage: canManage,
+                  onTabSelect: onTabSelect,
+                ),
+              )
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 80.ms)
+                  .slideY(begin: 0.08, end: 0, duration: 400.ms),
+
+              const SizedBox(height: AppSizing.sp24),
+
+              // ── 3. QUICK ACTIONS ─────────────────────────────────────────
+              _QuickActionsRow(
+                flat: flat,
+                me: me,
+                canManage: canManage,
+                onTabSelect: onTabSelect,
+              )
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 140.ms)
+                  .slideY(begin: 0.08, end: 0, duration: 400.ms),
+
+              const SizedBox(height: AppSizing.sp24),
+
+              // ── 4. PENDING ACTIONS (manager only) ────────────────────────
+              if (canManage) ...[
+                _PendingActionsSection(flat: flat)
+                    .animate()
+                    .fadeIn(duration: 400.ms, delay: 180.ms),
+                const SizedBox(height: AppSizing.sp24),
+              ],
+
+              // ── 5. MEMBERS GLIMPSE ───────────────────────────────────────
+              SectionHeader(
+                title: AppStrings.membersSection,
+                actionLabel: AppStrings.viewAll,
+                onAction: () => context
+                    .push(AppRoutes.flatMembers, extra: flat)
+                    .then((_) {
+                  if (context.mounted) {
+                    context
+                        .read<FlatBloc>()
+                        .add(FlatRefreshRequested(flat.id));
+                  }
+                }),
+              )
+                  .animate()
+                  .fadeIn(duration: 350.ms, delay: 220.ms),
+              const SizedBox(height: AppSizing.sp12),
+              _MembersGlimpse(flat: flat)
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 240.ms),
+
+              const SizedBox(height: AppSizing.sp48),
             ],
           ),
         ),
@@ -352,185 +847,135 @@ class _HomeHeader extends StatelessWidget {
               );
             },
           ),
-
-          // Settings (manager)
-          if (me?.canManage ?? false)
-            IconButton(
-              icon: const Icon(
-                Icons.settings_outlined,
-                color: AppColors.textSecondary,
-              ),
-              onPressed: () => context.push(AppRoutes.flatSettings, extra: flat),
-            ),
         ],
       ),
     );
   }
 }
 
-// ── 2. Wallet Hero Card ───────────────────────────────────────────────────────
+// ── 2. Stats Row ──────────────────────────────────────────────────────────────
 
-class _WalletHeroCard extends StatelessWidget {
-  const _WalletHeroCard({
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({
     required this.flat,
     required this.me,
     required this.canManage,
+    required this.onTabSelect,
   });
 
   final FlatEntity flat;
   final FlatMemberEntity? me;
   final bool canManage;
+  final ValueChanged<int> onTabSelect;
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<WalletBloc, WalletState>(
-      builder: (context, walletState) {
-        final summary = switch (walletState) {
-          WalletSummaryLoaded(summary: final s) => s,
-          WalletActionLoading(summary: final s) => s,
-          WalletPaymentSubmitSuccess(summary: final s) => s,
-          WalletError(summary: final s) when s != null => s,
-          _ => null,
-        };
+    return Row(
+      children: [
+        // Left: wallet balance
+        Expanded(
+          child: BlocBuilder<WalletBloc, WalletState>(
+            builder: (context, walletState) {
+              final summary = switch (walletState) {
+                WalletSummaryLoaded(summary: final s) => s,
+                WalletActionLoading(summary: final s) => s,
+                WalletPaymentSubmitSuccess(summary: final s) => s,
+                WalletError(summary: final s) when s != null => s,
+                _ => null,
+              };
 
-        return GestureDetector(
-          onTap: () => context.push(
-            AppRoutes.walletHome,
-            extra: WalletPageArgs(flatId: flat.id, canManage: canManage),
+              final balanceText = summary == null
+                  ? '--'
+                  : '৳${summary.walletBalance.abs().toStringAsFixed(0)}';
+
+              return GestureDetector(
+                onTap: () => onTabSelect(2),
+                child: _StatCard(
+                  icon: Icons.account_balance_wallet_rounded,
+                  iconColor: AppColors.brand,
+                  label: 'Balance',
+                  value: balanceText,
+                  subtitle: summary?.isNegative == true ? 'owed' : 'available',
+                ),
+              );
+            },
           ),
-          child: GradientCard(
-            gradient: AppColors.brandGradient,
-            radius: AppSizing.r24,
-            padding: const EdgeInsets.all(AppSizing.sp24),
-            shadows: AppColors.shadowBrand,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Overline label
-                Text(
-                  'YOUR BALANCE',
-                  style: AppTypography.overline.copyWith(
-                    color: AppColors.white.withValues(alpha: 0.7),
-                    letterSpacing: 1.8,
-                  ),
-                ),
-                const SizedBox(height: AppSizing.sp8),
-
-                // Balance amount
-                if (summary == null)
-                  const SizedBox(
-                    height: 44,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.white,
-                        strokeWidth: 2,
-                      ),
-                    ),
-                  )
-                else ...[
-                  Text(
-                    '${summary.isNegative ? '−' : ''}৳${summary.walletBalance.abs().toStringAsFixed(0)}',
-                    style: AppTypography.amountXL.copyWith(
-                      color: AppColors.white,
-                    ),
-                  ),
-                  if (summary.hasPendingRequests) ...[
-                    const SizedBox(height: AppSizing.sp4),
-                    Text(
-                      '${summary.pendingPaymentRequests.length} pending request${summary.pendingPaymentRequests.length > 1 ? 's' : ''}',
-                      style: AppTypography.bodyS.copyWith(
-                        color: AppColors.white.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
-                ],
-
-                const SizedBox(height: AppSizing.sp20),
-
-                // Ghost action pills
-                Row(
-                  children: [
-                    _GhostPill(
-                      icon: Icons.add_rounded,
-                      label: 'Deposit',
-                      onTap: () => context.push(
-                        AppRoutes.walletHome,
-                        extra: WalletPageArgs(
-                          flatId: flat.id,
-                          canManage: canManage,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSizing.sp8),
-                    _GhostPill(
-                      icon: Icons.send_rounded,
-                      label: 'Request',
-                      onTap: () => context.push(
-                        AppRoutes.walletRequests,
-                        extra: WalletPageArgs(
-                          flatId: flat.id,
-                          canManage: canManage,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSizing.sp8),
-                    _GhostPill(
-                      icon: Icons.history_rounded,
-                      label: 'History',
-                      onTap: () => context.push(
-                        AppRoutes.walletTransactions,
-                        extra: flat.id,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+        ),
+        const SizedBox(width: AppSizing.sp12),
+        // Right: member count
+        Expanded(
+          child: GestureDetector(
+            onTap: () => context
+                .push(AppRoutes.flatMembers, extra: flat)
+                .then((_) {
+              if (context.mounted) {
+                context.read<FlatBloc>().add(FlatRefreshRequested(flat.id));
+              }
+            }),
+            child: _StatCard(
+              icon: Icons.group_rounded,
+              iconColor: AppColors.info,
+              label: 'Members',
+              value: '${flat.activeMembers.length}',
+              subtitle: 'active',
             ),
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 }
 
-class _GhostPill extends StatelessWidget {
-  const _GhostPill({
+class _StatCard extends StatelessWidget {
+  const _StatCard({
     required this.icon,
+    required this.iconColor,
     required this.label,
-    required this.onTap,
+    required this.value,
+    required this.subtitle,
   });
 
   final IconData icon;
+  final Color iconColor;
   final String label;
-  final VoidCallback onTap;
+  final String value;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSizing.sp12,
-          vertical: AppSizing.sp8,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.white.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(AppSizing.rFull),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: AppColors.white),
-            const SizedBox(width: AppSizing.sp4),
-            Text(
-              label,
-              style: AppTypography.labelS.copyWith(
-                color: AppColors.white,
-                fontWeight: FontWeight.w600,
-              ),
+    return Container(
+      padding: const EdgeInsets.all(AppSizing.sp16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(AppSizing.r16),
+        boxShadow: AppColors.shadowSm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppSizing.r12),
             ),
-          ],
-        ),
+            child: Icon(icon, size: 18, color: iconColor),
+          ),
+          const SizedBox(height: AppSizing.sp8),
+          Text(
+            value,
+            style: AppTypography.amountL.copyWith(
+              color: AppColors.textPrimary,
+            ),
+          ),
+          Text(
+            '$label · $subtitle',
+            style: AppTypography.labelS.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -543,166 +988,13 @@ class _QuickActionsRow extends StatelessWidget {
     required this.flat,
     required this.me,
     required this.canManage,
+    required this.onTabSelect,
   });
 
   final FlatEntity flat;
   final FlatMemberEntity? me;
   final bool canManage;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SectionHeader(title: 'Quick Actions'),
-        const SizedBox(height: AppSizing.sp12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
-          child: Row(
-            children: [
-              QuickActionButton(
-                icon: Icons.restaurant_rounded,
-                label: 'Meals',
-                onTap: () {
-                  if (me == null) return;
-                  context.push(
-                    AppRoutes.meals,
-                    extra: MealPageArgs(
-                      flatId: flat.id,
-                      canManage: canManage,
-                      myMemberId: me!.flatMemberId,
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: AppSizing.sp12),
-              QuickActionButton(
-                icon: Icons.group_outlined,
-                label: 'Members',
-                onTap: () => context
-                    .push(AppRoutes.flatMembers, extra: flat)
-                    .then((_) {
-                  if (context.mounted) {
-                    context
-                        .read<FlatBloc>()
-                        .add(FlatRefreshRequested(flat.id));
-                  }
-                }),
-              ),
-              const SizedBox(width: AppSizing.sp12),
-              QuickActionButton(
-                icon: Icons.task_alt_rounded,
-                label: 'Tasks',
-                onTap: () {
-                  if (me == null) return;
-                  context.push(
-                    AppRoutes.tasks,
-                    extra: TaskPageArgs(
-                      flatId: flat.id,
-                      canManage: canManage,
-                      myMemberId: me!.flatMemberId,
-                      members: flat.activeMembers,
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: AppSizing.sp12),
-              QuickActionButton(
-                icon: Icons.receipt_long_outlined,
-                label: 'Expenses',
-                onTap: () => context.push(
-                  AppRoutes.expenses,
-                  extra: ExpenseListArgs(
-                    flatId: flat.id,
-                    canManage: canManage,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSizing.sp12),
-              QuickActionButton(
-                icon: Icons.report_problem_outlined,
-                label: 'Complaints',
-                onTap: () {
-                  if (me == null) return;
-                  context.push(
-                    AppRoutes.complaints,
-                    extra: ComplaintPageArgs(
-                      flatId: flat.id,
-                      canManage: canManage,
-                      myMemberId: me!.flatMemberId,
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: AppSizing.sp12),
-              QuickActionButton(
-                icon: Icons.bar_chart_rounded,
-                label: 'Summary',
-                onTap: () {
-                  if (me == null) return;
-                  context.push(
-                    AppRoutes.summary,
-                    extra: SummaryPageArgs(
-                      flatId: flat.id,
-                      isManager: canManage,
-                      myMemberId: me!.flatMemberId,
-                    ),
-                  );
-                },
-              ),
-              if (canManage) ...[
-                const SizedBox(width: AppSizing.sp12),
-                QuickActionButton(
-                  icon: Icons.history_edu_rounded,
-                  label: 'Audit',
-                  onTap: () => context.push(
-                    AppRoutes.auditLog,
-                    extra: AuditLogPageArgs(flatId: flat.id),
-                  ),
-                ),
-                const SizedBox(width: AppSizing.sp12),
-                // Join-request badge
-                BlocBuilder<JoinRequestsBloc, JoinRequestsState>(
-                  builder: (context, reqState) {
-                    int pendingCount = 0;
-                    if (reqState is JoinRequestsLoaded) {
-                      pendingCount =
-                          reqState.requests.where((r) => r.isPending).length;
-                    }
-                    return QuickActionButton(
-                      icon: Icons.group_add_outlined,
-                      label: 'Requests',
-                      badge: pendingCount,
-                      onTap: () => context
-                          .push(AppRoutes.flatRequests, extra: flat.id)
-                          .then((_) {
-                        if (context.mounted) {
-                          context.read<JoinRequestsBloc>().add(
-                            JoinRequestsLoadRequested(flat.id),
-                          );
-                          context
-                              .read<FlatBloc>()
-                              .add(FlatRefreshRequested(flat.id));
-                        }
-                      }),
-                    );
-                  },
-                ),
-              ],
-              // Invite / QR code
-              const SizedBox(width: AppSizing.sp12),
-              QuickActionButton(
-                icon: Icons.qr_code_rounded,
-                label: 'Invite',
-                onTap: () => _showQrSheet(context),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  final ValueChanged<int> onTabSelect;
 
   void _showQrSheet(BuildContext context) {
     showModalBottomSheet(
@@ -797,57 +1089,131 @@ class _QuickActionsRow extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── 4. This Month Grid ────────────────────────────────────────────────────────
-
-class _ThisMonthGrid extends StatelessWidget {
-  const _ThisMonthGrid({required this.flat, required this.me});
-
-  final FlatEntity flat;
-  final FlatMemberEntity? me;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Meal stat card
-        Expanded(
-          child: _StatMiniCard(
-            emoji: '🍽️',
-            label: 'Members',
-            value: '${flat.activeMembers.length}',
-            subtitle: 'active',
-            accentColor: AppColors.info,
-          ),
-        ),
-        const SizedBox(width: AppSizing.sp12),
-        // Fixed contribution card
-        Expanded(
-          child: BlocBuilder<WalletBloc, WalletState>(
-            builder: (context, walletState) {
-              final summary = switch (walletState) {
-                WalletSummaryLoaded(summary: final s) => s,
-                WalletActionLoading(summary: final s) => s,
-                WalletPaymentSubmitSuccess(summary: final s) => s,
-                WalletError(summary: final s) when s != null => s,
-                _ => null,
-              };
-
-              final paid = summary?.hasPaidFixedThisMonth ?? false;
-              final contribution = me?.fixedContribution ?? 0;
-
-              return _StatMiniCard(
-                emoji: '💰',
-                label: 'Contribution',
-                value: '৳${contribution.toStringAsFixed(0)}',
-                subtitle: contribution > 0 ? (paid ? 'paid' : 'due') : 'none',
-                accentColor:
-                    paid ? AppColors.success : AppColors.warning,
-                showStatus: contribution > 0,
-                statusPaid: paid,
-              );
-            },
+        const SectionHeader(title: 'Quick Actions'),
+        const SizedBox(height: AppSizing.sp12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+          child: Row(
+            children: [
+              QuickActionButton(
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'Wallet',
+                onTap: () => onTabSelect(2),
+              ),
+              const SizedBox(width: AppSizing.sp12),
+              QuickActionButton(
+                icon: Icons.restaurant_rounded,
+                label: 'Meals',
+                onTap: () => onTabSelect(1),
+              ),
+              const SizedBox(width: AppSizing.sp12),
+              QuickActionButton(
+                icon: Icons.receipt_long_outlined,
+                label: 'Expenses',
+                onTap: () => onTabSelect(3),
+              ),
+              const SizedBox(width: AppSizing.sp12),
+              QuickActionButton(
+                icon: Icons.task_alt_rounded,
+                label: 'Tasks',
+                onTap: () {
+                  if (me == null) return;
+                  context.push(
+                    AppRoutes.tasks,
+                    extra: TaskPageArgs(
+                      flatId: flat.id,
+                      canManage: canManage,
+                      myMemberId: me!.flatMemberId,
+                      members: flat.activeMembers,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: AppSizing.sp12),
+              QuickActionButton(
+                icon: Icons.report_problem_outlined,
+                label: 'Complaints',
+                onTap: () {
+                  if (me == null) return;
+                  context.push(
+                    AppRoutes.complaints,
+                    extra: ComplaintPageArgs(
+                      flatId: flat.id,
+                      canManage: canManage,
+                      myMemberId: me!.flatMemberId,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: AppSizing.sp12),
+              QuickActionButton(
+                icon: Icons.bar_chart_rounded,
+                label: 'Summary',
+                onTap: () {
+                  if (me == null) return;
+                  context.push(
+                    AppRoutes.summary,
+                    extra: SummaryPageArgs(
+                      flatId: flat.id,
+                      isManager: canManage,
+                      myMemberId: me!.flatMemberId,
+                    ),
+                  );
+                },
+              ),
+              if (canManage) ...[
+                const SizedBox(width: AppSizing.sp12),
+                QuickActionButton(
+                  icon: Icons.history_edu_rounded,
+                  label: 'Audit',
+                  onTap: () => context.push(
+                    AppRoutes.auditLog,
+                    extra: AuditLogPageArgs(flatId: flat.id),
+                  ),
+                ),
+                const SizedBox(width: AppSizing.sp12),
+                BlocBuilder<JoinRequestsBloc, JoinRequestsState>(
+                  builder: (context, reqState) {
+                    int pendingCount = 0;
+                    if (reqState is JoinRequestsLoaded) {
+                      pendingCount =
+                          reqState.requests.where((r) => r.isPending).length;
+                    }
+                    return QuickActionButton(
+                      icon: Icons.group_add_outlined,
+                      label: 'Requests',
+                      badge: pendingCount,
+                      onTap: () => context
+                          .push(AppRoutes.flatRequests, extra: flat.id)
+                          .then((_) {
+                        if (context.mounted) {
+                          context.read<JoinRequestsBloc>().add(
+                            JoinRequestsLoadRequested(flat.id),
+                          );
+                          context
+                              .read<FlatBloc>()
+                              .add(FlatRefreshRequested(flat.id));
+                        }
+                      }),
+                    );
+                  },
+                ),
+              ],
+              const SizedBox(width: AppSizing.sp12),
+              QuickActionButton(
+                icon: Icons.qr_code_rounded,
+                label: 'Invite',
+                onTap: () => _showQrSheet(context),
+              ),
+            ],
           ),
         ),
       ],
@@ -855,84 +1221,7 @@ class _ThisMonthGrid extends StatelessWidget {
   }
 }
 
-class _StatMiniCard extends StatelessWidget {
-  const _StatMiniCard({
-    required this.emoji,
-    required this.label,
-    required this.value,
-    required this.subtitle,
-    required this.accentColor,
-    this.showStatus = false,
-    this.statusPaid = false,
-  });
-
-  final String emoji;
-  final String label;
-  final String value;
-  final String subtitle;
-  final Color accentColor;
-  final bool showStatus;
-  final bool statusPaid;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSizing.sp16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppSizing.r16),
-        boxShadow: AppColors.shadowSm,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(emoji, style: const TextStyle(fontSize: 20)),
-              const Spacer(),
-              if (showStatus)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizing.sp8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: (statusPaid ? AppColors.success : AppColors.warning)
-                        .withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppSizing.rFull),
-                  ),
-                  child: Text(
-                    statusPaid ? 'Paid' : 'Due',
-                    style: AppTypography.labelS.copyWith(
-                      color: statusPaid
-                          ? AppColors.success
-                          : AppColors.warning,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: AppSizing.sp8),
-          Text(
-            value,
-            style: AppTypography.amountL.copyWith(
-              color: AppColors.textPrimary,
-            ),
-          ),
-          Text(
-            '$label · $subtitle',
-            style: AppTypography.labelS.copyWith(
-              color: AppColors.textTertiary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── 5. Pending Actions (manager) ──────────────────────────────────────────────
+// ── 4. Pending Actions (manager) ──────────────────────────────────────────────
 
 class _PendingActionsSection extends StatelessWidget {
   const _PendingActionsSection({required this.flat});
@@ -964,7 +1253,8 @@ class _PendingActionsSection extends StatelessWidget {
               child: _PendingCard(
                 icon: Icons.group_add_outlined,
                 accentColor: AppColors.warning,
-                title: '$pendingCount join request${pendingCount > 1 ? 's' : ''}',
+                title:
+                    '$pendingCount join request${pendingCount > 1 ? 's' : ''}',
                 subtitle: 'Awaiting your approval',
                 actionLabel: 'Review',
                 onAction: () => context
@@ -1029,13 +1319,16 @@ class _PendingCard extends StatelessWidget {
         title: Text(title, style: AppTypography.labelL),
         subtitle: Text(
           subtitle,
-          style: AppTypography.bodyS.copyWith(color: AppColors.textSecondary),
+          style: AppTypography.bodyS.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         trailing: TextButton(
           onPressed: onAction,
           style: TextButton.styleFrom(
             foregroundColor: accentColor,
-            padding: const EdgeInsets.symmetric(horizontal: AppSizing.sp12),
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppSizing.sp12),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
@@ -1053,86 +1346,34 @@ class _PendingCard extends StatelessWidget {
   }
 }
 
-// ── 6. Members Row ────────────────────────────────────────────────────────────
+// ── 5. Members Glimpse ────────────────────────────────────────────────────────
 
-class _MembersRow extends StatelessWidget {
-  const _MembersRow({required this.flat, required this.me});
+class _MembersGlimpse extends StatelessWidget {
+  const _MembersGlimpse({required this.flat});
 
   final FlatEntity flat;
-  final FlatMemberEntity? me;
 
   @override
   Widget build(BuildContext context) {
-    // Show up to 5 in the horizontal row; rest shown via "View All"
-    final members = flat.activeMembers.take(5).toList();
+    final members = flat.activeMembers.take(3).toList();
 
-    return Column(
-      children: [
-        // Horizontal avatar row
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
-          child: Row(
-            children: members.map((m) {
-              return Padding(
-                padding: const EdgeInsets.only(right: AppSizing.sp16),
-                child: _MemberChip(member: m),
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: AppSizing.sp16),
-        // Full list preview (top 3)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
-          child: Column(
-            children: flat.activeMembers
-                .take(3)
-                .map(
-                  (m) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSizing.sp8),
-                    child: MemberTile(member: m),
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+      child: Column(
+        children: members
+            .map(
+              (m) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSizing.sp8),
+                child: MemberTile(member: m),
+              ),
+            )
+            .toList(),
+      ),
     );
   }
 }
 
-class _MemberChip extends StatelessWidget {
-  const _MemberChip({required this.member});
+// ── Wallet Hero Card (kept for home balance display) ─────────────────────────
 
-  final FlatMemberEntity member;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        AppAvatar(
-          name: member.name,
-          radius: AppSizing.avatar40 / 2,
-          backgroundColor: AppColors.brand.withValues(alpha: 0.1),
-          textColor: AppColors.brand,
-        ),
-        const SizedBox(height: AppSizing.sp4),
-        Text(
-          member.name.split(' ').first,
-          style: AppTypography.labelS.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        if (member.fixedContribution > 0)
-          Text(
-            '৳${member.fixedContribution.toStringAsFixed(0)}',
-            style: AppTypography.labelS.copyWith(
-              color: AppColors.textTertiary,
-              fontSize: 10,
-            ),
-          ),
-      ],
-    );
-  }
-}
+// The _StatsRow now handles balance display inline via _StatCard.
+// _WalletHeroCard is no longer used as a separate widget.

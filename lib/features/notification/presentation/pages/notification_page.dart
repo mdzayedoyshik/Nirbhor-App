@@ -52,14 +52,11 @@ class _NotificationPageState extends State<NotificationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
         elevation: 0,
-        foregroundColor: AppColors.textPrimary,
         title: Text(
           'Notifications',
-          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+          style: AppTypography.h3.copyWith(color: context.textPrimColor),
         ),
         actions: [
           BlocBuilder<NotificationBloc, NotificationState>(
@@ -393,12 +390,12 @@ class _NotificationTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: isUnread
                 ? AppColors.brand.withValues(alpha: 0.05)
-                : AppColors.surface,
+                : context.cardColor,
             borderRadius: BorderRadius.circular(AppSizing.r12),
             boxShadow: AppColors.shadowSm,
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Colored left border (unread indicator) ────────────────
               Container(
@@ -446,7 +443,7 @@ class _NotificationTile extends StatelessWidget {
                             Text(
                               notification.title,
                               style: AppTypography.labelM.copyWith(
-                                color: AppColors.textPrimary,
+                                color: context.textPrimColor,
                                 fontWeight: isUnread
                                     ? FontWeight.w700
                                     : FontWeight.w600,
@@ -458,7 +455,7 @@ class _NotificationTile extends StatelessWidget {
                               Text(
                                 notification.message!,
                                 style: AppTypography.bodyS.copyWith(
-                                  color: AppColors.textSecondary,
+                                  color: context.textSecColor,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -472,6 +469,7 @@ class _NotificationTile extends StatelessWidget {
 
                       // Trailing: time + unread dot
                       Column(
+                        mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(

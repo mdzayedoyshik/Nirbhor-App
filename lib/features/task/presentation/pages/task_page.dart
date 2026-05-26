@@ -27,6 +27,8 @@ class _TaskPageState extends State<TaskPage> {
   String? _statusFilter;
   bool _myTasksOnly = false;
   final ScrollController _scroll = ScrollController();
+  // Cached last-loaded state so tab/filter switches don't flash a spinner
+  TaskListLoaded? _lastLoaded;
 
   @override
   void initState() {
@@ -65,18 +67,16 @@ class _TaskPageState extends State<TaskPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: context.textPrimColor, size: 20),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text('Tasks',
             style: AppTypography.headlineMedium
-                .copyWith(color: AppColors.textPrimary)),
+                .copyWith(color: context.textPrimColor)),
       ),
       floatingActionButton: widget.args.canManage
           ? _GradientFab(onPressed: () => _showCreateSheet(context))
@@ -90,6 +90,18 @@ class _TaskPageState extends State<TaskPage> {
           }
         },
         builder: (context, state) {
+          // Update cache whenever fresh data arrives
+          if (state is TaskListLoaded) _lastLoaded = state;
+
+          // Resolve the display state: prefer live loaded state, fall back to
+          // cached data so that a reload never flashes an empty spinner.
+          final displayState = (state is TaskListLoaded)
+              ? state
+              : _lastLoaded;
+
+          // Only show the full-screen spinner on the very first load (no cache)
+          final isFirstLoad = state is TaskListLoading && _lastLoaded == null;
+
           return RefreshIndicator(
             color: AppColors.brand,
             onRefresh: () async {
@@ -101,8 +113,17 @@ class _TaskPageState extends State<TaskPage> {
               slivers: [
                 // Gradient header stats card
                 SliverToBoxAdapter(
-                  child: _StatsHeader(state: state),
+                  child: _StatsHeader(state: displayState ?? state),
                 ),
+
+                // Subtle refresh indicator at the top when reloading with data
+                if (state is TaskListLoading && _lastLoaded != null)
+                  const SliverToBoxAdapter(
+                    child: LinearProgressIndicator(
+                      color: AppColors.brand,
+                      backgroundColor: AppColors.transparent,
+                    ),
+                  ),
 
                 // Filter chips
                 SliverToBoxAdapter(
@@ -120,14 +141,14 @@ class _TaskPageState extends State<TaskPage> {
                   ),
                 ),
 
-                if (state is TaskListLoading)
+                if (isFirstLoad)
                   const SliverFillRemaining(
                     child: Center(
                       child: CircularProgressIndicator(color: AppColors.brand),
                     ),
                   )
-                else if (state is TaskListLoaded) ...[
-                  if (state.tasks.isEmpty)
+                else if (displayState != null) ...[
+                  if (displayState.tasks.isEmpty)
                     SliverFillRemaining(
                       child: _EmptyState(
                         canManage: widget.args.canManage,
@@ -140,11 +161,11 @@ class _TaskPageState extends State<TaskPage> {
                         horizontal: AppSizing.pagePadding,
                       ),
                       sliver: SliverList.separated(
-                        itemCount: state.tasks.length,
+                        itemCount: displayState.tasks.length,
                         separatorBuilder: (_, _) =>
                             const SizedBox(height: AppSizing.sm),
                         itemBuilder: (ctx, i) {
-                          final task = state.tasks[i];
+                          final task = displayState.tasks[i];
                           return _TaskCardDecorated(
                             task: task,
                             onTap: () => context
@@ -165,7 +186,7 @@ class _TaskPageState extends State<TaskPage> {
                         },
                       ),
                     ),
-                    if (state.isLoadingMore)
+                    if (displayState.isLoadingMore)
                       const SliverToBoxAdapter(
                         child: Padding(
                           padding: EdgeInsets.all(AppSizing.md),
@@ -193,7 +214,7 @@ class _TaskPageState extends State<TaskPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizing.radiusLg),
@@ -341,7 +362,7 @@ class _TaskCardDecorated extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           boxShadow: AppColors.shadowSm,
         ),
@@ -459,7 +480,7 @@ class _Chip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? c.withValues(alpha: 0.1) : AppColors.surface,
+          color: selected ? c.withValues(alpha: 0.1) : context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusFull),
           border: Border.all(color: selected ? c : AppColors.border),
         ),
@@ -467,13 +488,13 @@ class _Chip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 13, color: selected ? c : AppColors.textSecondary),
+              Icon(icon, size: 13, color: selected ? c : context.textSecColor),
               const SizedBox(width: 4),
             ],
             Text(
               label,
               style: AppTypography.labelSmall.copyWith(
-                color: selected ? c : AppColors.textSecondary,
+                color: selected ? c : context.textSecColor,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
@@ -726,7 +747,7 @@ class _SubTasksInput extends StatelessWidget {
         Text(
           'Sub-tasks',
           style: AppTypography.titleMedium.copyWith(
-            color: AppColors.textSecondary,
+            color: context.textSecColor,
           ),
         ),
         const SizedBox(height: AppSizing.xs),
@@ -743,10 +764,10 @@ class _SubTasksInput extends StatelessWidget {
                 const SizedBox(width: AppSizing.sm),
                 Expanded(child: Text(e.value, style: AppTypography.bodyMedium)),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close,
                     size: 16,
-                    color: AppColors.textSecondary,
+                    color: context.textSecColor,
                   ),
                   onPressed: () => onRemove(e.key),
                   padding: EdgeInsets.zero,

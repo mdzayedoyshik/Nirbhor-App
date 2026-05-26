@@ -91,7 +91,7 @@ class MainShell extends StatelessWidget {
   void _showMoreSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.white,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizing.r24),
@@ -154,14 +154,16 @@ class MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.isDark(context);
-
     return Scaffold(
-      backgroundColor: AppColors.surface50,
-      body: child,
+      backgroundColor: context.bgColor,
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: child,
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface800 : AppColors.white,
+          color: context.bottomNavBg,
           border: Border(
             top: BorderSide(
               color: AppColors.surface200,

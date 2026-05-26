@@ -127,18 +127,16 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: context.textPrimColor, size: 20),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(AppStrings.expenseListTitle,
             style: AppTypography.headlineMedium
-                .copyWith(color: AppColors.textPrimary)),
+                .copyWith(color: context.textPrimColor)),
       ),
       floatingActionButton: widget.canManage
           ? _GradientFab(
@@ -226,7 +224,7 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
                       child: Text(
                         state.message,
                         style: AppTypography.bodyMedium
-                            .copyWith(color: AppColors.textSecondary),
+                            .copyWith(color: context.textSecColor),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -327,7 +325,7 @@ class _MonthPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.surface,
+      color: context.cardColor,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizing.pagePadding,
         vertical: AppSizing.sm,
@@ -336,19 +334,19 @@ class _MonthPicker extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left_rounded,
-                color: AppColors.textPrimary),
+            icon: Icon(Icons.chevron_left_rounded,
+                color: context.textPrimColor),
             onPressed: onPrevious,
           ),
           Text(label,
               style: AppTypography.titleLarge
-                  .copyWith(color: AppColors.textPrimary)),
+                  .copyWith(color: context.textPrimColor)),
           IconButton(
             icon: Icon(
               Icons.chevron_right_rounded,
               color: canGoNext()
-                  ? AppColors.textPrimary
-                  : AppColors.textSecondary,
+                  ? context.textPrimColor
+                  : context.textSecColor,
             ),
             onPressed: canGoNext() ? onNext : null,
           ),
@@ -536,7 +534,7 @@ class _Chip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? activeColor.withValues(alpha: 0.1)
-              : AppColors.surface,
+              : context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusFull),
           border: Border.all(
             color: selected ? activeColor : AppColors.border,
@@ -545,7 +543,7 @@ class _Chip extends StatelessWidget {
         child: Text(
           label,
           style: AppTypography.labelSmall.copyWith(
-            color: selected ? activeColor : AppColors.textSecondary,
+            color: selected ? activeColor : context.textSecColor,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
           ),
         ),
@@ -582,7 +580,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             AppStrings.noExpensesRecorded,
             style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textSecondary),
+                .copyWith(color: context.textSecColor),
           ),
         ],
       ),

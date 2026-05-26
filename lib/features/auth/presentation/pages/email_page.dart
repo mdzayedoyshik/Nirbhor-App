@@ -72,7 +72,6 @@ class _EmailPageState extends State<EmailPage> {
         final googleLoading =
             anyLoading && state.source == AuthLoadingSource.google;
         return Scaffold(
-          backgroundColor: AppColors.background,
           body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSizing.pagePadding),
@@ -107,7 +106,7 @@ class _EmailPageState extends State<EmailPage> {
                     Text(
                       'Welcome to Nirbhor',
                       style: AppTypography.h1.copyWith(
-                        color: AppColors.textPrimary,
+                        color: context.textPrimColor,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -118,7 +117,7 @@ class _EmailPageState extends State<EmailPage> {
                     Text(
                       AppStrings.emailSubtitle,
                       style: AppTypography.bodyL.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.textSecColor,
                       ),
                       textAlign: TextAlign.center,
                     ),

@@ -160,3 +160,19 @@ class AppColors {
   /// Previously divider grey.
   static const Color divider = surface200;
 }
+
+/// Extension for adaptive (theme-aware) color access.
+extension AppColorsX on BuildContext {
+  bool get isDarkMode => Theme.of(this).brightness == Brightness.dark;
+
+  Color get bgColor => isDarkMode ? AppColors.darkBg : AppColors.surface50;
+  Color get cardColor => isDarkMode ? AppColors.darkSurface800 : AppColors.white;
+  Color get surfaceColor => isDarkMode ? AppColors.darkSurface700 : AppColors.surface100;
+  Color get borderColor => isDarkMode ? AppColors.darkSurface600 : const Color(0xFFE5E7EB);
+  Color get dividerColor => isDarkMode ? AppColors.darkSurface600 : AppColors.surface200;
+  Color get textPrimColor => isDarkMode ? AppColors.darkTextPrimary : AppColors.textPrimary;
+  Color get textSecColor => isDarkMode ? AppColors.darkTextSecondary : AppColors.textSecondary;
+  Color get textTerColor => isDarkMode ? AppColors.darkTextTertiary : AppColors.textTertiary;
+  Color get bottomNavBg => isDarkMode ? AppColors.darkSurface800 : AppColors.white;
+  Color get sheetBg => isDarkMode ? AppColors.darkSurface800 : AppColors.white;
+}

@@ -122,11 +122,9 @@ class _OtpPageState extends State<OtpPage> {
       builder: (context, state) {
         final loading = state is AuthLoading;
         return Scaffold(
-          backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
             elevation: 0,
-            leading: BackButton(color: AppColors.textPrimary),
+            leading: BackButton(color: context.textPrimColor),
           ),
           body: SafeArea(
             child: Padding(
@@ -159,13 +157,13 @@ class _OtpPageState extends State<OtpPage> {
                   RichText(
                     text: TextSpan(
                       style: AppTypography.bodyM
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.textSecColor),
                       children: [
                         const TextSpan(text: 'We sent a 6-digit code to '),
                         TextSpan(
                           text: widget.args.email,
                           style: AppTypography.bodyM.copyWith(
-                            color: AppColors.textPrimary,
+                            color: context.textPrimColor,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -191,7 +189,7 @@ class _OtpPageState extends State<OtpPage> {
                         ? Text(
                             'Resend code in ${_secondsLeft}s',
                             style: AppTypography.bodyM
-                                .copyWith(color: AppColors.textSecondary),
+                                .copyWith(color: context.textSecColor),
                           )
                         : Row(
                             mainAxisSize: MainAxisSize.min,
@@ -199,7 +197,7 @@ class _OtpPageState extends State<OtpPage> {
                               Text(
                                 AppStrings.didntReceiveCode,
                                 style: AppTypography.bodyM
-                                    .copyWith(color: AppColors.textSecondary),
+                                    .copyWith(color: context.textSecColor),
                               ),
                               TextButton(
                                 onPressed: loading
@@ -270,7 +268,7 @@ class _OtpBoxesRow extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLength: 1,
             style: AppTypography.h3.copyWith(
-              color: AppColors.textPrimary,
+              color: context.textPrimColor,
             ),
             decoration: InputDecoration(
               counterText: '',

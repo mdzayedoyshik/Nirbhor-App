@@ -51,7 +51,6 @@ class _MemberListPageState extends State<MemberListPage> {
       builder: (context, state) {
         if (state is MemberLoading) {
           return Scaffold(
-            backgroundColor: AppColors.background,
             appBar: _buildAppBar(),
             body: const Center(
               child: CircularProgressIndicator(color: AppColors.brand),
@@ -61,7 +60,6 @@ class _MemberListPageState extends State<MemberListPage> {
 
         if (state is MemberLoadError) {
           return Scaffold(
-            backgroundColor: AppColors.background,
             appBar: _buildAppBar(),
             body: Center(
               child: Column(
@@ -114,7 +112,6 @@ class _MemberListPageState extends State<MemberListPage> {
         final hasCoManager = members.any((m) => m.isCoManager);
 
         return Scaffold(
-          backgroundColor: AppColors.background,
           appBar: _buildAppBar(),
           body: Stack(
             children: [
@@ -191,19 +188,18 @@ class _MemberListPageState extends State<MemberListPage> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      backgroundColor: AppColors.surface,
       elevation: 0,
       scrolledUnderElevation: 0,
       leading: IconButton(
-        icon: const Icon(
+        icon: Icon(
           Icons.arrow_back_ios_new_rounded,
-          color: AppColors.textPrimary,
+          color: context.textPrimColor,
         ),
         onPressed: () => context.pop(),
       ),
       title: Text(
         'Members',
-        style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        style: AppTypography.h3.copyWith(color: context.textPrimColor),
       ),
     );
   }
@@ -316,7 +312,7 @@ class _MemberListPageState extends State<MemberListPage> {
             'They will be restricted to payment actions only until exit is '
             'finalised or cancelled.',
             style: AppTypography.bodyM.copyWith(
-              color: AppColors.textSecondary,
+              color: context.textSecColor,
             ),
           ),
           const SizedBox(height: AppSizing.md),
