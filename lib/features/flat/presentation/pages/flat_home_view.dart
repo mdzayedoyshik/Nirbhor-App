@@ -73,11 +73,6 @@ const _navItems = [
     activeIcon: Icons.receipt_long_rounded,
     label: 'Expenses',
   ),
-  _NavItem(
-    icon: Icons.grid_view_outlined,
-    activeIcon: Icons.grid_view_rounded,
-    label: 'More',
-  ),
 ];
 
 // ── Shell widget ──────────────────────────────────────────────────────────────
@@ -94,7 +89,6 @@ class _FlatHomeViewState extends State<FlatHomeView> {
   int _tab = 0;
   // true = tab has been loaded at least once; start only home as loaded
   final List<bool> _loaded = [true, false, false, false];
-  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   FlatMemberEntity? _myMember() {
     final authState = context.read<AuthBloc>().state;
@@ -115,11 +109,7 @@ class _FlatHomeViewState extends State<FlatHomeView> {
     });
   }
 
-  void _switchTab(BuildContext context, int i) {
-    if (i == 4) {
-      _scaffoldKey.currentState?.openDrawer();
-      return;
-    }
+  void _switchTab(int i) {
     if (i == _tab) return;
     setState(() {
       if (i < _loaded.length) _loaded[i] = true;
@@ -136,69 +126,65 @@ class _FlatHomeViewState extends State<FlatHomeView> {
       listener: (context, state) {
         if (state is FlatError) AppSnackbar.error(context, state.message);
       },
-      child: Builder(
-        builder: (scaffoldCtx) => Scaffold(
-          key: _scaffoldKey,
-          backgroundColor: scaffoldCtx.bgColor,
-          drawer: _MoreDrawer(flat: widget.flat, me: me, canManage: canManage),
-          body: GestureDetector(
-            onTap: () => FocusScope.of(scaffoldCtx).unfocus(),
-            behavior: HitTestBehavior.translucent,
-            child: IndexedStack(
-              index: _tab,
-              children: [
-                // Tab 0 — Home dashboard
-                _HomeDashboard(
-                  flat: widget.flat,
-                  me: me,
-                  canManage: canManage,
-                  onTabSelect: (i) => _switchTab(scaffoldCtx, i),
-                ),
-                // Tab 1 — Meals (lazy)
-                _loaded[1] && me != null
-                    ? MultiBlocProvider(
-                        providers: [
-                          BlocProvider(create: (_) => sl<MealBloc>()),
-                          BlocProvider(create: (_) => sl<MealPoolBloc>()),
-                          BlocProvider(create: (_) => sl<MealPrefsBloc>()),
-                        ],
-                        child: MealPage(
-                          args: MealPageArgs(
-                            flatId: widget.flat.id,
-                            canManage: canManage,
-                            myMemberId: me.flatMemberId,
-                          ),
-                        ),
-                      )
-                    : const SizedBox.expand(),
-                // Tab 2 — Wallet (lazy) — WalletBloc is the global singleton
-                // already provided at the home route level, so no extra provider needed.
-                _loaded[2]
-                    ? WalletHomePage(
-                        args: WalletPageArgs(
+      child: Scaffold(
+        backgroundColor: context.bgColor,
+        body: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.translucent,
+          child: IndexedStack(
+            index: _tab,
+            children: [
+              // Tab 0 — Home dashboard
+              _HomeDashboard(
+                flat: widget.flat,
+                me: me,
+                canManage: canManage,
+                onTabSelect: _switchTab,
+              ),
+              // Tab 1 — Meals (lazy)
+              _loaded[1] && me != null
+                  ? MultiBlocProvider(
+                      providers: [
+                        BlocProvider(create: (_) => sl<MealBloc>()),
+                        BlocProvider(create: (_) => sl<MealPoolBloc>()),
+                        BlocProvider(create: (_) => sl<MealPrefsBloc>()),
+                      ],
+                      child: MealPage(
+                        args: MealPageArgs(
                           flatId: widget.flat.id,
                           canManage: canManage,
+                          myMemberId: me.flatMemberId,
                         ),
-                      )
-                    : const SizedBox.expand(),
-                // Tab 3 — Expenses (lazy)
-                _loaded[3]
-                    ? BlocProvider(
-                        create: (_) => sl<ExpenseBloc>(),
-                        child: ExpenseListPage(
-                          flatId: widget.flat.id,
-                          canManage: canManage,
-                          memberCount: widget.flat.activeMembers.length,
-                        ),
-                      )
-                    : const SizedBox.expand(),
-              ],
-            ),
+                      ),
+                    )
+                  : const SizedBox.expand(),
+              // Tab 2 — Wallet (lazy) — WalletBloc is the global singleton
+              // already provided at the home route level, so no extra provider needed.
+              _loaded[2]
+                  ? WalletHomePage(
+                      args: WalletPageArgs(
+                        flatId: widget.flat.id,
+                        canManage: canManage,
+                      ),
+                    )
+                  : const SizedBox.expand(),
+              // Tab 3 — Expenses (lazy)
+              _loaded[3]
+                  ? BlocProvider(
+                      create: (_) => sl<ExpenseBloc>(),
+                      child: ExpenseListPage(
+                        flatId: widget.flat.id,
+                        canManage: canManage,
+                        memberCount: widget.flat.activeMembers.length,
+                      ),
+                    )
+                  : const SizedBox.expand(),
+            ],
           ),
-          bottomNavigationBar: _BottomNavBar(
-            selectedIndex: _tab,
-            onTap: (i) => _switchTab(scaffoldCtx, i),
-          ),
+        ),
+        bottomNavigationBar: _BottomNavBar(
+          selectedIndex: _tab,
+          onTap: _switchTab,
         ),
       ),
     );
@@ -366,272 +352,6 @@ class _NavTile extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ── More Drawer ───────────────────────────────────────────────────────────────
-
-class _MoreDrawer extends StatelessWidget {
-  const _MoreDrawer({
-    required this.flat,
-    required this.me,
-    required this.canManage,
-  });
-
-  final FlatEntity flat;
-  final FlatMemberEntity? me;
-  final bool canManage;
-
-  @override
-  Widget build(BuildContext context) {
-    final authState = context.watch<AuthBloc>().state;
-    final userName =
-        authState is AuthAuthenticated ? authState.user.name : flat.name;
-
-    return Drawer(
-      backgroundColor: context.bgColor,
-      child: SafeArea(
-        child: Column(
-          children: [
-            // ── Header ──────────────────────────────────────────────────────
-            DrawerHeader(
-              padding: EdgeInsets.zero,
-              decoration: const BoxDecoration(gradient: AppColors.brandGradient),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSizing.pagePadding,
-                  AppSizing.sp16,
-                  AppSizing.pagePadding,
-                  AppSizing.sp16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    AppAvatar(
-                      name: userName,
-                      radius: AppSizing.avatar40 / 2,
-                      backgroundColor:
-                          AppColors.white.withValues(alpha: 0.25),
-                      textColor: AppColors.white,
-                    ),
-                    const SizedBox(height: AppSizing.sp8),
-                    Text(
-                      userName,
-                      style: AppTypography.labelL.copyWith(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      flat.name,
-                      style: AppTypography.bodyS.copyWith(
-                        color: AppColors.white.withValues(alpha: 0.8),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ── Items ────────────────────────────────────────────────────────
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  vertical: AppSizing.sp8,
-                ),
-                children: [
-                  _DrawerItem(
-                    icon: Icons.bar_chart_rounded,
-                    label: 'Monthly Summary',
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (me == null) return;
-                      context.push(
-                        AppRoutes.summary,
-                        extra: SummaryPageArgs(
-                          flatId: flat.id,
-                          isManager: canManage,
-                          myMemberId: me!.flatMemberId,
-                        ),
-                      );
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.task_alt_rounded,
-                    label: 'Tasks',
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (me == null) return;
-                      context.push(
-                        AppRoutes.tasks,
-                        extra: TaskPageArgs(
-                          flatId: flat.id,
-                          canManage: canManage,
-                          myMemberId: me!.flatMemberId,
-                          members: flat.activeMembers,
-                        ),
-                      );
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.report_problem_outlined,
-                    label: 'Complaints',
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (me == null) return;
-                      context.push(
-                        AppRoutes.complaints,
-                        extra: ComplaintPageArgs(
-                          flatId: flat.id,
-                          canManage: canManage,
-                          myMemberId: me!.flatMemberId,
-                        ),
-                      );
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.group_outlined,
-                    label: 'Members',
-                    onTap: () {
-                      Navigator.pop(context);
-                      context
-                          .push(AppRoutes.flatMembers, extra: flat)
-                          .then((_) {
-                        if (context.mounted) {
-                          context
-                              .read<FlatBloc>()
-                              .add(FlatRefreshRequested(flat.id));
-                        }
-                      });
-                    },
-                  ),
-                  if (canManage)
-                    _DrawerItem(
-                      icon: Icons.monetization_on_outlined,
-                      label: 'Fixed Expenses',
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push(
-                          AppRoutes.flatExpenses,
-                          extra: {'flatId': flat.id, 'canManage': canManage},
-                        );
-                      },
-                    ),
-                  if (canManage)
-                    _DrawerItem(
-                      icon: Icons.history_edu_rounded,
-                      label: 'Audit Log',
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push(
-                          AppRoutes.auditLog,
-                          extra: AuditLogPageArgs(flatId: flat.id),
-                        );
-                      },
-                    ),
-                  _DrawerItem(
-                    icon: Icons.settings_outlined,
-                    label: 'Flat Settings',
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push(AppRoutes.flatSettings, extra: flat);
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.notifications_outlined,
-                    label: 'Notifications',
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push(
-                        AppRoutes.notifications,
-                        extra: NotificationPageArgs(
-                          flatId: flat.id,
-                          canManage: me?.canManage ?? false,
-                          myMemberId: me?.flatMemberId ?? '',
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(
-                    height: AppSizing.sp24,
-                    indent: AppSizing.pagePadding,
-                    endIndent: AppSizing.pagePadding,
-                  ),
-                  _DrawerItem(
-                    icon: Icons.person_outline_rounded,
-                    label: 'Profile',
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push(AppRoutes.profile);
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.logout_rounded,
-                    label: 'Logout',
-                    iconColor: AppColors.error,
-                    labelColor: AppColors.error,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.read<AuthBloc>().add(AuthLogoutRequested());
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DrawerItem extends StatelessWidget {
-  const _DrawerItem({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.iconColor,
-    this.labelColor,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color? iconColor;
-  final Color? labelColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final effectiveIconColor = iconColor ?? AppColors.brand;
-    final effectiveLabelColor = labelColor ?? context.textPrimColor;
-
-    return ListTile(
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: effectiveIconColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(AppSizing.r12),
-        ),
-        child: Icon(icon, size: AppSizing.iconMd, color: effectiveIconColor),
-      ),
-      title: Text(
-        label,
-        style: AppTypography.labelL.copyWith(color: effectiveLabelColor),
-      ),
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        color: context.textTerColor,
-      ),
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppSizing.pagePadding,
-        vertical: 2,
       ),
     );
   }
@@ -1122,8 +842,8 @@ class _QuickActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Build the action list dynamically
-    final actions = <Widget>[
+    // First 8 buttons are the same for everyone
+    final commonActions = <Widget>[
       QuickActionButton(
         icon: Icons.account_balance_wallet_outlined,
         label: 'Wallet',
@@ -1186,50 +906,85 @@ class _QuickActionsRow extends StatelessWidget {
         },
       ),
       QuickActionButton(
+        icon: Icons.monetization_on_outlined,
+        label: 'Fixed Exp.',
+        onTap: () => context.push(
+          AppRoutes.flatExpenses,
+          extra: {'flatId': flat.id, 'canManage': canManage},
+        ),
+      ),
+      QuickActionButton(
         icon: Icons.qr_code_rounded,
         label: 'Invite',
         onTap: () => _showQrSheet(context),
       ),
     ];
 
-    if (canManage) {
-      actions.add(
-        QuickActionButton(
-          icon: Icons.history_edu_rounded,
-          label: 'Audit',
-          onTap: () => context.push(
-            AppRoutes.auditLog,
-            extra: AuditLogPageArgs(flatId: flat.id),
-          ),
-        ),
-      );
-      actions.add(
-        BlocBuilder<JoinRequestsBloc, JoinRequestsState>(
-          builder: (context, reqState) {
-            int pendingCount = 0;
-            if (reqState is JoinRequestsLoaded) {
-              pendingCount =
-                  reqState.requests.where((r) => r.isPending).length;
-            }
-            return QuickActionButton(
-              icon: Icons.group_add_outlined,
-              label: 'Requests',
-              badge: pendingCount,
+    // Buttons 9 & 10 differ by role
+    final roleActions = canManage
+        ? <Widget>[
+            QuickActionButton(
+              icon: Icons.history_edu_rounded,
+              label: 'Audit',
+              onTap: () => context.push(
+                AppRoutes.auditLog,
+                extra: AuditLogPageArgs(flatId: flat.id),
+              ),
+            ),
+            BlocBuilder<JoinRequestsBloc, JoinRequestsState>(
+              builder: (context, reqState) {
+                int pendingCount = 0;
+                if (reqState is JoinRequestsLoaded) {
+                  pendingCount =
+                      reqState.requests.where((r) => r.isPending).length;
+                }
+                return QuickActionButton(
+                  icon: Icons.group_add_outlined,
+                  label: 'Requests',
+                  badge: pendingCount,
+                  onTap: () => context
+                      .push(AppRoutes.flatRequests, extra: flat.id)
+                      .then((_) {
+                    if (context.mounted) {
+                      context
+                          .read<JoinRequestsBloc>()
+                          .add(JoinRequestsLoadRequested(flat.id));
+                      context
+                          .read<FlatBloc>()
+                          .add(FlatRefreshRequested(flat.id));
+                    }
+                  }),
+                );
+              },
+            ),
+          ]
+        : <Widget>[
+            QuickActionButton(
+              icon: Icons.group_outlined,
+              label: 'Members',
               onTap: () => context
-                  .push(AppRoutes.flatRequests, extra: flat.id)
+                  .push(AppRoutes.flatMembers, extra: flat)
                   .then((_) {
                 if (context.mounted) {
                   context
-                      .read<JoinRequestsBloc>()
-                      .add(JoinRequestsLoadRequested(flat.id));
-                  context.read<FlatBloc>().add(FlatRefreshRequested(flat.id));
+                      .read<FlatBloc>()
+                      .add(FlatRefreshRequested(flat.id));
                 }
               }),
-            );
-          },
-        ),
-      );
-    }
+            ),
+            QuickActionButton(
+              icon: Icons.notifications_outlined,
+              label: 'Notifications',
+              onTap: () => context.push(
+                AppRoutes.notifications,
+                extra: NotificationPageArgs(
+                  flatId: flat.id,
+                  canManage: false,
+                  myMemberId: me?.flatMemberId ?? '',
+                ),
+              ),
+            ),
+          ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1237,15 +992,16 @@ class _QuickActionsRow extends StatelessWidget {
         const SectionHeader(title: 'Quick Actions'),
         const SizedBox(height: AppSizing.sp12),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
           child: GridView.count(
-            crossAxisCount: 4,
-            mainAxisSpacing: AppSizing.sp12,
-            crossAxisSpacing: AppSizing.sp12,
-            childAspectRatio: 0.9,
+            crossAxisCount: 5,
+            mainAxisSpacing: AppSizing.sp8,
+            crossAxisSpacing: AppSizing.sp8,
+            childAspectRatio: 0.85,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            children: actions,
+            children: [...commonActions, ...roleActions],
           ),
         ),
       ],
