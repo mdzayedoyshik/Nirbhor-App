@@ -7,6 +7,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'core/di/injection_container.dart';
 import 'core/env/app_env.dart';
 import 'core/router/app_router.dart';
+import 'core/services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_cubit.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
@@ -36,7 +37,14 @@ Future<void> main() async {
   final themeCubit = ThemeCubit();
   await themeCubit.loadSavedTheme();
 
-  runApp(NirbhorApp(router: createRouter(sl<AuthBloc>()), themeCubit: themeCubit));
+  final router = createRouter(sl<AuthBloc>());
+  runApp(NirbhorApp(router: router, themeCubit: themeCubit));
+
+  // Wire up push notification deep-linking after runApp so the widget tree
+  // is ready.  The service requests FCM permission, sets up onMessage /
+  // onMessageOpenedApp / getInitialMessage, and stores the router reference
+  // for later navigation.
+  await PushNotificationService.instance.initialize(router);
 }
 
 class NirbhorApp extends StatelessWidget {

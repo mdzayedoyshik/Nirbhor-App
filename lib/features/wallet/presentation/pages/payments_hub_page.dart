@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +9,7 @@ import '../../../../../core/constants/app_sizing.dart';
 import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/constants/app_typography.dart';
 import '../../../../../core/router/app_router.dart';
+import '../../../../../core/services/push_notification_service.dart';
 import '../../../../../core/widgets/app_button.dart';
 import '../../../../../core/widgets/app_snackbar.dart';
 import '../../../../../core/widgets/app_text_field.dart';
@@ -33,6 +36,7 @@ class PaymentsHubPage extends StatefulWidget {
 
 class _PaymentsHubPageState extends State<PaymentsHubPage> {
   int _selectedTab = 0;
+  StreamSubscription<ForegroundPushEvent>? _pushSub;
 
   static const List<String> _tabLabels = [
     'Pending',
@@ -45,6 +49,16 @@ class _PaymentsHubPageState extends State<PaymentsHubPage> {
   void initState() {
     super.initState();
     _loadAll();
+    // Reload when a payment-related push arrives in the foreground
+    _pushSub = PushNotificationService.instance.foregroundStream.listen((event) {
+      if (event.isPayment && mounted) _loadAll();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pushSub?.cancel();
+    super.dispose();
   }
 
   void _loadAll() {

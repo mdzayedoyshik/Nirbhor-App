@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/services/push_notification_service.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text_field.dart';
@@ -29,16 +32,22 @@ class _TaskPageState extends State<TaskPage> {
   final ScrollController _scroll = ScrollController();
   // Cached last-loaded state so tab/filter switches don't flash a spinner
   TaskListLoaded? _lastLoaded;
+  StreamSubscription<ForegroundPushEvent>? _pushSub;
 
   @override
   void initState() {
     super.initState();
     _load();
     _scroll.addListener(_onScroll);
+    // Reload when a task-related push arrives in the foreground
+    _pushSub = PushNotificationService.instance.foregroundStream.listen((event) {
+      if (event.isTask && mounted) _load();
+    });
   }
 
   @override
   void dispose() {
+    _pushSub?.cancel();
     _scroll.dispose();
     super.dispose();
   }
