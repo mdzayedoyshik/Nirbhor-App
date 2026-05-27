@@ -35,21 +35,24 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: widget.args.canManage ? 4 : 1, vsync: this);
+    _tabController = TabController(
+      length: widget.args.canManage ? 4 : 2,
+      vsync: this,
+    );
     _load('pending');
-    if (widget.args.canManage) {
-      _tabController.addListener(() {
-        if (!_tabController.indexIsChanging) {
-          final status = switch (_tabController.index) {
-            0 => 'pending',
-            1 => 'submitted',
-            2 => 'paid',
-            _ => 'cancelled',
-          };
-          _load(status);
-        }
-      });
-    }
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        final status = widget.args.canManage
+            ? switch (_tabController.index) {
+                0 => 'pending',
+                1 => 'submitted',
+                2 => 'paid',
+                _ => 'cancelled',
+              }
+            : (_tabController.index == 0 ? 'pending' : 'submitted');
+        _load(status);
+      }
+    });
   }
 
   void _load(String? status) {
@@ -101,20 +104,23 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
             elevation: 0,
             title: Text(AppStrings.paymentRequestsTitle,
                 style: AppTypography.headlineMedium),
-            bottom: widget.args.canManage
-                ? TabBar(
-                    controller: _tabController,
-                    labelColor: AppColors.primary,
-                    unselectedLabelColor: AppColors.textSecondary,
-                    indicatorColor: AppColors.primary,
-                    tabs: const [
+            bottom: TabBar(
+              controller: _tabController,
+              labelColor: AppColors.primary,
+              unselectedLabelColor: AppColors.textSecondary,
+              indicatorColor: AppColors.primary,
+              tabs: widget.args.canManage
+                  ? const [
                       Tab(text: 'Pending'),
                       Tab(text: 'Awaiting'),
                       Tab(text: 'Paid'),
                       Tab(text: 'Cancelled'),
+                    ]
+                  : const [
+                      Tab(text: 'Pending'),
+                      Tab(text: 'Awaiting'),
                     ],
-                  )
-                : null,
+            ),
           ),
           floatingActionButton: widget.args.canManage
               ? FloatingActionButton.extended(
@@ -167,8 +173,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
     }
 
     final isActionLoading = state is PaymentRequestsActionLoading;
-    final isPendingTab =
-        !widget.args.canManage || _tabController.index == 0;
+    final isPendingTab = _tabController.index == 0;
 
     return RefreshIndicator(
       color: AppColors.primary,
@@ -180,7 +185,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
                 2 => 'paid',
                 _ => 'cancelled',
               }
-            : 'pending';
+            : (_tabController.index == 0 ? 'pending' : 'submitted');
         _load(status);
         await Future.delayed(const Duration(milliseconds: 600));
       },

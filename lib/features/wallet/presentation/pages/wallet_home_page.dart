@@ -166,7 +166,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
                     const SizedBox(height: AppSizing.lg),
                   ],
 
-                  // ── Pending payment requests ───────────────
+                  // ── Pending / awaiting payment requests ───────────────
                   if (summary.hasPendingRequests) ...[
                     _SectionHeader(
                       title: AppStrings.paymentRequestsTitle,
@@ -179,7 +179,8 @@ class _WalletHomePageState extends State<WalletHomePage> {
                         child: _RequestCard(
                           amount: req.amount,
                           note: req.note,
-                          onPayNow: isLoading
+                          isSubmitted: req.isSubmitted,
+                          onPayNow: req.isSubmitted || isLoading
                               ? null
                               : () => context.push(
                                     AppRoutes.walletSubmitPayment,
@@ -571,19 +572,29 @@ class _SectionHeader extends StatelessWidget {
 // ── Request card ──────────────────────────────────────────────────────────────
 
 class _RequestCard extends StatelessWidget {
-  const _RequestCard({required this.amount, this.note, this.onPayNow});
+  const _RequestCard({
+    required this.amount,
+    this.note,
+    this.onPayNow,
+    this.isSubmitted = false,
+  });
   final double amount;
   final String? note;
   final VoidCallback? onPayNow;
+  final bool isSubmitted;
 
   @override
   Widget build(BuildContext context) {
+    final borderColor = isSubmitted
+        ? AppColors.success.withValues(alpha: 0.35)
+        : AppColors.brand.withValues(alpha: 0.25);
+
     return Container(
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
         color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.r16),
-        border: Border.all(color: AppColors.brand.withValues(alpha: 0.25)),
+        border: Border.all(color: borderColor),
         boxShadow: AppColors.shadowSm,
       ),
       child: Row(
@@ -592,11 +603,19 @@ class _RequestCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              gradient: AppColors.brandGradient,
+              gradient: isSubmitted ? null : AppColors.brandGradient,
+              color: isSubmitted
+                  ? AppColors.success.withValues(alpha: 0.1)
+                  : null,
               borderRadius: BorderRadius.circular(AppSizing.r12),
             ),
-            child: const Icon(Icons.request_page_outlined,
-                color: AppColors.white, size: 20),
+            child: Icon(
+              isSubmitted
+                  ? Icons.hourglass_top_rounded
+                  : Icons.request_page_outlined,
+              color: isSubmitted ? AppColors.success : AppColors.white,
+              size: 20,
+            ),
           ),
           const SizedBox(width: AppSizing.md),
           Expanded(
@@ -606,29 +625,46 @@ class _RequestCard extends StatelessWidget {
                 Text(
                   '৳${amount.toStringAsFixed(0)}',
                   style: AppTypography.amountL.copyWith(
-                    color: AppColors.brand,
+                    color: isSubmitted ? AppColors.success : AppColors.brand,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (note != null && note!.isNotEmpty)
-                  Text(
-                    note!,
-                    style: AppTypography.bodySmall
-                        .copyWith(color: context.textSecColor),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Text(
+                  isSubmitted ? 'Awaiting verification' : (note ?? 'Payment request'),
+                  style: AppTypography.bodySmall
+                      .copyWith(color: context.textSecColor),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
           const SizedBox(width: AppSizing.sm),
-          AppButton(
-            label: AppStrings.payNow,
-            onPressed: onPayNow,
-            variant: AppButtonVariant.primary,
-            height: AppSizing.buttonHeightSm,
-            fullWidth: false,
-          ),
+          if (isSubmitted)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                border: Border.all(
+                    color: AppColors.success.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                'Paid',
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.success,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          else
+            AppButton(
+              label: AppStrings.payNow,
+              onPressed: onPayNow,
+              variant: AppButtonVariant.primary,
+              height: AppSizing.buttonHeightSm,
+              fullWidth: false,
+            ),
         ],
       ),
     );

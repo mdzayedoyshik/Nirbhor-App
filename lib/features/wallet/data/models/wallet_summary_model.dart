@@ -37,6 +37,7 @@ class WalletSummaryModel extends WalletSummaryEntity {
                 id: r['id'] as String,
                 amount: (r['amount'] as num).toDouble(),
                 note: r['note'] as String?,
+                status: r['status'] as String? ?? 'pending',
               ))
           .toList(),
       recentTransactions: (json['recent_transactions'] as List)

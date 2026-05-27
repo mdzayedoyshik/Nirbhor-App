@@ -8,14 +8,18 @@ class PendingRequestSummary extends Equatable {
     required this.id,
     required this.amount,
     this.note,
+    this.status = 'pending',
   });
 
   final String id;
   final double amount;
   final String? note;
+  final String status;
+
+  bool get isSubmitted => status == 'submitted';
 
   @override
-  List<Object?> get props => [id, amount, note];
+  List<Object?> get props => [id, amount, note, status];
 }
 
 class WalletSummaryEntity extends Equatable {
