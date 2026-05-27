@@ -220,23 +220,15 @@ class _TaskPageState extends State<TaskPage> {
   }
 
   void _showCreateSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.cardColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppSizing.radiusLg),
-        ),
+    context.push(
+      AppRoutes.taskCreate,
+      extra: CreateTaskArgs(
+        flatId: widget.args.flatId,
+        members: widget.args.members,
       ),
-      builder: (_) => BlocProvider.value(
-        value: context.read<TaskBloc>(),
-        child: _CreateTaskSheet(
-          flatId: widget.args.flatId,
-          members: widget.args.members,
-        ),
-      ),
-    );
+    ).then((_) {
+      if (mounted) _load();
+    });
   }
 }
 
@@ -375,24 +367,26 @@ class _TaskCardDecorated extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           boxShadow: AppColors.shadowSm,
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Left accent border
-            Container(
-              width: 4,
-              decoration: BoxDecoration(
-                color: _borderColor(),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(AppSizing.radiusMd),
-                  bottomLeft: Radius.circular(AppSizing.radiusMd),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Left accent border
+              Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  color: _borderColor(),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(AppSizing.radiusMd),
+                    bottomLeft: Radius.circular(AppSizing.radiusMd),
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: TaskCard(task: task, onTap: onTap),
-            ),
-          ],
+              Expanded(
+                child: TaskCard(task: task, onTap: onTap),
+              ),
+            ],
+          ),
         ),
       ),
     );

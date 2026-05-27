@@ -1,6 +1,16 @@
 import '../../../flat/domain/entities/flat_member_entity.dart';
 import '../../domain/entities/task_entity.dart';
 
+class CreateTaskArgs {
+  const CreateTaskArgs({
+    required this.flatId,
+    required this.members,
+  });
+
+  final String flatId;
+  final List<FlatMemberEntity> members;
+}
+
 class TaskPageArgs {
   const TaskPageArgs({
     required this.flatId,

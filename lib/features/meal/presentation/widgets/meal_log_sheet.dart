@@ -84,6 +84,8 @@ class _MealLogSheet extends StatefulWidget {
 class _MealLogSheetState extends State<_MealLogSheet> {
   late Map<String, bool> _on;
   late Map<String, int> _guests;
+  late Map<String, bool> _initialOn;
+  late Map<String, int> _initialGuests;
   bool _saving = false;
 
   @override
@@ -99,6 +101,8 @@ class _MealLogSheetState extends State<_MealLogSheet> {
       'lunch': widget.entry.lunchGuests,
       'dinner': widget.entry.dinnerGuests,
     };
+    _initialOn = Map.of(_on);
+    _initialGuests = Map.of(_guests);
   }
 
   bool _shiftEditable(String shift) {
@@ -131,15 +135,22 @@ class _MealLogSheetState extends State<_MealLogSheet> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final body = {
-      'date': widget.currentDate,
-      'breakfast': _on['breakfast'],
-      'lunch': _on['lunch'],
-      'dinner': _on['dinner'],
-      'breakfast_guests': _guests['breakfast'],
-      'lunch_guests': _guests['lunch'],
-      'dinner_guests': _guests['dinner'],
-    };
+    final body = <String, dynamic>{'date': widget.currentDate};
+    for (final shift in _shifts) {
+      if (_on[shift] != _initialOn[shift]) {
+        body[shift] = _on[shift];
+      }
+      if (_guests[shift] != _initialGuests[shift]) {
+        body['${shift}_guests'] = _guests[shift];
+      }
+    }
+    // Manager editing others: always send full state so backend overwrites correctly
+    if (widget.isManager && !widget.isOwn) {
+      for (final shift in _shifts) {
+        body[shift] = _on[shift];
+        body['${shift}_guests'] = _guests[shift];
+      }
+    }
 
     if (widget.isManager && !widget.isOwn) {
       context.read<MealBloc>().add(MealManagerEditRequested(

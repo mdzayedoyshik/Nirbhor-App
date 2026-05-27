@@ -74,9 +74,9 @@ class TaskCard extends StatelessWidget {
             // Footer row
             Row(
               children: [
-                // Assignee
-                if (task.assignedToName != null) ...[
-                  _AssigneeChip(name: task.assignedToName!),
+                // Assignees
+                if (task.assignees.isNotEmpty) ...[
+                  _AssigneeChips(assignees: task.assignees),
                   const SizedBox(width: AppSizing.sm),
                 ] else ...[
                   _AssigneeChip(name: 'Unassigned', muted: true),
@@ -149,6 +149,68 @@ class _AssigneeChip extends StatelessWidget {
           style: AppTypography.labelSmall.copyWith(
             color: muted ? AppColors.textHint : AppColors.textSecondary,
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AssigneeChips extends StatelessWidget {
+  const _AssigneeChips({required this.assignees});
+  final List<TaskAssigneeEntity> assignees;
+
+  @override
+  Widget build(BuildContext context) {
+    if (assignees.length == 1) {
+      return _AssigneeChip(name: assignees.first.name ?? 'Assignee');
+    }
+    // Show stacked avatars + count
+    const maxVisible = 3;
+    final visible = assignees.take(maxVisible).toList();
+    final extra = assignees.length - maxVisible;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: visible.length * 14.0 + 6,
+          height: 20,
+          child: Stack(
+            children: visible.asMap().entries.map((e) {
+              final initials = (e.value.name ?? '?')
+                  .split(' ')
+                  .take(2)
+                  .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+                  .join();
+              return Positioned(
+                left: e.key * 14.0,
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.white, width: 1.5),
+                  ),
+                  child: Center(
+                    child: Text(
+                      initials,
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.primary,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          extra > 0 ? '${assignees.length} members' : '${assignees.length}',
+          style: AppTypography.labelSmall
+              .copyWith(color: AppColors.textSecondary),
         ),
       ],
     );

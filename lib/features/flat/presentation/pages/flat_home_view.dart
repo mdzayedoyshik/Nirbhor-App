@@ -154,6 +154,7 @@ class _FlatHomeViewState extends State<FlatHomeView> {
                           flatId: widget.flat.id,
                           canManage: canManage,
                           myMemberId: me.flatMemberId,
+                          members: widget.flat.activeMembers,
                         ),
                       ),
                     )
@@ -618,60 +619,111 @@ class _StatsRow extends StatelessWidget {
   final bool canManage;
   final ValueChanged<int> onTabSelect;
 
+  String _currentMealLabel() {
+    final h = DateTime.now().hour;
+    if (h < 11) return 'Breakfast time';
+    if (h < 15) return 'Lunch time';
+    if (h < 22) return 'Dinner time';
+    return 'Meals';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        // Left: wallet balance
-        Expanded(
-          child: BlocBuilder<WalletBloc, WalletState>(
-            builder: (context, walletState) {
-              final summary = switch (walletState) {
-                WalletSummaryLoaded(summary: final s) => s,
-                WalletActionLoading(summary: final s) => s,
-                WalletPaymentSubmitSuccess(summary: final s) => s,
-                WalletError(summary: final s) when s != null => s,
-                _ => null,
-              };
+    return BlocBuilder<WalletBloc, WalletState>(
+      builder: (context, walletState) {
+        final summary = switch (walletState) {
+          WalletSummaryLoaded(summary: final s) => s,
+          WalletActionLoading(summary: final s) => s,
+          WalletPaymentSubmitSuccess(summary: final s) => s,
+          WalletError(summary: final s) when s != null => s,
+          _ => null,
+        };
+        final flatWallet = switch (walletState) {
+          WalletSummaryLoaded(flatWallet: final fw) => fw,
+          WalletActionLoading(flatWallet: final fw) => fw,
+          WalletPaymentSubmitSuccess(flatWallet: final fw) => fw,
+          _ => null,
+        };
 
-              final balanceText = summary == null
-                  ? '--'
-                  : '৳${summary.walletBalance.abs().toStringAsFixed(0)}';
+        final balanceText = summary == null
+            ? '--'
+            : '${summary.isNegative ? '−' : ''}৳${summary.walletBalance.abs().toStringAsFixed(0)}';
+        final poolText = flatWallet == null
+            ? '--'
+            : '${flatWallet.isNegative ? '−' : ''}৳${flatWallet.balance.abs().toStringAsFixed(0)}';
 
-              return GestureDetector(
-                onTap: () => onTabSelect(2),
-                child: _StatCard(
-                  icon: Icons.account_balance_wallet_rounded,
-                  iconColor: AppColors.brand,
-                  label: 'Balance',
-                  value: balanceText,
-                  subtitle: summary?.isNegative == true ? 'owed' : 'available',
+        return Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => onTabSelect(2),
+                    child: _StatCard(
+                      icon: Icons.account_balance_wallet_rounded,
+                      iconColor: AppColors.brand,
+                      label: 'Balance',
+                      value: balanceText,
+                      subtitle: summary?.isNegative == true ? 'owed' : 'available',
+                    ),
+                  ),
                 ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: AppSizing.sp12),
-        // Right: member count
-        Expanded(
-          child: GestureDetector(
-            onTap: () => context
-                .push(AppRoutes.flatMembers, extra: flat)
-                .then((_) {
-              if (context.mounted) {
-                context.read<FlatBloc>().add(FlatRefreshRequested(flat.id));
-              }
-            }),
-            child: _StatCard(
-              icon: Icons.group_rounded,
-              iconColor: AppColors.info,
-              label: 'Members',
-              value: '${flat.activeMembers.length}',
-              subtitle: 'active',
+                const SizedBox(width: AppSizing.sp12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => onTabSelect(2),
+                    child: _StatCard(
+                      icon: Icons.account_balance_rounded,
+                      iconColor: AppColors.success,
+                      label: 'Pool',
+                      value: poolText,
+                      subtitle: flatWallet?.isNegative == true ? 'deficit' : 'available',
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ),
-      ],
+            const SizedBox(height: AppSizing.sp12),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => context
+                        .push(AppRoutes.flatMembers, extra: flat)
+                        .then((_) {
+                      if (context.mounted) {
+                        context
+                            .read<FlatBloc>()
+                            .add(FlatRefreshRequested(flat.id));
+                      }
+                    }),
+                    child: _StatCard(
+                      icon: Icons.group_rounded,
+                      iconColor: AppColors.info,
+                      label: 'Members',
+                      value: '${flat.activeMembers.length}',
+                      subtitle: 'active',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSizing.sp12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => onTabSelect(1),
+                    child: _StatCard(
+                      icon: Icons.restaurant_rounded,
+                      iconColor: const Color(0xFF10B981),
+                      label: 'Meals',
+                      value: _currentMealLabel(),
+                      subtitle: 'tap to log',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -696,7 +748,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizing.sp16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.r16),
         boxShadow: AppColors.shadowSm,
       ),

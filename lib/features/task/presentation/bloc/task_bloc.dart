@@ -109,6 +109,9 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         title: event.title,
         description: event.description,
         assignedTo: event.assignedTo,
+        assignedToIds: event.assignedToIds?.isNotEmpty == true
+            ? event.assignedToIds
+            : null,
         dueDate: event.dueDate,
         subTaskTitles: event.subTaskTitles,
       );
@@ -128,11 +131,13 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         title: event.title,
         description: event.description,
         assignedTo: event.assignedTo,
+        assignedToIds: event.assignedToIds,
         dueDate: event.dueDate,
         clearAssignee: event.clearAssignee,
         clearDueDate: event.clearDueDate,
         status: event.status,
       );
+
       emit(const TaskActionSuccess('Task updated'));
       emit(TaskDetailLoaded(updated));
     } catch (e) {

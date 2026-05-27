@@ -52,13 +52,19 @@ class TaskRemoteDataSource {
     required String title,
     String? description,
     String? assignedTo,
+    List<String>? assignedToIds,
     String? dueDate,
     List<String>? subTaskTitles,
   }) async {
+    final effectiveIds = assignedToIds?.isNotEmpty == true
+        ? assignedToIds!
+        : assignedTo != null
+            ? [assignedTo]
+            : null;
     final body = <String, dynamic>{
       'title': title,
       if (description != null) 'description': description,
-      if (assignedTo != null) 'assigned_to': assignedTo,
+      if (effectiveIds != null) 'assigned_to_ids': effectiveIds,
       if (dueDate != null) 'due_date': dueDate,
       if (subTaskTitles != null && subTaskTitles.isNotEmpty)
         'sub_tasks': subTaskTitles.map((t) => {'title': t}).toList(),
@@ -78,6 +84,7 @@ class TaskRemoteDataSource {
     String? title,
     String? description,
     String? assignedTo,
+    List<String>? assignedToIds,
     bool clearAssignee = false,
     String? dueDate,
     bool clearDueDate = false,
@@ -86,8 +93,12 @@ class TaskRemoteDataSource {
     final body = <String, dynamic>{
       if (title != null) 'title': title,
       if (description != null) 'description': description,
-      if (clearAssignee) 'assigned_to': null
-      else if (assignedTo != null) 'assigned_to': assignedTo,
+      if (clearAssignee)
+        'assigned_to_ids': <String>[]
+      else if (assignedToIds != null)
+        'assigned_to_ids': assignedToIds
+      else if (assignedTo != null)
+        'assigned_to_ids': [assignedTo],
       if (clearDueDate) 'due_date': null
       else if (dueDate != null) 'due_date': dueDate,
       if (status != null) 'status': status,

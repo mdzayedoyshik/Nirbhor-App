@@ -67,7 +67,7 @@ class MemberMealRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(
             horizontal: AppSizing.md, vertical: AppSizing.sm + 2),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           border: Border.all(color: AppColors.border),
         ),

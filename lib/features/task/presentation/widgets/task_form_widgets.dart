@@ -146,6 +146,200 @@ class TaskMemberPickerSheet extends StatelessWidget {
   };
 }
 
+/// Multi-select assignee picker — used in create/edit task screens.
+class TaskMultiAssigneePicker extends StatelessWidget {
+  const TaskMultiAssigneePicker({
+    super.key,
+    required this.members,
+    required this.selectedIds,
+    required this.onChanged,
+  });
+
+  final List<FlatMemberEntity> members;
+  final List<String> selectedIds;
+  final void Function(List<String>) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final names = selectedIds
+        .map((id) => members.firstWhere(
+              (m) => m.flatMemberId == id,
+              orElse: () => members.first,
+            ).name)
+        .toList();
+
+    return GestureDetector(
+      onTap: () => _show(context),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: AppSizing.inputHeight),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSizing.md, vertical: AppSizing.sm),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.group_outlined,
+                size: 18, color: AppColors.textSecondary),
+            const SizedBox(width: AppSizing.xs),
+            Expanded(
+              child: Text(
+                names.isEmpty
+                    ? 'Assignees'
+                    : names.join(', '),
+                style: AppTypography.bodyMedium.copyWith(
+                  color: names.isNotEmpty
+                      ? AppColors.textPrimary
+                      : AppColors.textHint,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (selectedIds.isNotEmpty)
+              GestureDetector(
+                onTap: () => onChanged([]),
+                child: const Icon(Icons.close,
+                    size: 16, color: AppColors.textSecondary),
+              )
+            else
+              const Icon(Icons.expand_more,
+                  size: 18, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _show(BuildContext context) {
+    final current = List<String>.from(selectedIds);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
+      ),
+      builder: (sheetCtx) => _MultiPickerSheet(
+        members: members,
+        initial: current,
+        onDone: (ids) {
+          onChanged(ids);
+          Navigator.pop(sheetCtx);
+        },
+      ),
+    );
+  }
+}
+
+class _MultiPickerSheet extends StatefulWidget {
+  const _MultiPickerSheet({
+    required this.members,
+    required this.initial,
+    required this.onDone,
+  });
+  final List<FlatMemberEntity> members;
+  final List<String> initial;
+  final void Function(List<String>) onDone;
+
+  @override
+  State<_MultiPickerSheet> createState() => _MultiPickerSheetState();
+}
+
+class _MultiPickerSheetState extends State<_MultiPickerSheet> {
+  late final Set<String> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = Set.from(widget.initial);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(AppSizing.pagePadding),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: AppSizing.bottomSheetHandleWidth,
+              height: AppSizing.bottomSheetHandleHeight,
+              margin: const EdgeInsets.only(bottom: AppSizing.md),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+              ),
+            ),
+          ),
+          Text('Assign To', style: AppTypography.headlineSmall),
+          const SizedBox(height: AppSizing.sm),
+          Text(
+            'Select one or more members',
+            style: AppTypography.bodySmall
+                .copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: AppSizing.md),
+          ...widget.members.map((m) {
+            final checked = _selected.contains(m.flatMemberId);
+            return CheckboxListTile(
+              value: checked,
+              onChanged: (v) => setState(() {
+                if (v == true) {
+                  _selected.add(m.flatMemberId);
+                } else {
+                  _selected.remove(m.flatMemberId);
+                }
+              }),
+              title: Text(m.name, style: AppTypography.bodyMedium),
+              subtitle: Text(
+                _roleLabel(m.role),
+                style: AppTypography.labelSmall
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+              activeColor: AppColors.primary,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+            );
+          }),
+          const SizedBox(height: AppSizing.md),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => widget.onDone(_selected.toList()),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding:
+                    const EdgeInsets.symmetric(vertical: AppSizing.sm + 2),
+                shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppSizing.radiusMd)),
+              ),
+              child: Text(
+                _selected.isEmpty
+                    ? 'Clear Assignees'
+                    : 'Done (${_selected.length} selected)',
+                style: const TextStyle(color: AppColors.white),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizing.sm),
+        ],
+      ),
+    );
+  }
+
+  String _roleLabel(String role) => switch (role) {
+        'manager' => 'Manager',
+        'co-manager' => 'Co-manager',
+        _ => 'Member',
+      };
+}
+
 /// Reusable due-date picker button used in create + edit sheets.
 class TaskDueDatePicker extends StatelessWidget {
   const TaskDueDatePicker({

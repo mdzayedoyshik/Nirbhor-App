@@ -19,6 +19,7 @@ abstract class TaskRepository {
     required String title,
     String? description,
     String? assignedTo,
+    List<String>? assignedToIds,
     String? dueDate,
     List<String>? subTaskTitles,
   });
@@ -29,6 +30,7 @@ abstract class TaskRepository {
     String? title,
     String? description,
     String? assignedTo,
+    List<String>? assignedToIds,
     String? dueDate,
     bool clearAssignee = false,
     bool clearDueDate = false,

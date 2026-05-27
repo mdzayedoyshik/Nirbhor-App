@@ -68,6 +68,7 @@ import '../../features/summary/presentation/bloc/summary_bloc.dart';
 import '../../features/summary/presentation/pages/summary_page.dart';
 import '../../features/task/presentation/args/task_page_args.dart';
 import '../../features/task/presentation/bloc/task_bloc.dart';
+import '../../features/task/presentation/pages/create_task_page.dart';
 import '../../features/task/presentation/pages/task_detail_page.dart';
 import '../../features/task/presentation/pages/task_page.dart';
 import '../../features/complaint/presentation/args/complaint_page_args.dart';
@@ -123,6 +124,7 @@ class AppRoutes {
 
   // Tasks
   static const tasks = '/tasks';
+  static const taskCreate = '/tasks/create';
   static const taskDetail = '/tasks/detail';
 
   // Complaints
@@ -400,6 +402,18 @@ GoRouter createRouter(AuthBloc authBloc) {
           return BlocProvider(
             create: (_) => sl<TaskBloc>(),
             child: TaskPage(args: args),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.taskCreate,
+        redirect: (_, state) =>
+            state.extra is CreateTaskArgs ? null : AppRoutes.tasks,
+        builder: (_, state) {
+          final args = state.extra! as CreateTaskArgs;
+          return BlocProvider(
+            create: (_) => sl<TaskBloc>(),
+            child: CreateTaskPage(args: args),
           );
         },
       ),

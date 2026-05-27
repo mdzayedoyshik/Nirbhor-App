@@ -35,14 +35,15 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: widget.args.canManage ? 3 : 1, vsync: this);
+    _tabController = TabController(length: widget.args.canManage ? 4 : 1, vsync: this);
     _load('pending');
     if (widget.args.canManage) {
       _tabController.addListener(() {
         if (!_tabController.indexIsChanging) {
           final status = switch (_tabController.index) {
             0 => 'pending',
-            1 => 'paid',
+            1 => 'submitted',
+            2 => 'paid',
             _ => 'cancelled',
           };
           _load(status);
@@ -108,6 +109,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
                     indicatorColor: AppColors.primary,
                     tabs: const [
                       Tab(text: 'Pending'),
+                      Tab(text: 'Awaiting'),
                       Tab(text: 'Paid'),
                       Tab(text: 'Cancelled'),
                     ],
@@ -174,7 +176,8 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
         final status = widget.args.canManage
             ? switch (_tabController.index) {
                 0 => 'pending',
-                1 => 'paid',
+                1 => 'submitted',
+                2 => 'paid',
                 _ => 'cancelled',
               }
             : 'pending';

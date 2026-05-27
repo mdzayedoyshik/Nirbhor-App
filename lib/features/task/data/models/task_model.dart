@@ -9,6 +9,7 @@ class TaskModel extends TaskEntity {
     super.description,
     super.assignedTo,
     super.assignedToName,
+    super.assignees = const [],
     required super.createdBy,
     required super.createdByName,
     required super.status,
@@ -23,6 +24,7 @@ class TaskModel extends TaskEntity {
 
   factory TaskModel.fromJson(Map<String, dynamic> json) {
     final hasSubTasksList = json.containsKey('sub_tasks');
+    final rawAssignees = json['assignees'] as List<dynamic>? ?? [];
     return TaskModel(
       id: json['id'] as String,
       flatId: json['flat_id'] as String,
@@ -30,6 +32,12 @@ class TaskModel extends TaskEntity {
       description: json['description'] as String?,
       assignedTo: json['assigned_to'] as String?,
       assignedToName: json['assigned_to_name'] as String?,
+      assignees: rawAssignees
+          .map((a) => TaskAssigneeEntity(
+                flatMemberId: a['flat_member_id'] as String,
+                name: a['name'] as String?,
+              ))
+          .toList(),
       createdBy: json['created_by'] as String,
       createdByName: json['created_by_name'] as String? ?? '',
       status: json['status'] as String,

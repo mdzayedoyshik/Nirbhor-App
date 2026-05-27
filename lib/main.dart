@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:nirbhor/features/flat/presentation/bloc/join_requests_bloc.dart';
+import 'package:nirbhor/features/summary/presentation/bloc/summary_bloc.dart';
 
 import 'core/di/injection_container.dart';
 import 'core/env/app_env.dart';
@@ -62,6 +64,8 @@ class NirbhorApp extends StatelessWidget {
         BlocProvider<ProfileBloc>.value(value: sl<ProfileBloc>()),
         BlocProvider<FlatBloc>.value(value: sl<FlatBloc>()),
         BlocProvider<WalletBloc>.value(value: sl<WalletBloc>()),
+        BlocProvider<JoinRequestsBloc>.value(value: sl<JoinRequestsBloc>()),
+        BlocProvider<SummaryBloc>.value(value: sl<SummaryBloc>()),
       ],
       child: _AppView(router: router),
     );

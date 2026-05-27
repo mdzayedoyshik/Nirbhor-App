@@ -1,6 +1,19 @@
 import 'package:equatable/equatable.dart';
 import 'sub_task_entity.dart';
 
+class TaskAssigneeEntity extends Equatable {
+  const TaskAssigneeEntity({
+    required this.flatMemberId,
+    required this.name,
+  });
+
+  final String flatMemberId;
+  final String? name;
+
+  @override
+  List<Object?> get props => [flatMemberId, name];
+}
+
 class TaskEntity extends Equatable {
   const TaskEntity({
     required this.id,
@@ -9,6 +22,7 @@ class TaskEntity extends Equatable {
     this.description,
     this.assignedTo,
     this.assignedToName,
+    this.assignees = const [],
     required this.createdBy,
     required this.createdByName,
     required this.status,
@@ -29,6 +43,7 @@ class TaskEntity extends Equatable {
   final String? description;
   final String? assignedTo;
   final String? assignedToName;
+  final List<TaskAssigneeEntity> assignees;
   final String createdBy;
   final String createdByName;
   final String status; // pending | in_progress | completed
@@ -60,7 +75,7 @@ class TaskEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, flatId, title, description, assignedTo, assignedToName,
+        id, flatId, title, description, assignedTo, assignedToName, assignees,
         createdBy, createdByName, status, dueDate, createdAt, updatedAt,
         completedAt, subTaskCount, subTasksCompleted, subTasks,
       ];

@@ -39,6 +39,7 @@ class TaskRepositoryImpl implements TaskRepository {
     required String title,
     String? description,
     String? assignedTo,
+    List<String>? assignedToIds,
     String? dueDate,
     List<String>? subTaskTitles,
   }) =>
@@ -47,6 +48,7 @@ class TaskRepositoryImpl implements TaskRepository {
         title: title,
         description: description,
         assignedTo: assignedTo,
+        assignedToIds: assignedToIds,
         dueDate: dueDate,
         subTaskTitles: subTaskTitles,
       );
@@ -58,6 +60,7 @@ class TaskRepositoryImpl implements TaskRepository {
     String? title,
     String? description,
     String? assignedTo,
+    List<String>? assignedToIds,
     String? dueDate,
     bool clearAssignee = false,
     bool clearDueDate = false,
@@ -69,6 +72,7 @@ class TaskRepositoryImpl implements TaskRepository {
         title: title,
         description: description,
         assignedTo: assignedTo,
+        assignedToIds: assignedToIds,
         dueDate: dueDate,
         clearAssignee: clearAssignee,
         clearDueDate: clearDueDate,

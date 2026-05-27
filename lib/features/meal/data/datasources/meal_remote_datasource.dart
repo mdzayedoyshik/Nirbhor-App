@@ -103,4 +103,12 @@ class MealRemoteDataSource {
         auth: true);
     return MealPoolModel.fromJson(r['data'] as Map<String, dynamic>);
   }
+
+  Future<Map<String, dynamic>> getMemberMonthlyLogs(
+      String flatId, String memberId, int month, int year) async {
+    final r = await _api.get(
+        '${ApiEndpoints.memberMealLogs(flatId, memberId)}?month=$month&year=$year',
+        auth: true);
+    return r['data'] as Map<String, dynamic>;
+  }
 }

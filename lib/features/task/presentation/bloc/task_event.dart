@@ -39,6 +39,7 @@ class TaskCreateRequested extends TaskEvent {
     required this.title,
     this.description,
     this.assignedTo,
+    this.assignedToIds,
     this.dueDate,
     this.subTaskTitles,
   });
@@ -46,10 +47,11 @@ class TaskCreateRequested extends TaskEvent {
   final String title;
   final String? description;
   final String? assignedTo;
+  final List<String>? assignedToIds;
   final String? dueDate;
   final List<String>? subTaskTitles;
   @override
-  List<Object?> get props => [flatId, title, description, assignedTo, dueDate, subTaskTitles];
+  List<Object?> get props => [flatId, title, description, assignedTo, assignedToIds, dueDate, subTaskTitles];
 }
 
 class TaskUpdateRequested extends TaskEvent {
@@ -59,6 +61,7 @@ class TaskUpdateRequested extends TaskEvent {
     this.title,
     this.description,
     this.assignedTo,
+    this.assignedToIds,
     this.dueDate,
     this.clearAssignee = false,
     this.clearDueDate = false,
@@ -69,12 +72,13 @@ class TaskUpdateRequested extends TaskEvent {
   final String? title;
   final String? description;
   final String? assignedTo;
+  final List<String>? assignedToIds;
   final String? dueDate;
   final bool clearAssignee;
   final bool clearDueDate;
   final String? status;
   @override
-  List<Object?> get props => [flatId, taskId, title, description, assignedTo, dueDate, clearAssignee, clearDueDate, status];
+  List<Object?> get props => [flatId, taskId, title, description, assignedTo, assignedToIds, dueDate, clearAssignee, clearDueDate, status];
 }
 
 class TaskDeleteRequested extends TaskEvent {

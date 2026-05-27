@@ -143,13 +143,17 @@ class _SummaryPageState extends State<SummaryPage>
         .read<SummaryBloc>()
         .add(SummaryPreviewRequested(widget.args.flatId));
 
+    final bloc = context.read<SummaryBloc>();
     await AppBottomSheet.show(
       context: context,
       isScrollControlled: true,
-      child: _CloseMonthSheet(
-        args: widget.args,
-        month: _month,
-        year: _year,
+      child: BlocProvider.value(
+        value: bloc,
+        child: _CloseMonthSheet(
+          args: widget.args,
+          month: _month,
+          year: _year,
+        ),
       ),
     );
   }

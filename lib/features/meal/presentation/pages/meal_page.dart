@@ -5,11 +5,12 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../flat/domain/entities/flat_member_entity.dart';
+import '../../data/datasources/meal_remote_datasource.dart';
 import '../../domain/entities/meal_pref_day_entity.dart';
 import '../../domain/entities/meal_toggle_entity.dart';
-import '../../domain/usecases/get_meal_config_usecase.dart';
-import '../../domain/usecases/update_meal_config_usecase.dart';
 import '../args/meal_page_args.dart';
 import '../bloc/meal_bloc.dart';
 import '../bloc/meal_pool_bloc.dart';
@@ -75,6 +76,7 @@ class _MealPageState extends State<MealPage> {
               children: [
                 _DailyTab(args: widget.args),
                 _PoolTab(args: widget.args),
+                _HistoryTab(args: widget.args),
                 _PrefsTab(args: widget.args),
               ],
             ),
@@ -164,7 +166,7 @@ class _MealPageHeader extends StatelessWidget {
             _PillTabBar(
               selectedIndex: selectedTab,
               onChanged: onTabChanged,
-              labels: const ['Meals', 'Pool', 'Preferences'],
+              labels: const ['Meals', 'Pool', 'History', 'Prefs'],
             ),
           ],
         ),
@@ -286,6 +288,11 @@ class _DailyTabState extends State<_DailyTab>
       listener: (context, state) {
         if (state is MealActionSuccess) {
           AppSnackbar.success(context, state.message);
+          context.read<MealPoolBloc>().add(MealPoolLoadRequested(
+                flatId: widget.args.flatId,
+                month: DateTime.now().month,
+                year: DateTime.now().year,
+              ));
         } else if (state is MealActionError) {
           AppSnackbar.error(context, state.message);
         }
@@ -339,7 +346,7 @@ class _DailyTabState extends State<_DailyTab>
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSizing.sm, vertical: AppSizing.xs),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: context.cardColor,
                       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                       border: Border.all(color: AppColors.border),
                       boxShadow: AppColors.shadowSm,
@@ -424,6 +431,7 @@ class _DailyTabState extends State<_DailyTab>
                                   flatId: widget.args.flatId,
                                   currentDate: _selectedDate,
                                   flatToggle: logsData.flatToggle,
+                                  canManage: widget.args.canManage,
                                 ),
                       ),
                     ),
@@ -582,7 +590,7 @@ class _PoolTabState extends State<_PoolTab>
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSizing.sm, vertical: AppSizing.xs),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: context.cardColor,
                       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                       border: Border.all(color: AppColors.border),
                       boxShadow: AppColors.shadowSm,
@@ -804,12 +812,6 @@ class _PrefsTabState extends State<_PrefsTab>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Manager-only: lock times card
-                  if (widget.args.canManage) ...[
-                    _LockTimesCard(flatId: widget.args.flatId),
-                    const SizedBox(height: AppSizing.lg),
-                  ],
-
                   // Section title + description
                   Text(
                     'Weekly Meal Preferences',
@@ -896,7 +898,7 @@ class _PrefsTabState extends State<_PrefsTab>
                               horizontal: AppSizing.sm,
                               vertical: AppSizing.sm + 2),
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
+                            color: context.cardColor,
                             borderRadius:
                                 BorderRadius.circular(AppSizing.radiusMd),
                             border: Border.all(color: AppColors.border),
@@ -1033,395 +1035,6 @@ class _PrefsTabState extends State<_PrefsTab>
           ],
         );
       },
-    );
-  }
-}
-
-// ── Lock times card (manager-only) ────────────────────────────────────────────
-
-class _LockTimesCard extends StatefulWidget {
-  final String flatId;
-
-  const _LockTimesCard({required this.flatId});
-
-  @override
-  State<_LockTimesCard> createState() => _LockTimesCardState();
-}
-
-class _LockTimesCardState extends State<_LockTimesCard> {
-  bool _loading = true;
-  bool _saving = false;
-  String? _error;
-
-  // Current saved values
-  String _savedBreakfast = '';
-  String _savedLunch = '';
-  String _savedDinner = '';
-
-  // Editable working values
-  String _breakfast = '';
-  String _lunch = '';
-  String _dinner = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadConfig();
-  }
-
-  Future<void> _loadConfig() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final config = await sl<GetMealConfigUseCase>()(widget.flatId);
-      if (!mounted) return;
-      setState(() {
-        _savedBreakfast = config.lockTimeBreakfast;
-        _savedLunch = config.lockTimeLunch;
-        _savedDinner = config.lockTimeDinner;
-        _breakfast = config.lockTimeBreakfast;
-        _lunch = config.lockTimeLunch;
-        _dinner = config.lockTimeDinner;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  bool get _isDirty =>
-      _breakfast != _savedBreakfast ||
-      _lunch != _savedLunch ||
-      _dinner != _savedDinner;
-
-  TimeOfDay? _parseTime(String hhmm) {
-    if (hhmm.isEmpty) return null;
-    final parts = hhmm.split(':');
-    if (parts.length < 2) return null;
-    final h = int.tryParse(parts[0]);
-    final m = int.tryParse(parts[1]);
-    if (h == null || m == null) return null;
-    return TimeOfDay(hour: h, minute: m);
-  }
-
-  String _formatTimeOfDay(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-
-  Future<void> _pickTime(
-    String shift,
-    String current,
-    void Function(String) onPicked,
-  ) async {
-    final initial = _parseTime(current) ?? const TimeOfDay(hour: 0, minute: 0);
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-      helpText: 'Set UTC lock time for $shift',
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child!,
-      ),
-    );
-    if (picked != null && mounted) {
-      setState(() => onPicked(_formatTimeOfDay(picked)));
-    }
-  }
-
-  Future<void> _save() async {
-    if (!_isDirty || _saving) return;
-    setState(() => _saving = true);
-    try {
-      final payload = <String, dynamic>{};
-      if (_breakfast != _savedBreakfast) {
-        payload['lock_time_breakfast'] = _breakfast;
-      }
-      if (_lunch != _savedLunch) {
-        payload['lock_time_lunch'] = _lunch;
-      }
-      if (_dinner != _savedDinner) {
-        payload['lock_time_dinner'] = _dinner;
-      }
-      final updated = await sl<UpdateMealConfigUseCase>()(widget.flatId, payload);
-      if (!mounted) return;
-      setState(() {
-        _savedBreakfast = updated.lockTimeBreakfast;
-        _savedLunch = updated.lockTimeLunch;
-        _savedDinner = updated.lockTimeDinner;
-        _breakfast = updated.lockTimeBreakfast;
-        _lunch = updated.lockTimeLunch;
-        _dinner = updated.lockTimeDinner;
-        _saving = false;
-      });
-      if (mounted) AppSnackbar.success(context, 'Lock times updated.');
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      AppSnackbar.error(context, e.toString());
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSizing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppColors.shadowSm,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Card header
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.brand.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppSizing.r8),
-                ),
-                child: const Icon(Icons.lock_clock_rounded,
-                    size: 18, color: AppColors.brand),
-              ),
-              const SizedBox(width: AppSizing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Meal Lock Times',
-                      style: AppTypography.labelL
-                          .copyWith(color: AppColors.textPrimary),
-                    ),
-                    Text(
-                      'UTC cut-off times for each shift',
-                      style: AppTypography.labelS
-                          .copyWith(color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: AppSizing.md),
-
-          if (_loading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: AppSizing.sm),
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: AppColors.brand),
-              ),
-            )
-          else if (_error != null)
-            Row(
-              children: [
-                const Icon(Icons.error_outline_rounded,
-                    size: 16, color: AppColors.error),
-                const SizedBox(width: AppSizing.xs),
-                Expanded(
-                  child: Text(
-                    'Failed to load config',
-                    style: AppTypography.labelS
-                        .copyWith(color: AppColors.error),
-                  ),
-                ),
-                TextButton(
-                  onPressed: _loadConfig,
-                  child: const Text('Retry'),
-                ),
-              ],
-            )
-          else ...[
-            // Shift rows
-            _LockTimeRow(
-              shift: 'breakfast',
-              icon: _shiftIcons['breakfast']!,
-              color: _shiftColors['breakfast']!,
-              label: 'Breakfast',
-              time: _breakfast,
-              enabled: !_saving,
-              onTap: () => _pickTime(
-                'breakfast',
-                _breakfast,
-                (v) => _breakfast = v,
-              ),
-            ),
-            const SizedBox(height: AppSizing.sm),
-            _LockTimeRow(
-              shift: 'lunch',
-              icon: _shiftIcons['lunch']!,
-              color: _shiftColors['lunch']!,
-              label: 'Lunch',
-              time: _lunch,
-              enabled: !_saving,
-              onTap: () => _pickTime(
-                'lunch',
-                _lunch,
-                (v) => _lunch = v,
-              ),
-            ),
-            const SizedBox(height: AppSizing.sm),
-            _LockTimeRow(
-              shift: 'dinner',
-              icon: _shiftIcons['dinner']!,
-              color: _shiftColors['dinner']!,
-              label: 'Dinner',
-              time: _dinner,
-              enabled: !_saving,
-              onTap: () => _pickTime(
-                'dinner',
-                _dinner,
-                (v) => _dinner = v,
-              ),
-            ),
-
-            if (_isDirty || _saving) ...[
-              const SizedBox(height: AppSizing.md),
-              SizedBox(
-                width: double.infinity,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                    gradient: _saving ? null : AppColors.brandGradient,
-                    color: _saving
-                        ? AppColors.brand.withValues(alpha: 0.6)
-                        : null,
-                    boxShadow: _saving ? null : AppColors.shadowBrand,
-                  ),
-                  child: FilledButton(
-                    onPressed: _saving ? null : _save,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.transparent,
-                      disabledBackgroundColor: AppColors.transparent,
-                      minimumSize: const Size(double.infinity, 48),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: AppSizing.sm + 2),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSizing.radiusMd),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: _saving
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: AppColors.white),
-                          )
-                        : Text(
-                            'Save Lock Times',
-                            style: AppTypography.labelL
-                                .copyWith(color: AppColors.white),
-                          ),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// ── Lock time row (used inside _LockTimesCard) ────────────────────────────────
-
-class _LockTimeRow extends StatelessWidget {
-  final String shift;
-  final IconData icon;
-  final Color color;
-  final String label;
-  final String time;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  const _LockTimeRow({
-    required this.shift,
-    required this.icon,
-    required this.color,
-    required this.label,
-    required this.time,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSizing.sm, vertical: AppSizing.sm),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(AppSizing.r8),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppSizing.r8),
-              ),
-              child: Icon(icon, size: 16, color: color),
-            ),
-            const SizedBox(width: AppSizing.sm),
-            Expanded(
-              child: Text(
-                label,
-                style: AppTypography.labelM
-                    .copyWith(color: AppColors.textPrimary),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizing.sm, vertical: AppSizing.xs),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppSizing.r8),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    time.isEmpty ? '--:--' : time,
-                    style: AppTypography.labelM.copyWith(
-                      color: time.isEmpty
-                          ? AppColors.textDisabled
-                          : AppColors.textPrimary,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  const SizedBox(width: AppSizing.xs),
-                  Icon(
-                    Icons.edit_rounded,
-                    size: 12,
-                    color: enabled
-                        ? AppColors.textSecondary
-                        : AppColors.textDisabled,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -1577,7 +1190,7 @@ class _FlatToggleCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(
             horizontal: AppSizing.md, vertical: AppSizing.sm + 2),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           border: Border.all(color: AppColors.border),
           boxShadow: AppColors.shadowSm,
@@ -1670,7 +1283,7 @@ class _PoolStatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSizing.sm + 2),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           border: Border.all(color: AppColors.border),
           boxShadow: AppColors.shadowSm,
@@ -1824,6 +1437,514 @@ class _ErrorView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── History Tab ───────────────────────────────────────────────────────────────
+
+class _HistoryTab extends StatefulWidget {
+  const _HistoryTab({required this.args});
+  final MealPageArgs args;
+
+  @override
+  State<_HistoryTab> createState() => _HistoryTabState();
+}
+
+class _HistoryTabState extends State<_HistoryTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  late DateTime _month;
+  String? _selectedMemberId;
+  Map<String, dynamic>? _data;
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _month = DateTime(now.year, now.month);
+    _selectedMemberId = widget.args.myMemberId;
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final ds = sl<MealRemoteDataSource>();
+      final result = await ds.getMemberMonthlyLogs(
+        widget.args.flatId,
+        _selectedMemberId!,
+        _month.month,
+        _month.year,
+      );
+      setState(() {
+        _data = result;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e is ServerException ? e.message : 'Failed to load history';
+        _loading = false;
+      });
+    }
+  }
+
+  void _prevMonth() {
+    setState(() => _month = DateTime(_month.year, _month.month - 1));
+    _load();
+  }
+
+  void _nextMonth() {
+    final now = DateTime.now();
+    if (_month.year == now.year && _month.month == now.month) return;
+    setState(() => _month = DateTime(_month.year, _month.month + 1));
+    _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final now = DateTime.now();
+    final isCurrentMonth =
+        _month.year == now.year && _month.month == now.month;
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSizing.pagePadding, AppSizing.md, AppSizing.pagePadding, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Member selector (managers only see multi-member list)
+                if (widget.args.canManage && widget.args.members.length > 1)
+                  _MemberDropdown(
+                    members: widget.args.members,
+                    selectedId: _selectedMemberId,
+                    onChanged: (id) {
+                      setState(() => _selectedMemberId = id);
+                      _load();
+                    },
+                  ),
+                if (widget.args.canManage && widget.args.members.length > 1)
+                  const SizedBox(height: AppSizing.md),
+
+                // Month navigator
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: _prevMonth,
+                      icon: const Icon(Icons.chevron_left_rounded),
+                      color: AppColors.textSecondary,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    Expanded(
+                      child: Text(
+                        _monthLabel(_month),
+                        style: AppTypography.titleMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: isCurrentMonth ? null : _nextMonth,
+                      icon: const Icon(Icons.chevron_right_rounded),
+                      color: isCurrentMonth
+                          ? AppColors.textHint
+                          : AppColors.textSecondary,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSizing.sm),
+              ],
+            ),
+          ),
+        ),
+
+        if (_loading)
+          const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_error != null)
+          SliverFillRemaining(
+            child: _ErrorView(message: _error!, onRetry: _load),
+          )
+        else if (_data != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizing.pagePadding),
+              child: _CalendarView(
+                month: _month,
+                logs: _data!,
+              ),
+            ),
+          )
+        else
+          const SliverFillRemaining(child: SizedBox.shrink()),
+      ],
+    );
+  }
+
+  String _monthLabel(DateTime dt) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return '${months[dt.month - 1]} ${dt.year}';
+  }
+}
+
+// ── Member dropdown ────────────────────────────────────────────────────────
+
+class _MemberDropdown extends StatelessWidget {
+  const _MemberDropdown({
+    required this.members,
+    required this.selectedId,
+    required this.onChanged,
+  });
+
+  final List<FlatMemberEntity> members;
+  final String? selectedId;
+  final void Function(String) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: AppSizing.inputHeight,
+      padding: const EdgeInsets.symmetric(horizontal: AppSizing.md),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedId,
+          isExpanded: true,
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textPrimary,
+          ),
+          dropdownColor: context.cardColor,
+          items: members.map((m) => DropdownMenuItem(
+            value: m.flatMemberId,
+            child: Text(m.name, style: AppTypography.bodyMedium),
+          )).toList(),
+          onChanged: (v) {
+            if (v != null) onChanged(v);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ── Calendar view ──────────────────────────────────────────────────────────
+
+class _CalendarView extends StatelessWidget {
+  const _CalendarView({required this.month, required this.logs});
+
+  final DateTime month;
+  final Map<String, dynamic> logs;
+
+  @override
+  Widget build(BuildContext context) {
+    final daysInMonth =
+        DateTime(month.year, month.month + 1, 0).day;
+    final firstWeekday = DateTime(month.year, month.month, 1).weekday % 7;
+
+    final logsMap = <int, Map<String, dynamic>>{};
+    final rawLogs = logs['logs'] as List? ?? [];
+    for (final entry in rawLogs) {
+      final e = entry as Map<String, dynamic>;
+      final dateStr = e['date'] as String? ?? '';
+      if (dateStr.isNotEmpty) {
+        final day = int.tryParse(dateStr.split('-').last) ?? 0;
+        if (day > 0) logsMap[day] = e;
+      }
+    }
+
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Weekday headers
+        Row(
+          children: weekdays.map((d) => Expanded(
+            child: Center(
+              child: Text(
+                d,
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.textHint,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          )).toList(),
+        ),
+        const SizedBox(height: AppSizing.xs),
+
+        // Calendar grid
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 7,
+            childAspectRatio: 0.85,
+          ),
+          itemCount: firstWeekday + daysInMonth,
+          itemBuilder: (_, i) {
+            if (i < firstWeekday) return const SizedBox.shrink();
+            final day = i - firstWeekday + 1;
+            final log = logsMap[day];
+            return _CalendarCell(day: day, log: log);
+          },
+        ),
+
+        const SizedBox(height: AppSizing.md),
+        const _CalendarLegend(),
+        const SizedBox(height: AppSizing.md),
+
+        // Summary row
+        if (logs['summary'] != null)
+          _SummaryRow(summary: logs['summary'] as Map<String, dynamic>),
+        const SizedBox(height: AppSizing.xl),
+      ],
+    );
+  }
+}
+
+class _CalendarCell extends StatelessWidget {
+  const _CalendarCell({required this.day, required this.log});
+
+  final int day;
+  final Map<String, dynamic>? log;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasBreakfast = log?['breakfast'] == true;
+    final hasLunch = log?['lunch'] == true;
+    final hasDinner = log?['dinner'] == true;
+    final guestCount = ((log?['breakfast_guests'] ?? 0) as num).toInt() +
+        ((log?['lunch_guests'] ?? 0) as num).toInt() +
+        ((log?['dinner_guests'] ?? 0) as num).toInt();
+
+    return Container(
+      margin: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '$day',
+            style: AppTypography.labelSmall.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _MealDot(active: hasBreakfast, color: const Color(0xFFF59E0B)),
+              const SizedBox(width: 2),
+              _MealDot(active: hasLunch, color: AppColors.primary),
+              const SizedBox(width: 2),
+              _MealDot(active: hasDinner, color: const Color(0xFF8B5CF6)),
+            ],
+          ),
+          if (guestCount > 0) ...[
+            const SizedBox(height: 2),
+            Text(
+              '+$guestCount',
+              style: AppTypography.labelSmall.copyWith(
+                fontSize: 8,
+                color: AppColors.textHint,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MealDot extends StatelessWidget {
+  const _MealDot({required this.active, required this.color});
+
+  final bool active;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 5,
+      height: 5,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: active ? color : AppColors.border,
+      ),
+    );
+  }
+}
+
+class _CalendarLegend extends StatelessWidget {
+  const _CalendarLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: const [
+        _LegendItem(color: Color(0xFFF59E0B), label: 'Breakfast'),
+        SizedBox(width: AppSizing.md),
+        _LegendItem(color: AppColors.primary, label: 'Lunch'),
+        SizedBox(width: AppSizing.md),
+        _LegendItem(color: Color(0xFF8B5CF6), label: 'Dinner'),
+      ],
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: AppTypography.labelSmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({required this.summary});
+
+  final Map<String, dynamic> summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final breakfast = (summary['breakfast'] ?? 0) as num;
+    final lunch = (summary['lunch'] ?? 0) as num;
+    final dinner = (summary['dinner'] ?? 0) as num;
+    final total = breakfast + lunch + dinner;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizing.md),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          _SummaryItem(
+            label: 'Breakfast',
+            value: breakfast.toString(),
+            color: const Color(0xFFF59E0B),
+          ),
+          const _Divider(),
+          _SummaryItem(
+            label: 'Lunch',
+            value: lunch.toString(),
+            color: AppColors.primary,
+          ),
+          const _Divider(),
+          _SummaryItem(
+            label: 'Dinner',
+            value: dinner.toString(),
+            color: const Color(0xFF8B5CF6),
+          ),
+          const _Divider(),
+          _SummaryItem(
+            label: 'Total',
+            value: total.toString(),
+            color: AppColors.textPrimary,
+            bold: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryItem extends StatelessWidget {
+  const _SummaryItem({
+    required this.label,
+    required this.value,
+    required this.color,
+    this.bold = false,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+  final bool bold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: AppTypography.titleMedium.copyWith(
+              color: color,
+              fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
+            ),
+          ),
+          Text(
+            label,
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  const _Divider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 32,
+      color: AppColors.border,
     );
   }
 }

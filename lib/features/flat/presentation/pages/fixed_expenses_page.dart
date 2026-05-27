@@ -143,9 +143,13 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
           }
 
           void resetToEqual() {
-            final eq = totalFixed / members.length;
-            for (final m in members) {
-              controllers[m.flatMemberId]?.text = eq.toStringAsFixed(0);
+            final totalCents = (totalFixed * 100).round();
+            final perCents = totalCents ~/ members.length;
+            final remainderCents = totalCents - perCents * members.length;
+            for (int i = 0; i < members.length; i++) {
+              final shareCents = perCents + (i == 0 ? remainderCents : 0);
+              controllers[members[i].flatMemberId]?.text =
+                  (shareCents / 100).toStringAsFixed(0);
             }
             setSheetState(() {});
           }

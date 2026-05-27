@@ -10,6 +10,7 @@ class CreateTaskUseCase {
     required String title,
     String? description,
     String? assignedTo,
+    List<String>? assignedToIds,
     String? dueDate,
     List<String>? subTaskTitles,
   }) =>
@@ -18,6 +19,7 @@ class CreateTaskUseCase {
         title: title,
         description: description,
         assignedTo: assignedTo,
+        assignedToIds: assignedToIds,
         dueDate: dueDate,
         subTaskTitles: subTaskTitles,
       );
