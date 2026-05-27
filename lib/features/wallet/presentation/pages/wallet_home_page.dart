@@ -129,8 +129,8 @@ class _WalletHomePageState extends State<WalletHomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Compact balance card ───────────────────────
-            _BalanceCard(summary: summary, flatWallet: flatWallet),
+            // ── Balance section ────────────────────────────
+            _BalanceSection(summary: summary, flatWallet: flatWallet),
 
             Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -239,109 +239,115 @@ class _WalletHomePageState extends State<WalletHomePage> {
   }
 }
 
-// ── Balance header ────────────────────────────────────────────────────────────
+// ── Balance section ───────────────────────────────────────────────────────────
 
-class _BalanceCard extends StatelessWidget {
-  const _BalanceCard({required this.summary, required this.flatWallet});
+class _BalanceSection extends StatelessWidget {
+  const _BalanceSection({required this.summary, required this.flatWallet});
   final WalletSummaryEntity summary;
   final FlatWalletEntity? flatWallet;
 
   @override
   Widget build(BuildContext context) {
     final isNeg = summary.isNegative;
-    final gradient = isNeg ? AppColors.warmGradient : AppColors.brandGradient;
+    final statusColor = isNeg ? AppColors.error : AppColors.success;
+    final amountColor = isNeg ? AppColors.error : context.textPrimColor;
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
         AppSizing.pagePadding,
         AppSizing.xs,
         AppSizing.pagePadding,
         0,
       ),
-      padding: const EdgeInsets.fromLTRB(
-          AppSizing.lg, AppSizing.md, AppSizing.lg, AppSizing.sm),
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(AppSizing.r20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppStrings.walletCurrentBalance,
-                      style: AppTypography.labelS.copyWith(
-                        color: AppColors.white.withValues(alpha: 0.72),
-                        letterSpacing: 0.5,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSizing.md + 2, vertical: AppSizing.md),
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(AppSizing.r16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // My balance
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppStrings.walletCurrentBalance,
+                    style: AppTypography.labelS
+                        .copyWith(color: context.textSecColor),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${isNeg ? '−' : ''}৳${summary.walletBalance.abs().toStringAsFixed(0)}',
+                        style: AppTypography.amountXL.copyWith(
+                          color: amountColor,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${isNeg ? '−' : ''}৳${summary.walletBalance.abs().toStringAsFixed(0)}',
-                      style: AppTypography.amountXL.copyWith(
-                        color: AppColors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
+                      const SizedBox(width: AppSizing.xs),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.1),
+                          borderRadius:
+                              BorderRadius.circular(AppSizing.radiusFull),
+                        ),
+                        child: Text(
+                          isNeg ? 'Due' : 'Healthy',
+                          style: AppTypography.labelS.copyWith(
+                            color: statusColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
+            ),
+
+            // Divider + pool balance
+            if (flatWallet != null) ...[
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizing.sm, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isNeg
-                          ? Icons.warning_amber_rounded
-                          : Icons.check_circle_outline_rounded,
-                      color: AppColors.white,
-                      size: 11,
+                width: 1,
+                height: 44,
+                margin: const EdgeInsets.symmetric(horizontal: AppSizing.md),
+                color: AppColors.border,
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Flat Pool',
+                    style: AppTypography.labelS
+                        .copyWith(color: context.textSecColor),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${flatWallet!.isNegative ? '−' : ''}৳${flatWallet!.balance.abs().toStringAsFixed(0)}',
+                    style: AppTypography.amountM.copyWith(
+                      color: flatWallet!.isNegative
+                          ? AppColors.error
+                          : context.textPrimColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 20,
                     ),
-                    const SizedBox(width: 3),
-                    Text(
-                      isNeg ? 'Due' : 'Healthy',
-                      style: AppTypography.labelS.copyWith(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
-          ),
-          if (flatWallet != null) ...[
-            const SizedBox(height: AppSizing.xs),
-            Row(
-              children: [
-                Icon(Icons.account_balance_rounded,
-                    size: 12, color: AppColors.white.withValues(alpha: 0.65)),
-                const SizedBox(width: 4),
-                Text(
-                  'Pool: ${flatWallet!.isNegative ? '−' : ''}৳${flatWallet!.balance.abs().toStringAsFixed(0)}',
-                  style: AppTypography.labelS.copyWith(
-                    color: AppColors.white.withValues(alpha: 0.75),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -368,6 +374,7 @@ class _QuickActionsRow extends StatelessWidget {
         _QuickActionButton(
           icon: Icons.send_rounded,
           label: 'Pay',
+          isPrimary: true,
           onTap: isLoading
               ? null
               : () => context.push(
@@ -408,41 +415,54 @@ class _QuickActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.isPrimary = false,
   });
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
+  final bool isPrimary;
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final accent = isPrimary && enabled ? AppColors.brand : null;
+
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(
-              vertical: AppSizing.md, horizontal: AppSizing.sm),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: context.cardColor,
-            borderRadius: BorderRadius.circular(AppSizing.r16),
-            boxShadow: AppColors.shadowSm,
+            color: accent != null
+                ? AppColors.brand.withValues(alpha: 0.07)
+                : context.cardColor,
+            borderRadius: BorderRadius.circular(AppSizing.r12),
+            border: Border.all(
+              color: accent != null
+                  ? AppColors.brand.withValues(alpha: 0.35)
+                  : AppColors.border,
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  gradient: AppColors.brandGradient,
-                  borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-                ),
-                child: Icon(icon, color: AppColors.white, size: 20),
+              Icon(
+                icon,
+                size: 18,
+                color: enabled
+                    ? (accent ?? AppColors.brand)
+                    : AppColors.textHint,
               ),
-              const SizedBox(height: AppSizing.xs),
+              const SizedBox(height: 4),
               Text(
                 label,
-                style: AppTypography.labelM.copyWith(
-                  color: context.textPrimColor,
+                style: AppTypography.labelS.copyWith(
+                  color: enabled
+                      ? (accent != null
+                          ? AppColors.brand
+                          : context.textPrimColor)
+                      : AppColors.textHint,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -648,7 +668,7 @@ class _TransactionsList extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.r16),
-        boxShadow: AppColors.shadowSm,
+        border: Border.all(color: AppColors.border),
       ),
       padding: const EdgeInsets.symmetric(
           horizontal: AppSizing.md, vertical: AppSizing.xs),
@@ -670,21 +690,22 @@ class _EmptyTransactionsState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
           vertical: AppSizing.xl, horizontal: AppSizing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface100,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.r16),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 64,
-            height: 64,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              gradient: AppColors.brandGradient,
+              color: AppColors.brand.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.receipt_long_outlined,
-                color: AppColors.white, size: 30),
+            child: Icon(Icons.receipt_long_outlined,
+                color: AppColors.brand, size: 26),
           ),
           const SizedBox(height: AppSizing.md),
           Text(

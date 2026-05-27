@@ -1292,14 +1292,6 @@ class _SettingsSheet extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSizing.sm),
                   _ThemeOption(
-                    icon: Icons.dark_mode_rounded,
-                    label: 'Dark',
-                    selected: state.mode == ThemeMode.dark,
-                    onTap: () =>
-                        context.read<ThemeCubit>().setTheme(ThemeMode.dark),
-                  ),
-                  const SizedBox(width: AppSizing.sm),
-                  _ThemeOption(
                     icon: Icons.brightness_auto_rounded,
                     label: 'System',
                     selected: state.mode == ThemeMode.system,
