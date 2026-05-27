@@ -66,7 +66,7 @@ class _PaymentsHubPageState extends State<PaymentsHubPage> {
           PaymentRequestsLoadRequested(widget.args.flatId, status: 'pending'),
         );
     context.read<PaymentsBloc>().add(
-          PaymentsLoadRequested(widget.args.flatId, status: 'submitted'),
+          PaymentsLoadRequested(widget.args.flatId, status: 'pending'),
         );
   }
 
@@ -79,7 +79,7 @@ class _PaymentsHubPageState extends State<PaymentsHubPage> {
             );
       case 1:
         context.read<PaymentsBloc>().add(
-              PaymentsLoadRequested(widget.args.flatId, status: 'submitted'),
+              PaymentsLoadRequested(widget.args.flatId, status: 'pending'),
             );
       case 2:
         context.read<PaymentsBloc>().add(
@@ -111,7 +111,7 @@ class _PaymentsHubPageState extends State<PaymentsHubPage> {
           PaymentsLoadRequested(
             widget.args.flatId,
             status: switch (_selectedTab) {
-              1 => 'submitted',
+              1 => 'pending',
               2 => 'verified',
               3 => 'rejected',
               _ => null,
