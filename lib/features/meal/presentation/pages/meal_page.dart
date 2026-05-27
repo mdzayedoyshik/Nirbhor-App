@@ -276,6 +276,33 @@ class _DailyTabState extends State<_DailyTab>
         );
   }
 
+  Future<void> _pickDate(BuildContext context) async {
+    final current = DateTime.parse(_selectedDate);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked == null || !mounted) return;
+    final newDate =
+        '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+    if (newDate == _selectedDate) return;
+    setState(() => _selectedDate = newDate);
+    context.read<MealBloc>().add(
+          MealDailyDateChanged(flatId: widget.args.flatId, date: newDate),
+        );
+  }
+
+  void _goToToday() {
+    final today = _todayIso();
+    if (today == _selectedDate) return;
+    setState(() => _selectedDate = today);
+    context.read<MealBloc>().add(
+          MealDailyDateChanged(flatId: widget.args.flatId, date: today),
+        );
+  }
+
   String _formatDate(String iso) {
     final d = DateTime.parse(iso);
     return '${_days[d.weekday - 1]}, ${d.day} ${_months[d.month - 1]} ${d.year}';
@@ -358,18 +385,30 @@ class _DailyTabState extends State<_DailyTab>
                           onPressed: isActionLoading ? null : () => _changeDate(-1),
                         ),
                         Expanded(
-                          child: Text(
-                            _formatDate(_selectedDate),
-                            style: AppTypography.labelL.copyWith(
-                              color: AppColors.textPrimary,
+                          child: GestureDetector(
+                            onTap: isActionLoading ? null : () => _pickDate(context),
+                            child: Text(
+                              _formatDate(_selectedDate),
+                              style: AppTypography.labelL.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
                           ),
                         ),
                         _NavIconButton(
                           icon: Icons.chevron_right_rounded,
-                          onPressed: isActionLoading ? null : () => _changeDate(1),
+                          onPressed: isActionLoading
+                              ? null
+                              : _selectedDate == _todayIso()
+                                  ? null
+                                  : () => _changeDate(1),
                         ),
+                        if (_selectedDate != _todayIso())
+                          _NavIconButton(
+                            icon: Icons.today_rounded,
+                            onPressed: isActionLoading ? null : _goToToday,
+                          ),
                       ],
                     ),
                   ),
@@ -1669,10 +1708,13 @@ class _CalendarView extends StatelessWidget {
       final e = entry as Map<String, dynamic>;
       final dateStr = e['date'] as String? ?? '';
       if (dateStr.isNotEmpty) {
-        final day = int.tryParse(dateStr.split('-').last) ?? 0;
+        final day = DateTime.tryParse(dateStr)?.toUtc().day ?? 0;
         if (day > 0) logsMap[day] = e;
       }
     }
+
+    final today = DateTime.now();
+    final isCurrentMonth = month.year == today.year && month.month == today.month;
 
     const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -1708,7 +1750,11 @@ class _CalendarView extends StatelessWidget {
             if (i < firstWeekday) return const SizedBox.shrink();
             final day = i - firstWeekday + 1;
             final log = logsMap[day];
-            return _CalendarCell(day: day, log: log);
+            return _CalendarCell(
+              day: day,
+              log: log,
+              isToday: isCurrentMonth && day == today.day,
+            );
           },
         ),
 
@@ -1726,10 +1772,15 @@ class _CalendarView extends StatelessWidget {
 }
 
 class _CalendarCell extends StatelessWidget {
-  const _CalendarCell({required this.day, required this.log});
+  const _CalendarCell({
+    required this.day,
+    required this.log,
+    required this.isToday,
+  });
 
   final int day;
   final Map<String, dynamic>? log;
+  final bool isToday;
 
   @override
   Widget build(BuildContext context) {
@@ -1743,8 +1794,13 @@ class _CalendarCell extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: context.cardColor,
+        color: isToday
+            ? AppColors.brand.withValues(alpha: 0.08)
+            : context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+        border: isToday
+            ? Border.all(color: AppColors.brand, width: 1.5)
+            : null,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1752,8 +1808,8 @@ class _CalendarCell extends StatelessWidget {
           Text(
             '$day',
             style: AppTypography.labelSmall.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+              color: isToday ? AppColors.brand : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 3),

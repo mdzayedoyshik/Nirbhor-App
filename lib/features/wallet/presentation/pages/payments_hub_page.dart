@@ -659,12 +659,12 @@ class _AwaitingVerificationTab extends StatelessWidget {
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
       ),
-      builder: (_) => Padding(
+      builder: (sheetCtx) => Padding(
         padding: EdgeInsets.fromLTRB(
           AppSizing.pagePadding,
           AppSizing.md,
           AppSizing.pagePadding,
-          MediaQuery.of(context).viewInsets.bottom + AppSizing.pagePadding,
+          MediaQuery.of(sheetCtx).viewInsets.bottom + AppSizing.pagePadding,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -697,7 +697,7 @@ class _AwaitingVerificationTab extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetCtx);
                   context.read<PaymentsBloc>().add(PaymentRejectRequested(
                         flatId: flatId,
                         paymentId: paymentId,

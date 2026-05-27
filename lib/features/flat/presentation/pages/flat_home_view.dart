@@ -15,6 +15,7 @@ import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/quick_action_button.dart';
 import '../../../../core/widgets/section_header.dart';
+import '../../../../core/theme/theme_cubit.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../audit_log/presentation/args/audit_log_page_args.dart';
 import '../../../complaint/presentation/args/complaint_page_args.dart';
@@ -405,6 +406,7 @@ class _HomeDashboard extends StatelessWidget {
               _HomeHeader(
                 flat: flat,
                 me: me,
+                canManage: canManage,
                 greeting: _greeting(),
                 greetingEmoji: _greetingEmoji(),
               )
@@ -489,14 +491,32 @@ class _HomeHeader extends StatelessWidget {
   const _HomeHeader({
     required this.flat,
     required this.me,
+    required this.canManage,
     required this.greeting,
     required this.greetingEmoji,
   });
 
   final FlatEntity flat;
   final FlatMemberEntity? me;
+  final bool canManage;
   final String greeting;
   final String greetingEmoji;
+
+  void _showSettingsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppSizing.radiusLg)),
+      ),
+      builder: (sheetCtx) => BlocProvider.value(
+        value: context.read<ThemeCubit>(),
+        child: _SettingsSheet(flat: flat, canManage: canManage),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -547,6 +567,13 @@ class _HomeHeader extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+
+          // Settings
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            color: AppColors.textSecondary,
+            onPressed: () => _showSettingsSheet(context),
           ),
 
           // Notification bell
@@ -894,23 +921,8 @@ class _QuickActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // First 8 buttons are the same for everyone
+    // Quick action buttons
     final commonActions = <Widget>[
-      QuickActionButton(
-        icon: Icons.account_balance_wallet_outlined,
-        label: 'Wallet',
-        onTap: () => onTabSelect(2),
-      ),
-      QuickActionButton(
-        icon: Icons.restaurant_rounded,
-        label: 'Meals',
-        onTap: () => onTabSelect(1),
-      ),
-      QuickActionButton(
-        icon: Icons.receipt_long_outlined,
-        label: 'Expenses',
-        onTap: () => onTabSelect(3),
-      ),
       QuickActionButton(
         icon: Icons.task_alt_rounded,
         label: 'Tasks',
@@ -1211,7 +1223,186 @@ class _MembersGlimpse extends StatelessWidget {
   }
 }
 
-// ── Wallet Hero Card (kept for home balance display) ─────────────────────────
+// ── Settings Sheet ────────────────────────────────────────────────────────────
 
-// The _StatsRow now handles balance display inline via _StatCard.
-// _WalletHeroCard is no longer used as a separate widget.
+class _SettingsSheet extends StatelessWidget {
+  const _SettingsSheet({required this.flat, required this.canManage});
+
+  final FlatEntity flat;
+  final bool canManage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        AppSizing.pagePadding,
+        AppSizing.md,
+        AppSizing.pagePadding,
+        MediaQuery.of(context).viewInsets.bottom + AppSizing.pagePadding,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // drag handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: AppSizing.md),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+              ),
+            ),
+          ),
+          Text('Settings', style: AppTypography.headlineSmall),
+          const SizedBox(height: AppSizing.md),
+
+          // Flat Settings (manager only)
+          if (canManage) ...[
+            _SettingsTile(
+              icon: Icons.home_work_outlined,
+              label: 'Flat Settings',
+              subtitle: 'Name, photo, meal config',
+              onTap: () {
+                Navigator.pop(context);
+                context.push(AppRoutes.flatSettings, extra: flat);
+              },
+            ),
+            const SizedBox(height: AppSizing.sm),
+          ],
+
+          // Theme
+          Text(
+            'Theme',
+            style: AppTypography.labelM.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: AppSizing.xs),
+          BlocBuilder<ThemeCubit, ThemeState>(
+            builder: (context, state) {
+              return Row(
+                children: [
+                  _ThemeOption(
+                    icon: Icons.light_mode_rounded,
+                    label: 'Light',
+                    selected: state.mode == ThemeMode.light,
+                    onTap: () =>
+                        context.read<ThemeCubit>().setTheme(ThemeMode.light),
+                  ),
+                  const SizedBox(width: AppSizing.sm),
+                  _ThemeOption(
+                    icon: Icons.dark_mode_rounded,
+                    label: 'Dark',
+                    selected: state.mode == ThemeMode.dark,
+                    onTap: () =>
+                        context.read<ThemeCubit>().setTheme(ThemeMode.dark),
+                  ),
+                  const SizedBox(width: AppSizing.sm),
+                  _ThemeOption(
+                    icon: Icons.brightness_auto_rounded,
+                    label: 'System',
+                    selected: state.mode == ThemeMode.system,
+                    onTap: () =>
+                        context.read<ThemeCubit>().setTheme(ThemeMode.system),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: AppSizing.sm),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: AppColors.brand.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+        ),
+        child: Icon(icon, size: 20, color: AppColors.brand),
+      ),
+      title: Text(label, style: AppTypography.titleMedium),
+      subtitle: Text(subtitle,
+          style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary)),
+      trailing: const Icon(Icons.chevron_right, color: AppColors.textHint),
+    );
+  }
+}
+
+class _ThemeOption extends StatelessWidget {
+  const _ThemeOption({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: AppSizing.sm),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppColors.brand.withValues(alpha: 0.1)
+                : context.cardColor,
+            borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+            border: Border.all(
+              color: selected
+                  ? AppColors.brand
+                  : AppColors.border,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon,
+                  size: 20,
+                  color: selected ? AppColors.brand : AppColors.textSecondary),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: AppTypography.labelS.copyWith(
+                  color: selected ? AppColors.brand : AppColors.textSecondary,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

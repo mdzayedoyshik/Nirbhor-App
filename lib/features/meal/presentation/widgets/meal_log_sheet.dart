@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -24,7 +26,7 @@ const _shiftColors = {
   'dinner': Color(0xFF6C63FF),
 };
 
-// ── Public show helpers ────────────────────────────────────────────────────────
+// ── Public show helper ─────────────────────────────────────────────────────────
 
 void showMealLogSheet({
   required BuildContext context,
@@ -84,9 +86,8 @@ class _MealLogSheet extends StatefulWidget {
 class _MealLogSheetState extends State<_MealLogSheet> {
   late Map<String, bool> _on;
   late Map<String, int> _guests;
-  late Map<String, bool> _initialOn;
-  late Map<String, int> _initialGuests;
-  bool _saving = false;
+  // per-shift pending save debounce timers
+  final Map<String, Timer?> _debounce = {};
 
   @override
   void initState() {
@@ -101,8 +102,14 @@ class _MealLogSheetState extends State<_MealLogSheet> {
       'lunch': widget.entry.lunchGuests,
       'dinner': widget.entry.dinnerGuests,
     };
-    _initialOn = Map.of(_on);
-    _initialGuests = Map.of(_guests);
+  }
+
+  @override
+  void dispose() {
+    for (final t in _debounce.values) {
+      t?.cancel();
+    }
+    super.dispose();
   }
 
   bool _shiftEditable(String shift) {
@@ -125,33 +132,38 @@ class _MealLogSheetState extends State<_MealLogSheet> {
       _on[shift] = !(_on[shift] ?? false);
       if (!(_on[shift]!)) _guests[shift] = 0;
     });
+    // cancel pending guest debounce for this shift and save immediately
+    _debounce[shift]?.cancel();
+    _autoSave(shift);
   }
 
   void _adjustGuests(String shift, int delta) {
+    if (!_shiftEditable(shift) || !(_on[shift] ?? false)) return;
     final current = _guests[shift] ?? 0;
     final next = (current + delta).clamp(0, 10);
+    if (next == current) return;
     setState(() => _guests[shift] = next);
+    _debounce[shift]?.cancel();
+    _debounce[shift] = Timer(
+      const Duration(milliseconds: 500),
+      () => _autoSave(shift),
+    );
   }
 
-  Future<void> _save() async {
-    setState(() => _saving = true);
+  void _autoSave(String shift) {
+    if (!mounted) return;
     final body = <String, dynamic>{'date': widget.currentDate};
-    for (final shift in _shifts) {
-      if (_on[shift] != _initialOn[shift]) {
-        body[shift] = _on[shift];
-      }
-      if (_guests[shift] != _initialGuests[shift]) {
-        body['${shift}_guests'] = _guests[shift];
-      }
-    }
-    // Manager editing others: always send full state so backend overwrites correctly
     if (widget.isManager && !widget.isOwn) {
-      for (final shift in _shifts) {
-        body[shift] = _on[shift];
-        body['${shift}_guests'] = _guests[shift];
+      // manager editing another member: always send full state
+      for (final s in _shifts) {
+        body[s] = _on[s];
+        body['${s}_guests'] = _guests[s];
       }
+    } else {
+      // send only the changed shift
+      body[shift] = _on[shift];
+      body['${shift}_guests'] = _guests[shift];
     }
-
     if (widget.isManager && !widget.isOwn) {
       context.read<MealBloc>().add(MealManagerEditRequested(
             flatId: widget.flatId,
@@ -163,7 +175,12 @@ class _MealLogSheetState extends State<_MealLogSheet> {
             MealSelfToggleRequested(flatId: widget.flatId, body: body),
           );
     }
+  }
 
+  void _done() {
+    for (final t in _debounce.values) {
+      t?.cancel();
+    }
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -330,26 +347,32 @@ class _MealLogSheetState extends State<_MealLogSheet> {
           }),
 
           const SizedBox(height: AppSizing.sm),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _saving ? null : _save,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: AppSizing.sm + 4),
-                shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppSizing.radiusMd)),
-              ),
-              child: _saving
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.white),
-                    )
-                  : const Text('Save'),
-            ),
+          // BlocBuilder for inline action feedback
+          BlocBuilder<MealBloc, MealState>(
+            builder: (context, state) {
+              final isSaving = state is MealActionInProgress;
+              return SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: isSaving ? null : _done,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: AppSizing.sm + 4),
+                    shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppSizing.radiusMd)),
+                  ),
+                  child: isSaving
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.white),
+                        )
+                      : const Text('Done'),
+                ),
+              );
+            },
           ),
         ],
       ),
