@@ -59,15 +59,6 @@ class _WalletHomePageState extends State<WalletHomePage> {
                     extra: widget.args,
                   ),
                 ),
-              if (widget.args.canManage)
-                IconButton(
-                  icon: const Icon(Icons.payment_rounded),
-                  tooltip: 'Manage Payments',
-                  onPressed: () => context.push(
-                    AppRoutes.walletRequests,
-                    extra: widget.args,
-                  ),
-                ),
             ],
           ),
           body: _buildBody(context, state),
@@ -143,13 +134,13 @@ class _WalletHomePageState extends State<WalletHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Quick actions ──────────────────────────
-                  _QuickActionsRow(
-                    flatId: widget.args.flatId,
-                    args: widget.args,
-                    summary: summary,
-                    isLoading: isLoading,
-                  ),
-                  const SizedBox(height: AppSizing.lg),
+                  // _QuickActionsRow(
+                  //   flatId: widget.args.flatId,
+                  //   args: widget.args,
+                  //   summary: summary,
+                  //   isLoading: isLoading,
+                  // ),
+                  // const SizedBox(height: AppSizing.lg),
 
                   // ── Suggested deposit banner ───────────────
                   if (summary.suggestedTotalToPay > 0) ...[
@@ -355,123 +346,123 @@ class _BalanceSection extends StatelessWidget {
 
 // ── Quick actions row ────────────────────────────────────────────────────────
 
-class _QuickActionsRow extends StatelessWidget {
-  const _QuickActionsRow({
-    required this.flatId,
-    required this.args,
-    required this.summary,
-    required this.isLoading,
-  });
-  final String flatId;
-  final WalletPageArgs args;
-  final WalletSummaryEntity summary;
-  final bool isLoading;
+// class _QuickActionsRow extends StatelessWidget {
+//   const _QuickActionsRow({
+//     required this.flatId,
+//     required this.args,
+//     required this.summary,
+//     required this.isLoading,
+//   });
+//   final String flatId;
+//   final WalletPageArgs args;
+//   final WalletSummaryEntity summary;
+//   final bool isLoading;
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _QuickActionButton(
-          icon: Icons.send_rounded,
-          label: 'Pay',
-          isPrimary: true,
-          onTap: isLoading
-              ? null
-              : () => context.push(
-                    AppRoutes.walletSubmitPayment,
-                    extra: SubmitPaymentArgs(
-                      flatId: flatId,
-                      initialAmount: summary.suggestedTotalToPay > 0
-                          ? summary.suggestedTotalToPay
-                          : null,
-                    ),
-                  ),
-        ),
-        const SizedBox(width: AppSizing.sm),
-        _QuickActionButton(
-          icon: Icons.payments_outlined,
-          label: 'Payments',
-          onTap: () => context.push(
-            AppRoutes.walletRequests,
-            extra: args,
-          ),
-        ),
-        const SizedBox(width: AppSizing.sm),
-        _QuickActionButton(
-          icon: Icons.history_rounded,
-          label: 'History',
-          onTap: () => context.push(
-            AppRoutes.walletTransactions,
-            extra: flatId,
-          ),
-        ),
-      ],
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Row(
+//       children: [
+//         _QuickActionButton(
+//           icon: Icons.send_rounded,
+//           label: 'Pay',
+//           isPrimary: true,
+//           onTap: isLoading
+//               ? null
+//               : () => context.push(
+//                     AppRoutes.walletSubmitPayment,
+//                     extra: SubmitPaymentArgs(
+//                       flatId: flatId,
+//                       initialAmount: summary.suggestedTotalToPay > 0
+//                           ? summary.suggestedTotalToPay
+//                           : null,
+//                     ),
+//                   ),
+//         ),
+//         const SizedBox(width: AppSizing.sm),
+//         _QuickActionButton(
+//           icon: Icons.payments_outlined,
+//           label: 'Payments',
+//           onTap: () => context.push(
+//             AppRoutes.walletRequests,
+//             extra: args,
+//           ),
+//         ),
+//         const SizedBox(width: AppSizing.sm),
+//         _QuickActionButton(
+//           icon: Icons.history_rounded,
+//           label: 'History',
+//           onTap: () => context.push(
+//             AppRoutes.walletTransactions,
+//             extra: flatId,
+//           ),
+//         ),
+//       ],
+//     );
+//   }
+// }
 
-class _QuickActionButton extends StatelessWidget {
-  const _QuickActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.isPrimary = false,
-  });
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-  final bool isPrimary;
+// class _QuickActionButton extends StatelessWidget {
+//   const _QuickActionButton({
+//     required this.icon,
+//     required this.label,
+//     required this.onTap,
+//     this.isPrimary = false,
+//   });
+//   final IconData icon;
+//   final String label;
+//   final VoidCallback? onTap;
+//   final bool isPrimary;
 
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final accent = isPrimary && enabled ? AppColors.brand : null;
+//   @override
+//   Widget build(BuildContext context) {
+//     final enabled = onTap != null;
+//     final accent = isPrimary && enabled ? AppColors.brand : null;
 
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: accent != null
-                ? AppColors.brand.withValues(alpha: 0.07)
-                : context.cardColor,
-            borderRadius: BorderRadius.circular(AppSizing.r12),
-            border: Border.all(
-              color: accent != null
-                  ? AppColors.brand.withValues(alpha: 0.35)
-                  : AppColors.border,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: enabled
-                    ? (accent ?? AppColors.brand)
-                    : AppColors.textHint,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: AppTypography.labelS.copyWith(
-                  color: enabled
-                      ? (accent != null
-                          ? AppColors.brand
-                          : context.textPrimColor)
-                      : AppColors.textHint,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+//     return Expanded(
+//       child: GestureDetector(
+//         onTap: onTap,
+//         child: Container(
+//           padding: const EdgeInsets.symmetric(vertical: 10),
+//           decoration: BoxDecoration(
+//             color: accent != null
+//                 ? AppColors.brand.withValues(alpha: 0.07)
+//                 : context.cardColor,
+//             borderRadius: BorderRadius.circular(AppSizing.r12),
+//             border: Border.all(
+//               color: accent != null
+//                   ? AppColors.brand.withValues(alpha: 0.35)
+//                   : AppColors.border,
+//             ),
+//           ),
+//           child: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               Icon(
+//                 icon,
+//                 size: 18,
+//                 color: enabled
+//                     ? (accent ?? AppColors.brand)
+//                     : AppColors.textHint,
+//               ),
+//               const SizedBox(height: 4),
+//               Text(
+//                 label,
+//                 style: AppTypography.labelS.copyWith(
+//                   color: enabled
+//                       ? (accent != null
+//                           ? AppColors.brand
+//                           : context.textPrimColor)
+//                       : AppColors.textHint,
+//                   fontWeight: FontWeight.w600,
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 
 // ── Suggested deposit banner ──────────────────────────────────────────────────
@@ -494,8 +485,6 @@ class _SuggestedDepositBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.savings_outlined, size: 18, color: AppColors.brand),
-          const SizedBox(width: AppSizing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -506,7 +495,16 @@ class _SuggestedDepositBanner extends StatelessWidget {
                       .copyWith(color: context.textSecColor),
                 ),
                 Text(
-                  '৳${summary.suggestedTotalToPay.toStringAsFixed(0)}  ·  Fixed ${summary.fixedContribution.toStringAsFixed(0)} + Meal ${summary.paymentHints.suggestedMealAmount.toStringAsFixed(0)} + HH ${summary.paymentHints.suggestedHouseholdAmount.toStringAsFixed(0)}',
+                  '৳${summary.suggestedTotalToPay.toStringAsFixed(0)}',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.brand,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  'Fixed ${summary.fixedContribution.toStringAsFixed(0)} + Meal ${summary.paymentHints.suggestedMealAmount.toStringAsFixed(0)} + HH ${summary.paymentHints.suggestedHouseholdAmount.toStringAsFixed(0)}',
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.brand,
                     fontWeight: FontWeight.w600,

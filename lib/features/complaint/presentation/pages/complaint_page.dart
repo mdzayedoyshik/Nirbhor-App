@@ -513,13 +513,6 @@ class _EmptyState extends StatelessWidget {
               style: AppTypography.bodySmall,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppSizing.lg),
-            AppButton(
-              label: 'Raise Complaint',
-              onPressed: onCreate,
-              fullWidth: false,
-              icon: const Icon(Icons.add, size: 18, color: AppColors.white),
-            ),
           ],
         ),
       ),

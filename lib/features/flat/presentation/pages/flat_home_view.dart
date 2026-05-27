@@ -6,18 +6,17 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/di/injection_container.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/quick_action_button.dart';
 import '../../../../core/widgets/section_header.dart';
-import '../../../../core/theme/theme_cubit.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../audit_log/presentation/args/audit_log_page_args.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../complaint/presentation/args/complaint_page_args.dart';
 import '../../../expense/presentation/bloc/expense_bloc.dart';
 import '../../../expense/presentation/pages/expense_list_page.dart';
@@ -38,6 +37,7 @@ import '../../domain/entities/flat_entity.dart';
 import '../../domain/entities/flat_member_entity.dart';
 import '../bloc/flat_bloc.dart';
 import '../bloc/join_requests_bloc.dart';
+import '../pages/flat_settings_page.dart';
 import '../widgets/member_tile.dart';
 
 // ── Nav items ─────────────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ class _NavItem {
   final String label;
 }
 
-const _navItems = [
+const _baseNavItems = [
   _NavItem(
     icon: Icons.home_outlined,
     activeIcon: Icons.home_rounded,
@@ -76,6 +76,12 @@ const _navItems = [
   ),
 ];
 
+const _settingsNavItem = _NavItem(
+  icon: Icons.settings_outlined,
+  activeIcon: Icons.settings_rounded,
+  label: 'Settings',
+);
+
 // ── Shell widget ──────────────────────────────────────────────────────────────
 
 class FlatHomeView extends StatefulWidget {
@@ -89,7 +95,7 @@ class FlatHomeView extends StatefulWidget {
 class _FlatHomeViewState extends State<FlatHomeView> {
   int _tab = 0;
   // true = tab has been loaded at least once; start only home as loaded
-  final List<bool> _loaded = [true, false, false, false];
+  final List<bool> _loaded = [true, false, false, false, false];
 
   FlatMemberEntity? _myMember() {
     final authState = context.read<AuthBloc>().state;
@@ -103,9 +109,7 @@ class _FlatHomeViewState extends State<FlatHomeView> {
     // Load wallet summary eagerly so the home balance card shows immediately
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context
-            .read<WalletBloc>()
-            .add(WalletSummaryRequested(widget.flat.id));
+        context.read<WalletBloc>().add(WalletSummaryRequested(widget.flat.id));
       }
     });
   }
@@ -122,6 +126,10 @@ class _FlatHomeViewState extends State<FlatHomeView> {
   Widget build(BuildContext context) {
     final me = _myMember();
     final canManage = me?.canManage ?? false;
+    final navItems = canManage
+        ? [..._baseNavItems, _settingsNavItem]
+        : _baseNavItems;
+    final effectiveTab = canManage ? _tab : (_tab < navItems.length ? _tab : 0);
 
     return BlocListener<FlatBloc, FlatState>(
       listener: (context, state) {
@@ -133,7 +141,7 @@ class _FlatHomeViewState extends State<FlatHomeView> {
           onTap: () => FocusScope.of(context).unfocus(),
           behavior: HitTestBehavior.translucent,
           child: IndexedStack(
-            index: _tab,
+            index: effectiveTab,
             children: [
               // Tab 0 — Home dashboard
               _HomeDashboard(
@@ -181,11 +189,17 @@ class _FlatHomeViewState extends State<FlatHomeView> {
                       ),
                     )
                   : const SizedBox.expand(),
+              // Tab 4 — Settings
+              if (canManage)
+                _loaded[4]
+                    ? FlatSettingsPage(flat: widget.flat)
+                    : const SizedBox.expand(),
             ],
           ),
         ),
         bottomNavigationBar: _BottomNavBar(
-          selectedIndex: _tab,
+          items: navItems,
+          selectedIndex: effectiveTab,
           onTap: _switchTab,
         ),
       ),
@@ -197,10 +211,12 @@ class _FlatHomeViewState extends State<FlatHomeView> {
 
 class _BottomNavBar extends StatelessWidget {
   const _BottomNavBar({
+    required this.items,
     required this.selectedIndex,
     required this.onTap,
   });
 
+  final List<_NavItem> items;
   final int selectedIndex;
   final ValueChanged<int> onTap;
 
@@ -228,8 +244,8 @@ class _BottomNavBar extends StatelessWidget {
         child: SizedBox(
           height: AppSizing.bottomNavHeight,
           child: Row(
-            children: List.generate(_navItems.length, (i) {
-              final item = _navItems[i];
+            children: List.generate(items.length, (i) {
+              final item = items[i];
               final isActive = i == selectedIndex;
 
               // Notification badge on Home tab (index 0)
@@ -284,8 +300,9 @@ class _NavTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = AppColors.isDark(context);
     final activeColor = AppColors.brand;
-    final inactiveColor =
-        isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
+    final inactiveColor = isDark
+        ? AppColors.darkTextTertiary
+        : AppColors.textTertiary;
 
     return Expanded(
       child: GestureDetector(
@@ -327,8 +344,7 @@ class _NavTile extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.error,
-                        borderRadius:
-                            BorderRadius.circular(AppSizing.rFull),
+                        borderRadius: BorderRadius.circular(AppSizing.rFull),
                       ),
                       child: Text(
                         badge > 99 ? '99+' : '$badge',
@@ -348,8 +364,7 @@ class _NavTile extends StatelessWidget {
               item.label,
               style: AppTypography.labelS.copyWith(
                 color: isActive ? activeColor : inactiveColor,
-                fontWeight:
-                    isActive ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
           ],
@@ -404,12 +419,12 @@ class _HomeDashboard extends StatelessWidget {
             children: [
               // ── 1. HEADER ────────────────────────────────────────────────
               _HomeHeader(
-                flat: flat,
-                me: me,
-                canManage: canManage,
-                greeting: _greeting(),
-                greetingEmoji: _greetingEmoji(),
-              )
+                    flat: flat,
+                    me: me,
+                    canManage: canManage,
+                    greeting: _greeting(),
+                    greetingEmoji: _greetingEmoji(),
+                  )
                   .animate()
                   .fadeIn(duration: 300.ms)
                   .slideY(begin: -0.1, end: 0, duration: 300.ms),
@@ -418,16 +433,16 @@ class _HomeDashboard extends StatelessWidget {
 
               // ── 2. STATS ROW ─────────────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizing.pagePadding,
-                ),
-                child: _StatsRow(
-                  flat: flat,
-                  me: me,
-                  canManage: canManage,
-                  onTabSelect: onTabSelect,
-                ),
-              )
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizing.pagePadding,
+                    ),
+                    child: _StatsRow(
+                      flat: flat,
+                      me: me,
+                      canManage: canManage,
+                      onTabSelect: onTabSelect,
+                    ),
+                  )
                   .animate()
                   .fadeIn(duration: 400.ms, delay: 80.ms)
                   .slideY(begin: 0.08, end: 0, duration: 400.ms),
@@ -436,11 +451,11 @@ class _HomeDashboard extends StatelessWidget {
 
               // ── 3. QUICK ACTIONS ─────────────────────────────────────────
               _QuickActionsRow(
-                flat: flat,
-                me: me,
-                canManage: canManage,
-                onTabSelect: onTabSelect,
-              )
+                    flat: flat,
+                    me: me,
+                    canManage: canManage,
+                    onTabSelect: onTabSelect,
+                  )
                   .animate()
                   .fadeIn(duration: 400.ms, delay: 140.ms)
                   .slideY(begin: 0.08, end: 0, duration: 400.ms),
@@ -449,9 +464,9 @@ class _HomeDashboard extends StatelessWidget {
 
               // ── 4. PENDING ACTIONS (manager only) ────────────────────────
               if (canManage) ...[
-                _PendingActionsSection(flat: flat)
-                    .animate()
-                    .fadeIn(duration: 400.ms, delay: 180.ms),
+                _PendingActionsSection(
+                  flat: flat,
+                ).animate().fadeIn(duration: 400.ms, delay: 180.ms),
                 const SizedBox(height: AppSizing.sp24),
               ],
 
@@ -459,22 +474,19 @@ class _HomeDashboard extends StatelessWidget {
               SectionHeader(
                 title: AppStrings.membersSection,
                 actionLabel: AppStrings.viewAll,
-                onAction: () => context
-                    .push(AppRoutes.flatMembers, extra: flat)
-                    .then((_) {
-                  if (context.mounted) {
-                    context
-                        .read<FlatBloc>()
-                        .add(FlatRefreshRequested(flat.id));
-                  }
-                }),
-              )
-                  .animate()
-                  .fadeIn(duration: 350.ms, delay: 220.ms),
+                onAction: () =>
+                    context.push(AppRoutes.flatMembers, extra: flat).then((_) {
+                      if (context.mounted) {
+                        context.read<FlatBloc>().add(
+                          FlatRefreshRequested(flat.id),
+                        );
+                      }
+                    }),
+              ).animate().fadeIn(duration: 350.ms, delay: 220.ms),
               const SizedBox(height: AppSizing.sp12),
-              _MembersGlimpse(flat: flat)
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 240.ms),
+              _MembersGlimpse(
+                flat: flat,
+              ).animate().fadeIn(duration: 400.ms, delay: 240.ms),
 
               const SizedBox(height: AppSizing.sp48),
             ],
@@ -502,21 +514,21 @@ class _HomeHeader extends StatelessWidget {
   final String greeting;
   final String greetingEmoji;
 
-  void _showSettingsSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AppSizing.radiusLg)),
-      ),
-      builder: (sheetCtx) => BlocProvider.value(
-        value: context.read<ThemeCubit>(),
-        child: _SettingsSheet(flat: flat, canManage: canManage),
-      ),
-    );
-  }
+  // void _showSettingsSheet(BuildContext context) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     isScrollControlled: true,
+  //     backgroundColor: AppColors.surface,
+  //     shape: const RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.vertical(
+  //           top: Radius.circular(AppSizing.radiusLg)),
+  //     ),
+  //     builder: (sheetCtx) => BlocProvider.value(
+  //       value: context.read<ThemeCubit>(),
+  //       child: _SettingsSheet(flat: flat, canManage: canManage),
+  //     ),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -570,11 +582,11 @@ class _HomeHeader extends StatelessWidget {
           ),
 
           // Settings
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            color: AppColors.textSecondary,
-            onPressed: () => _showSettingsSheet(context),
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.settings_outlined),
+          //   color: AppColors.textSecondary,
+          //   onPressed: () => context.push(AppRoutes.flatSettings, extra: flat),
+          // ),
 
           // Notification bell
           BlocBuilder<NotificationBloc, NotificationState>(
@@ -691,7 +703,9 @@ class _StatsRow extends StatelessWidget {
                       iconColor: AppColors.brand,
                       label: 'Balance',
                       value: balanceText,
-                      subtitle: summary?.isNegative == true ? 'owed' : 'available',
+                      subtitle: summary?.isNegative == true
+                          ? 'owed'
+                          : 'available',
                     ),
                   ),
                 ),
@@ -704,7 +718,9 @@ class _StatsRow extends StatelessWidget {
                       iconColor: AppColors.success,
                       label: 'Pool',
                       value: poolText,
-                      subtitle: flatWallet?.isNegative == true ? 'deficit' : 'available',
+                      subtitle: flatWallet?.isNegative == true
+                          ? 'deficit'
+                          : 'available',
                     ),
                   ),
                 ),
@@ -718,12 +734,12 @@ class _StatsRow extends StatelessWidget {
                     onTap: () => context
                         .push(AppRoutes.flatMembers, extra: flat)
                         .then((_) {
-                      if (context.mounted) {
-                        context
-                            .read<FlatBloc>()
-                            .add(FlatRefreshRequested(flat.id));
-                      }
-                    }),
+                          if (context.mounted) {
+                            context.read<FlatBloc>().add(
+                              FlatRefreshRequested(flat.id),
+                            );
+                          }
+                        }),
                     child: _StatCard(
                       icon: Icons.group_rounded,
                       iconColor: AppColors.info,
@@ -794,15 +810,11 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: AppSizing.sp8),
           Text(
             value,
-            style: AppTypography.amountL.copyWith(
-              color: AppColors.textPrimary,
-            ),
+            style: AppTypography.amountL.copyWith(color: AppColors.textPrimary),
           ),
           Text(
             '$label · $subtitle',
-            style: AppTypography.labelS.copyWith(
-              color: AppColors.textTertiary,
-            ),
+            style: AppTypography.labelS.copyWith(color: AppColors.textTertiary),
           ),
         ],
       ),
@@ -848,10 +860,7 @@ class _QuickActionsRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),
               ),
             ),
-            Text(
-              'Invite to ${flat.name}',
-              style: AppTypography.titleLarge,
-            ),
+            Text('Invite to ${flat.name}', style: AppTypography.titleLarge),
             const SizedBox(height: AppSizing.xs),
             Text(
               'Share this QR code or join code with others',
@@ -907,8 +916,7 @@ class _QuickActionsRow extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: const BorderSide(color: AppColors.primary),
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppSizing.sm),
+                  padding: const EdgeInsets.symmetric(vertical: AppSizing.sm),
                 ),
               ),
             ),
@@ -982,6 +990,14 @@ class _QuickActionsRow extends StatelessWidget {
         label: 'Invite',
         onTap: () => _showQrSheet(context),
       ),
+      QuickActionButton(
+        icon: Icons.payments_outlined,
+        label: 'Payment',
+        onTap: () => context.push(
+          AppRoutes.walletRequests,
+          extra: WalletPageArgs(flatId: flat.id, canManage: canManage),
+        ),
+      ),
     ];
 
     // Buttons 9 & 10 differ by role
@@ -999,8 +1015,9 @@ class _QuickActionsRow extends StatelessWidget {
               builder: (context, reqState) {
                 int pendingCount = 0;
                 if (reqState is JoinRequestsLoaded) {
-                  pendingCount =
-                      reqState.requests.where((r) => r.isPending).length;
+                  pendingCount = reqState.requests
+                      .where((r) => r.isPending)
+                      .length;
                 }
                 return QuickActionButton(
                   icon: Icons.group_add_outlined,
@@ -1009,14 +1026,14 @@ class _QuickActionsRow extends StatelessWidget {
                   onTap: () => context
                       .push(AppRoutes.flatRequests, extra: flat.id)
                       .then((_) {
-                    // JoinRequestsBloc re-fetches internally after approve/decline;
-                    // only refresh the flat to sync member count etc.
-                    if (context.mounted) {
-                      context
-                          .read<FlatBloc>()
-                          .add(FlatRefreshRequested(flat.id));
-                    }
-                  }),
+                        // JoinRequestsBloc re-fetches internally after approve/decline;
+                        // only refresh the flat to sync member count etc.
+                        if (context.mounted) {
+                          context.read<FlatBloc>().add(
+                            FlatRefreshRequested(flat.id),
+                          );
+                        }
+                      }),
                 );
               },
             ),
@@ -1025,15 +1042,14 @@ class _QuickActionsRow extends StatelessWidget {
             QuickActionButton(
               icon: Icons.group_outlined,
               label: 'Members',
-              onTap: () => context
-                  .push(AppRoutes.flatMembers, extra: flat)
-                  .then((_) {
-                if (context.mounted) {
-                  context
-                      .read<FlatBloc>()
-                      .add(FlatRefreshRequested(flat.id));
-                }
-              }),
+              onTap: () =>
+                  context.push(AppRoutes.flatMembers, extra: flat).then((_) {
+                    if (context.mounted) {
+                      context.read<FlatBloc>().add(
+                        FlatRefreshRequested(flat.id),
+                      );
+                    }
+                  }),
             ),
             QuickActionButton(
               icon: Icons.notifications_outlined,
@@ -1055,8 +1071,9 @@ class _QuickActionsRow extends StatelessWidget {
         const SectionHeader(title: 'Quick Actions'),
         const SizedBox(height: AppSizing.sp12),
         Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizing.pagePadding,
+          ),
           child: GridView.count(
             crossAxisCount: 5,
             mainAxisSpacing: AppSizing.sp8,
@@ -1092,10 +1109,7 @@ class _PendingActionsSection extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionHeader(
-              eyebrow: 'action needed',
-              title: 'Pending',
-            ),
+            const SectionHeader(eyebrow: 'action needed', title: 'Pending'),
             const SizedBox(height: AppSizing.sp12),
             Padding(
               padding: const EdgeInsets.symmetric(
@@ -1111,14 +1125,14 @@ class _PendingActionsSection extends StatelessWidget {
                 onAction: () => context
                     .push(AppRoutes.flatRequests, extra: flat.id)
                     .then((_) {
-                  // JoinRequestsBloc re-fetches internally after approve/decline;
-                  // only refresh the flat to sync member count etc.
-                  if (context.mounted) {
-                    context
-                        .read<FlatBloc>()
-                        .add(FlatRefreshRequested(flat.id));
-                  }
-                }),
+                      // JoinRequestsBloc re-fetches internally after approve/decline;
+                      // only refresh the flat to sync member count etc.
+                      if (context.mounted) {
+                        context.read<FlatBloc>().add(
+                          FlatRefreshRequested(flat.id),
+                        );
+                      }
+                    }),
               ),
             ),
           ],
@@ -1151,9 +1165,7 @@ class _PendingCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(AppSizing.r16),
-        border: Border(
-          left: BorderSide(color: accentColor, width: 4),
-        ),
+        border: Border(left: BorderSide(color: accentColor, width: 4)),
         boxShadow: AppColors.shadowSm,
       ),
       child: ListTile(
@@ -1169,16 +1181,13 @@ class _PendingCard extends StatelessWidget {
         title: Text(title, style: AppTypography.labelL),
         subtitle: Text(
           subtitle,
-          style: AppTypography.bodyS.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: AppTypography.bodyS.copyWith(color: AppColors.textSecondary),
         ),
         trailing: TextButton(
           onPressed: onAction,
           style: TextButton.styleFrom(
             foregroundColor: accentColor,
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppSizing.sp12),
+            padding: const EdgeInsets.symmetric(horizontal: AppSizing.sp12),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
@@ -1225,176 +1234,179 @@ class _MembersGlimpse extends StatelessWidget {
 
 // ── Settings Sheet ────────────────────────────────────────────────────────────
 
-class _SettingsSheet extends StatelessWidget {
-  const _SettingsSheet({required this.flat, required this.canManage});
+// class _SettingsSheet extends StatelessWidget {
+//   const _SettingsSheet({required this.flat, required this.canManage});
 
-  final FlatEntity flat;
-  final bool canManage;
+//   final FlatEntity flat;
+//   final bool canManage;
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        AppSizing.pagePadding,
-        AppSizing.md,
-        AppSizing.pagePadding,
-        MediaQuery.of(context).viewInsets.bottom + AppSizing.pagePadding,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // drag handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: AppSizing.md),
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-              ),
-            ),
-          ),
-          Text('Settings', style: AppTypography.headlineSmall),
-          const SizedBox(height: AppSizing.md),
+//   @override
+//   Widget build(BuildContext context) {
+//     return Padding(
+//       padding: EdgeInsets.fromLTRB(
+//         AppSizing.pagePadding,
+//         AppSizing.md,
+//         AppSizing.pagePadding,
+//         MediaQuery.of(context).viewInsets.bottom + AppSizing.pagePadding,
+//       ),
+//       child: Column(
+//         mainAxisSize: MainAxisSize.min,
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           // drag handle
+//           Center(
+//             child: Container(
+//               width: 40,
+//               height: 4,
+//               margin: const EdgeInsets.only(bottom: AppSizing.md),
+//               decoration: BoxDecoration(
+//                 color: AppColors.border,
+//                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+//               ),
+//             ),
+//           ),
+//           Text('Settings', style: AppTypography.headlineSmall),
+//           const SizedBox(height: AppSizing.md),
 
-          // Flat Settings (manager only)
-          if (canManage) ...[
-            _SettingsTile(
-              icon: Icons.home_work_outlined,
-              label: 'Flat Settings',
-              subtitle: 'Name, photo, meal config',
-              onTap: () {
-                Navigator.pop(context);
-                context.push(AppRoutes.flatSettings, extra: flat);
-              },
-            ),
-            const SizedBox(height: AppSizing.sm),
-          ],
+//           // Flat Settings (manager only)
+//           if (canManage) ...[
+//             _SettingsTile(
+//               icon: Icons.home_work_outlined,
+//               label: 'Flat Settings',
+//               subtitle: 'Name, photo, meal config',
+//               onTap: () {
+//                 Navigator.pop(context);
+//               },
+//             ),
+//             const SizedBox(height: AppSizing.sm),
+//           ],
 
-          // Theme
-          Text(
-            'Theme',
-            style: AppTypography.labelM.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppSizing.xs),
-          BlocBuilder<ThemeCubit, ThemeState>(
-            builder: (context, state) {
-              return Row(
-                children: [
-                  _ThemeOption(
-                    icon: Icons.light_mode_rounded,
-                    label: 'Light',
-                    selected: state.mode == ThemeMode.light,
-                    onTap: () =>
-                        context.read<ThemeCubit>().setTheme(ThemeMode.light),
-                  ),
-                  const SizedBox(width: AppSizing.sm),
-                  _ThemeOption(
-                    icon: Icons.brightness_auto_rounded,
-                    label: 'System',
-                    selected: state.mode == ThemeMode.system,
-                    onTap: () =>
-                        context.read<ThemeCubit>().setTheme(ThemeMode.system),
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: AppSizing.sm),
-        ],
-      ),
-    );
-  }
-}
+//           // Theme
+//           Text(
+//             'Theme',
+//             style: AppTypography.labelM.copyWith(
+//               color: AppColors.textSecondary,
+//             ),
+//           ),
+//           const SizedBox(height: AppSizing.xs),
+//           BlocBuilder<ThemeCubit, ThemeState>(
+//             builder: (context, state) {
+//               return Row(
+//                 children: [
+//                   _ThemeOption(
+//                     icon: Icons.light_mode_rounded,
+//                     label: 'Light',
+//                     selected: state.mode == ThemeMode.light,
+//                     onTap: () =>
+//                         context.read<ThemeCubit>().setTheme(ThemeMode.light),
+//                   ),
+//                   const SizedBox(width: AppSizing.sm),
+//                   _ThemeOption(
+//                     icon: Icons.brightness_auto_rounded,
+//                     label: 'System',
+//                     selected: state.mode == ThemeMode.system,
+//                     onTap: () =>
+//                         context.read<ThemeCubit>().setTheme(ThemeMode.system),
+//                   ),
+//                 ],
+//               );
+//             },
+//           ),
+//           const SizedBox(height: AppSizing.sm),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
-class _SettingsTile extends StatelessWidget {
-  const _SettingsTile({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.onTap,
-  });
+// class _SettingsTile extends StatelessWidget {
+//   const _SettingsTile({
+//     required this.icon,
+//     required this.label,
+//     required this.subtitle,
+//     required this.onTap,
+//   });
 
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final VoidCallback onTap;
+//   final IconData icon;
+//   final String label;
+//   final String subtitle;
+//   final VoidCallback onTap;
 
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: AppColors.brand.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        ),
-        child: Icon(icon, size: 20, color: AppColors.brand),
-      ),
-      title: Text(label, style: AppTypography.titleMedium),
-      subtitle: Text(subtitle,
-          style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary)),
-      trailing: const Icon(Icons.chevron_right, color: AppColors.textHint),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return ListTile(
+//       onTap: onTap,
+//       contentPadding: EdgeInsets.zero,
+//       leading: Container(
+//         width: 40,
+//         height: 40,
+//         decoration: BoxDecoration(
+//           color: AppColors.brand.withValues(alpha: 0.1),
+//           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+//         ),
+//         child: Icon(icon, size: 20, color: AppColors.brand),
+//       ),
+//       title: Text(label, style: AppTypography.titleMedium),
+//       subtitle: Text(
+//         subtitle,
+//         style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+//       ),
+//       trailing: const Icon(Icons.chevron_right, color: AppColors.textHint),
+//     );
+//   }
+// }
 
-class _ThemeOption extends StatelessWidget {
-  const _ThemeOption({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+// class _ThemeOption extends StatelessWidget {
+//   const _ThemeOption({
+//     required this.icon,
+//     required this.label,
+//     required this.selected,
+//     required this.onTap,
+//   });
 
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
+//   final IconData icon;
+//   final String label;
+//   final bool selected;
+//   final VoidCallback onTap;
 
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: AppSizing.sm),
-          decoration: BoxDecoration(
-            color: selected
-                ? AppColors.brand.withValues(alpha: 0.1)
-                : context.cardColor,
-            borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-            border: Border.all(
-              color: selected
-                  ? AppColors.brand
-                  : AppColors.border,
-              width: selected ? 1.5 : 1,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon,
-                  size: 20,
-                  color: selected ? AppColors.brand : AppColors.textSecondary),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: AppTypography.labelS.copyWith(
-                  color: selected ? AppColors.brand : AppColors.textSecondary,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Expanded(
+//       child: GestureDetector(
+//         onTap: onTap,
+//         child: AnimatedContainer(
+//           duration: const Duration(milliseconds: 200),
+//           padding: const EdgeInsets.symmetric(vertical: AppSizing.sm),
+//           decoration: BoxDecoration(
+//             color: selected
+//                 ? AppColors.brand.withValues(alpha: 0.1)
+//                 : context.cardColor,
+//             borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+//             border: Border.all(
+//               color: selected ? AppColors.brand : AppColors.border,
+//               width: selected ? 1.5 : 1,
+//             ),
+//           ),
+//           child: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               Icon(
+//                 icon,
+//                 size: 20,
+//                 color: selected ? AppColors.brand : AppColors.textSecondary,
+//               ),
+//               const SizedBox(height: 4),
+//               Text(
+//                 label,
+//                 style: AppTypography.labelS.copyWith(
+//                   color: selected ? AppColors.brand : AppColors.textSecondary,
+//                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }

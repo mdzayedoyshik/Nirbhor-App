@@ -123,23 +123,6 @@ class _MealPageHeader extends StatelessWidget {
             // Back button + title row
             Row(
               children: [
-                GestureDetector(
-                  onTap: () => Navigator.of(context).maybePop(),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(AppSizing.r12),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: AppColors.white,
-                      size: 16,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSizing.sm),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1794,9 +1777,7 @@ class _CalendarCell extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: isToday
-            ? AppColors.brand.withValues(alpha: 0.08)
-            : context.cardColor,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusSm),
         border: isToday
             ? Border.all(color: AppColors.brand, width: 1.5)

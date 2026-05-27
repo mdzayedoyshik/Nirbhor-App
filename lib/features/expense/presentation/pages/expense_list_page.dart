@@ -129,11 +129,6 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              color: context.textPrimColor, size: 20),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
         title: Text(AppStrings.expenseListTitle,
             style: AppTypography.headlineMedium
                 .copyWith(color: context.textPrimColor)),

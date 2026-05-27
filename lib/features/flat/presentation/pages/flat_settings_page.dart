@@ -7,13 +7,12 @@ import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
-import '../../../../core/theme/theme_cubit.dart';
 import '../../../../core/widgets/app_button.dart';
-import '../../../audit_log/presentation/args/audit_log_page_args.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/app_image_picker.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../audit_log/presentation/args/audit_log_page_args.dart';
 import '../../domain/entities/flat_entity.dart';
 import '../bloc/flat_bloc.dart';
 
@@ -77,10 +76,20 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<FlatBloc, FlatState>(
+      listenWhen: (previous, current) {
+        if (previous is FlatActionLoading &&
+            previous.source == FlatLoadingSource.update) {
+          return current is FlatLoaded || current is FlatError;
+        }
+        if (previous is FlatActionLoading &&
+            previous.source == FlatLoadingSource.delete) {
+          return current is FlatNone || current is FlatError;
+        }
+        return false;
+      },
       listener: (context, state) {
         if (state is FlatLoaded) {
           AppSnackbar.success(context, AppStrings.flatUpdatedMsg);
-          context.pop();
         } else if (state is FlatNone) {
           AppSnackbar.success(context, AppStrings.flatDeletedMsg);
           context.go(AppRoutes.home);
@@ -105,13 +114,6 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
             ),
             backgroundColor: AppColors.surface,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary,
-              ),
-              onPressed: () => context.pop(),
-            ),
           ),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -121,51 +123,51 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: AppSizing.sm),
+                    // const SizedBox(height: AppSizing.sm),
 
-                    // ── Preferences (Theme) ──────────────────────────────────
-                    _SectionLabel(label: 'Preferences'),
-                    const SizedBox(height: AppSizing.sm),
-                    _SettingsCard(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizing.md,
-                            vertical: AppSizing.sp12,
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: AppColors.surface100,
-                                  borderRadius: BorderRadius.circular(
-                                      AppSizing.radiusSm),
-                                ),
-                                child: const Icon(
-                                  Icons.palette_outlined,
-                                  color: AppColors.brand,
-                                  size: AppSizing.iconMd,
-                                ),
-                              ),
-                              const SizedBox(width: AppSizing.md),
-                              Expanded(
-                                child: Text(
-                                  'Theme',
-                                  style: AppTypography.labelM,
-                                ),
-                              ),
-                              const _ThemeToggle(),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSizing.lg),
+                    // // ── Preferences (Theme) ──────────────────────────────────
+                    // _SectionLabel(label: 'Preferences'),
+                    // const SizedBox(height: AppSizing.sm),
+                    // _SettingsCard(
+                    //   children: [
+                    //     Padding(
+                    //       padding: const EdgeInsets.symmetric(
+                    //         horizontal: AppSizing.md,
+                    //         vertical: AppSizing.sp12,
+                    //       ),
+                    //       child: Row(
+                    //         children: [
+                    //           Container(
+                    //             width: 36,
+                    //             height: 36,
+                    //             decoration: BoxDecoration(
+                    //               color: AppColors.surface100,
+                    //               borderRadius: BorderRadius.circular(
+                    //                   AppSizing.radiusSm),
+                    //             ),
+                    //             child: const Icon(
+                    //               Icons.palette_outlined,
+                    //               color: AppColors.brand,
+                    //               size: AppSizing.iconMd,
+                    //             ),
+                    //           ),
+                    //           const SizedBox(width: AppSizing.md),
+                    //           Expanded(
+                    //             child: Text(
+                    //               'Theme',
+                    //               style: AppTypography.labelM,
+                    //             ),
+                    //           ),
+                    //           const _ThemeToggle(),
+                    //         ],
+                    //       ),
+                    //     ),
+                    //   ],
+                    // ),
+                    // const SizedBox(height: AppSizing.lg),
 
-                    // ── Flat Details ─────────────────────────────────────────
-                    _SectionLabel(label: 'Flat Details'),
+                    // // ── Flat Details ─────────────────────────────────────────
+                    // _SectionLabel(label: 'Flat Details'),
                     const SizedBox(height: AppSizing.sm),
                     AppTextField(
                       controller: _nameCtrl,
@@ -226,11 +228,11 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                           child: InkWell(
                             onTap: () => context.push(
                               AppRoutes.auditLog,
-                              extra:
-                                  AuditLogPageArgs(flatId: widget.flat.id),
+                              extra: AuditLogPageArgs(flatId: widget.flat.id),
                             ),
-                            borderRadius:
-                                BorderRadius.circular(AppSizing.radiusLg),
+                            borderRadius: BorderRadius.circular(
+                              AppSizing.radiusLg,
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: AppSizing.md,
@@ -244,7 +246,8 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                                     decoration: BoxDecoration(
                                       color: AppColors.surface100,
                                       borderRadius: BorderRadius.circular(
-                                          AppSizing.radiusSm),
+                                        AppSizing.radiusSm,
+                                      ),
                                     ),
                                     child: const Icon(
                                       Icons.history_rounded,
@@ -294,8 +297,7 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                         border: Border.all(
                           color: AppColors.error.withValues(alpha: 0.4),
                         ),
-                        borderRadius:
-                            BorderRadius.circular(AppSizing.radiusLg),
+                        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,104 +353,104 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
 
 // ── Theme Toggle (3-way pill segmented) ──────────────────────────────────────
 
-class _ThemeToggle extends StatelessWidget {
-  const _ThemeToggle();
+// class _ThemeToggle extends StatelessWidget {
+//   const _ThemeToggle();
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<ThemeCubit, ThemeState>(
-      builder: (context, themeState) {
-        final current = themeState.mode;
-        return Container(
-          height: 34,
-          decoration: BoxDecoration(
-            color: AppColors.surface200,
-            borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _ThemePill(
-                icon: Icons.light_mode_rounded,
-                label: 'Light',
-                selected: current == ThemeMode.light,
-                onTap: () => context
-                    .read<ThemeCubit>()
-                    .setTheme(ThemeMode.light),
-              ),
-              _ThemePill(
-                icon: Icons.dark_mode_rounded,
-                label: 'Dark',
-                selected: current == ThemeMode.dark,
-                onTap: () => context
-                    .read<ThemeCubit>()
-                    .setTheme(ThemeMode.dark),
-              ),
-              _ThemePill(
-                icon: Icons.settings_brightness_rounded,
-                label: 'System',
-                selected: current == ThemeMode.system,
-                onTap: () => context
-                    .read<ThemeCubit>()
-                    .setTheme(ThemeMode.system),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return BlocBuilder<ThemeCubit, ThemeState>(
+//       builder: (context, themeState) {
+//         final current = themeState.mode;
+//         return Container(
+//           height: 34,
+//           decoration: BoxDecoration(
+//             color: AppColors.surface200,
+//             borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+//           ),
+//           child: Row(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               _ThemePill(
+//                 icon: Icons.light_mode_rounded,
+//                 label: 'Light',
+//                 selected: current == ThemeMode.light,
+//                 onTap: () => context
+//                     .read<ThemeCubit>()
+//                     .setTheme(ThemeMode.light),
+//               ),
+//               _ThemePill(
+//                 icon: Icons.dark_mode_rounded,
+//                 label: 'Dark',
+//                 selected: current == ThemeMode.dark,
+//                 onTap: () => context
+//                     .read<ThemeCubit>()
+//                     .setTheme(ThemeMode.dark),
+//               ),
+//               _ThemePill(
+//                 icon: Icons.settings_brightness_rounded,
+//                 label: 'System',
+//                 selected: current == ThemeMode.system,
+//                 onTap: () => context
+//                     .read<ThemeCubit>()
+//                     .setTheme(ThemeMode.system),
+//               ),
+//             ],
+//           ),
+//         );
+//       },
+//     );
+//   }
+// }
 
-class _ThemePill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
+// class _ThemePill extends StatelessWidget {
+//   final IconData icon;
+//   final String label;
+//   final bool selected;
+//   final VoidCallback onTap;
 
-  const _ThemePill({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+//   const _ThemePill({
+//     required this.icon,
+//     required this.label,
+//     required this.selected,
+//     required this.onTap,
+//   });
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSizing.sp8,
-          vertical: AppSizing.sp4,
-        ),
-        decoration: BoxDecoration(
-          gradient: selected ? AppColors.brandGradient : null,
-          borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-          boxShadow: selected ? AppColors.shadowSm : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 14,
-              color: selected ? AppColors.white : AppColors.textSecondary,
-            ),
-            const SizedBox(width: AppSizing.sp4),
-            Text(
-              label,
-              style: AppTypography.labelS.copyWith(
-                color: selected ? AppColors.white : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return GestureDetector(
+//       onTap: onTap,
+//       child: AnimatedContainer(
+//         duration: const Duration(milliseconds: 180),
+//         padding: const EdgeInsets.symmetric(
+//           horizontal: AppSizing.sp8,
+//           vertical: AppSizing.sp4,
+//         ),
+//         decoration: BoxDecoration(
+//           gradient: selected ? AppColors.brandGradient : null,
+//           borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+//           boxShadow: selected ? AppColors.shadowSm : null,
+//         ),
+//         child: Row(
+//           mainAxisSize: MainAxisSize.min,
+//           children: [
+//             Icon(
+//               icon,
+//               size: 14,
+//               color: selected ? AppColors.white : AppColors.textSecondary,
+//             ),
+//             const SizedBox(width: AppSizing.sp4),
+//             Text(
+//               label,
+//               style: AppTypography.labelS.copyWith(
+//                 color: selected ? AppColors.white : AppColors.textSecondary,
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 // ── Section Label ─────────────────────────────────────────────────────────────
 
@@ -462,9 +464,7 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(left: AppSizing.xs),
       child: Text(
         label.toUpperCase(),
-        style: AppTypography.overline.copyWith(
-          color: AppColors.textTertiary,
-        ),
+        style: AppTypography.overline.copyWith(color: AppColors.textTertiary),
       ),
     );
   }
