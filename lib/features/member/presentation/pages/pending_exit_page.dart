@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../flat/domain/entities/flat_entity.dart';
 import '../../../flat/presentation/bloc/flat_bloc.dart';
 import '../../domain/entities/settlement_entity.dart';
 
-class PendingExitPage extends StatelessWidget {
+class PendingExitPage extends StatefulWidget {
   final FlatEntity flat;
   final SettlementEntity settlement;
 
@@ -17,6 +19,17 @@ class PendingExitPage extends StatelessWidget {
     required this.flat,
     required this.settlement,
   });
+
+  @override
+  State<PendingExitPage> createState() => _PendingExitPageState();
+}
+
+class _PendingExitPageState extends State<PendingExitPage> {
+  Future<void> _refresh() async {
+    context.read<FlatBloc>().add(const FlatCheckRequested());
+    // Give the bloc a moment to emit before the indicator dismisses.
+    await Future.delayed(const Duration(milliseconds: 600));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,37 +42,41 @@ class PendingExitPage extends StatelessWidget {
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
-            tooltip: 'Refresh',
-            onPressed: () =>
-                context.read<FlatBloc>().add(const FlatCheckRequested()),
+            icon: const Icon(Icons.person_outline, color: AppColors.textPrimary),
+            tooltip: 'Profile',
+            onPressed: () => context.push(AppRoutes.profile),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSizing.pagePadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Banner
-            _ExitBanner(flatName: flat.name),
-            const SizedBox(height: AppSizing.lg),
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: _refresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(AppSizing.pagePadding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Banner
+              _ExitBanner(flatName: widget.flat.name),
+              const SizedBox(height: AppSizing.lg),
 
-            // Settlement breakdown
-            _BreakdownCard(settlement: settlement),
-            const SizedBox(height: AppSizing.lg),
+              // Settlement breakdown
+              _BreakdownCard(settlement: widget.settlement),
+              const SizedBox(height: AppSizing.lg),
 
-            // Final amount
-            _FinalAmountCard(settlement: settlement),
-            const SizedBox(height: AppSizing.xl),
+              // Final amount
+              _FinalAmountCard(settlement: widget.settlement),
+              const SizedBox(height: AppSizing.xl),
 
-            // Info note
-            _InfoNote(
-              message:
-                  'Contact your manager to finalise or cancel your exit. '
-                  'Your access to flat features is restricted until the exit is resolved.',
-            ),
-          ],
+              // Info note
+              const _InfoNote(
+                message:
+                    'Contact your manager to finalise or cancel your exit. '
+                    'Your access to flat features is restricted until the exit is resolved.',
+              ),
+            ],
+          ),
         ),
       ),
     );
