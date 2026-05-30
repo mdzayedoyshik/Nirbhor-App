@@ -584,101 +584,91 @@ class _ExpenseChartState extends State<_ExpenseChart> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
       child: Container(
-        padding: const EdgeInsets.all(AppSizing.md),
+        padding: const EdgeInsets.all(AppSizing.lg),
         decoration: BoxDecoration(
           color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           border: Border.all(color: AppColors.border),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              'Expense Distribution',
-              style: AppTypography.titleMedium.copyWith(color: context.textPrimColor),
-            ),
-            const SizedBox(height: AppSizing.md),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Donut chart
-                SizedBox(
-                  height: 150,
-                  width: 150,
-                  child: Stack(
-                    alignment: Alignment.center,
+            // Donut chart
+            SizedBox(
+              height: 150,
+              width: 150,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      pieTouchData: PieTouchData(
+                        touchCallback: (FlTouchEvent event, PieTouchResponse? res) {
+                          setState(() {
+                            if (!event.isInterestedForInteractions ||
+                                res == null ||
+                                res.touchedSection == null) {
+                              _touchedIndex = -1;
+                              return;
+                            }
+                            _touchedIndex =
+                                res.touchedSection!.touchedSectionIndex;
+                          });
+                        },
+                      ),
+                      sections: sections.asMap().entries.map((e) {
+                        final isTouched = e.key == _touchedIndex;
+                        return e.value.data.copyWith(
+                          radius: isTouched ? 56 : 48,
+                        );
+                      }).toList(),
+                      centerSpaceRadius: 42,
+                      sectionsSpace: 2,
+                    ),
+                  ),
+                  // Center total
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      PieChart(
-                        PieChartData(
-                          pieTouchData: PieTouchData(
-                            touchCallback: (FlTouchEvent event, PieTouchResponse? res) {
-                              setState(() {
-                                if (!event.isInterestedForInteractions ||
-                                    res == null ||
-                                    res.touchedSection == null) {
-                                  _touchedIndex = -1;
-                                  return;
-                                }
-                                _touchedIndex =
-                                    res.touchedSection!.touchedSectionIndex;
-                              });
-                            },
-                          ),
-                          sections: sections.asMap().entries.map((e) {
-                            final isTouched = e.key == _touchedIndex;
-                            return e.value.data.copyWith(
-                              radius: isTouched ? 56 : 48,
-                            );
-                          }).toList(),
-                          centerSpaceRadius: 42,
-                          sectionsSpace: 2,
+                      Text(
+                        '৳${total.toStringAsFixed(0)}',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: context.textPrimColor,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      // Center total
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '৳${total.toStringAsFixed(0)}',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: context.textPrimColor,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            'Total',
-                            style: AppTypography.labelSmall
-                                .copyWith(color: context.textSecColor),
-                          ),
-                        ],
+                      Text(
+                        'Total',
+                        style: AppTypography.labelSmall
+                            .copyWith(color: context.textSecColor),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: AppSizing.md),
-                // Legend
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: sections.asMap().entries.map((e) {
-                      final isTouched = e.key == _touchedIndex;
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          bottom: e.key < sections.length - 1 ? AppSizing.sm : 0,
-                        ),
-                        child: _LegendItem(
-                          color: e.value.color,
-                          label: e.value.label,
-                          amount: e.value.amount,
-                          total: total,
-                          highlighted: isTouched,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSizing.lg),
+            // Legend
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: sections.asMap().entries.map((e) {
+                  final isTouched = e.key == _touchedIndex;
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: e.key < sections.length - 1 ? AppSizing.sm : 0,
+                    ),
+                    child: _LegendItem(
+                      color: e.value.color,
+                      label: e.value.label,
+                      amount: e.value.amount,
+                      total: total,
+                      highlighted: isTouched,
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           ],
         ),

@@ -32,13 +32,19 @@ class TaskAssigneePicker extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.person_outline, size: 18, color: AppColors.textSecondary),
+            const Icon(
+              Icons.person_outline,
+              size: 18,
+              color: AppColors.textSecondary,
+            ),
             const SizedBox(width: AppSizing.xs),
             Expanded(
               child: Text(
                 selected?.name ?? 'Assignee',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: selected != null ? AppColors.textPrimary : AppColors.textHint,
+                  color: selected != null
+                      ? AppColors.textPrimary
+                      : AppColors.textHint,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -46,10 +52,18 @@ class TaskAssigneePicker extends StatelessWidget {
             if (selected != null)
               GestureDetector(
                 onTap: () => onChanged(null),
-                child: const Icon(Icons.close, size: 16, color: AppColors.textSecondary),
+                child: const Icon(
+                  Icons.close,
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
               )
             else
-              const Icon(Icons.expand_more, size: 18, color: AppColors.textSecondary),
+              const Icon(
+                Icons.expand_more,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
           ],
         ),
       ),
@@ -61,9 +75,12 @@ class TaskAssigneePicker extends StatelessWidget {
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizing.radiusLg),
+        ),
       ),
-      builder: (_) => TaskMemberPickerSheet(members: members, onSelected: onChanged),
+      builder: (_) =>
+          TaskMemberPickerSheet(members: members, onSelected: onChanged),
     );
   }
 }
@@ -104,35 +121,49 @@ class TaskMemberPickerSheet extends StatelessWidget {
             leading: const CircleAvatar(
               radius: 18,
               backgroundColor: AppColors.surfaceVariant,
-              child: Icon(Icons.person_off_outlined, size: 18, color: AppColors.textSecondary),
+              child: Icon(
+                Icons.person_off_outlined,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
             ),
-            title: Text('Unassigned', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
+            title: Text(
+              'Unassigned',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
             onTap: () {
               onSelected(null);
               Navigator.pop(context);
             },
           ),
           const Divider(height: 1, color: AppColors.divider),
-          ...members.map((m) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: CircleAvatar(
-              radius: 18,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-              child: Text(
-                m.name.isNotEmpty ? m.name[0].toUpperCase() : '?',
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
+          ...members.map(
+            (m) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                child: Text(
+                  m.name.isNotEmpty ? m.name[0].toUpperCase() : '?',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
+              title: Text(m.name, style: AppTypography.bodyMedium),
+              subtitle: Text(
+                _roleLabel(m.role),
+                style: AppTypography.labelSmall,
+              ),
+              onTap: () {
+                onSelected(m);
+                Navigator.pop(context);
+              },
             ),
-            title: Text(m.name, style: AppTypography.bodyMedium),
-            subtitle: Text(_roleLabel(m.role), style: AppTypography.labelSmall),
-            onTap: () {
-              onSelected(m);
-              Navigator.pop(context);
-            },
-          )),
+          ),
           const SizedBox(height: AppSizing.sm),
         ],
       ),
@@ -161,19 +192,22 @@ class TaskMultiAssigneePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final names = selectedIds
-        .map((id) => members.firstWhere(
-              (m) => m.flatMemberId == id,
-              orElse: () => members.first,
-            ).name)
-        .toList();
+    final memberList = members.cast<FlatMemberEntity>().toList();
+    final names = selectedIds.map((id) {
+      for (final member in memberList) {
+        if (member.flatMemberId == id) return member.name;
+      }
+      return 'Unknown';
+    }).toList();
 
     return GestureDetector(
       onTap: () => _show(context),
       child: Container(
         constraints: const BoxConstraints(minHeight: AppSizing.inputHeight),
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSizing.md, vertical: AppSizing.sm),
+          horizontal: AppSizing.md,
+          vertical: AppSizing.sm,
+        ),
         decoration: BoxDecoration(
           color: AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
@@ -181,14 +215,15 @@ class TaskMultiAssigneePicker extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.group_outlined,
-                size: 18, color: AppColors.textSecondary),
+            const Icon(
+              Icons.group_outlined,
+              size: 18,
+              color: AppColors.textSecondary,
+            ),
             const SizedBox(width: AppSizing.xs),
             Expanded(
               child: Text(
-                names.isEmpty
-                    ? 'Assignees'
-                    : names.join(', '),
+                names.isEmpty ? 'Assignees' : names.join(', '),
                 style: AppTypography.bodyMedium.copyWith(
                   color: names.isNotEmpty
                       ? AppColors.textPrimary
@@ -200,12 +235,18 @@ class TaskMultiAssigneePicker extends StatelessWidget {
             if (selectedIds.isNotEmpty)
               GestureDetector(
                 onTap: () => onChanged([]),
-                child: const Icon(Icons.close,
-                    size: 16, color: AppColors.textSecondary),
+                child: const Icon(
+                  Icons.close,
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
               )
             else
-              const Icon(Icons.expand_more,
-                  size: 18, color: AppColors.textSecondary),
+              const Icon(
+                Icons.expand_more,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
           ],
         ),
       ),
@@ -219,8 +260,9 @@ class TaskMultiAssigneePicker extends StatelessWidget {
       backgroundColor: AppColors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizing.radiusLg),
+        ),
       ),
       builder: (sheetCtx) => _MultiPickerSheet(
         members: members,
@@ -280,8 +322,9 @@ class _MultiPickerSheetState extends State<_MultiPickerSheet> {
           const SizedBox(height: AppSizing.sm),
           Text(
             'Select one or more members',
-            style: AppTypography.bodySmall
-                .copyWith(color: AppColors.textSecondary),
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: AppSizing.md),
           ...widget.members.map((m) {
@@ -298,8 +341,9 @@ class _MultiPickerSheetState extends State<_MultiPickerSheet> {
               title: Text(m.name, style: AppTypography.bodyMedium),
               subtitle: Text(
                 _roleLabel(m.role),
-                style: AppTypography.labelSmall
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               activeColor: AppColors.primary,
               contentPadding: EdgeInsets.zero,
@@ -313,11 +357,10 @@ class _MultiPickerSheetState extends State<_MultiPickerSheet> {
               onPressed: () => widget.onDone(_selected.toList()),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                padding:
-                    const EdgeInsets.symmetric(vertical: AppSizing.sm + 2),
+                padding: const EdgeInsets.symmetric(vertical: AppSizing.sm + 2),
                 shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppSizing.radiusMd)),
+                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                ),
               ),
               child: Text(
                 _selected.isEmpty
@@ -334,10 +377,10 @@ class _MultiPickerSheetState extends State<_MultiPickerSheet> {
   }
 
   String _roleLabel(String role) => switch (role) {
-        'manager' => 'Manager',
-        'co-manager' => 'Co-manager',
-        _ => 'Member',
-      };
+    'manager' => 'Manager',
+    'co-manager' => 'Co-manager',
+    _ => 'Member',
+  };
 }
 
 /// Reusable due-date picker button used in create + edit sheets.
@@ -354,7 +397,20 @@ class TaskDueDatePicker extends StatelessWidget {
   final VoidCallback onClear;
 
   String _format(DateTime dt) {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${months[dt.month - 1]} ${dt.day}';
   }
 
@@ -372,13 +428,19 @@ class TaskDueDatePicker extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
+            const Icon(
+              Icons.calendar_today_outlined,
+              size: 18,
+              color: AppColors.textSecondary,
+            ),
             const SizedBox(width: AppSizing.xs),
             Expanded(
               child: Text(
                 dueDate != null ? _format(dueDate!) : 'Due date',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: dueDate != null ? AppColors.textPrimary : AppColors.textHint,
+                  color: dueDate != null
+                      ? AppColors.textPrimary
+                      : AppColors.textHint,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -386,7 +448,11 @@ class TaskDueDatePicker extends StatelessWidget {
             if (dueDate != null)
               GestureDetector(
                 onTap: onClear,
-                child: const Icon(Icons.close, size: 16, color: AppColors.textSecondary),
+                child: const Icon(
+                  Icons.close,
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
               ),
           ],
         ),
