@@ -48,6 +48,9 @@ class _PaymentsHubPageState extends State<PaymentsHubPage> {
   @override
   void initState() {
     super.initState();
+    // Apply the tab requested by the caller (e.g. notification deep-link).
+    // Must be set before the first build, so no setState needed here.
+    _selectedTab = widget.args.initialTab.clamp(0, _tabLabels.length - 1);
     _loadAll();
     // Reload when a payment-related push arrives in the foreground
     _pushSub = PushNotificationService.instance.foregroundStream.listen((event) {

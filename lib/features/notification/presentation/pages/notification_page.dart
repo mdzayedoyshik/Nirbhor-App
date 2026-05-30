@@ -352,11 +352,19 @@ class _NotificationPageState extends State<NotificationPage> {
     if (type.contains('payment') ||
         type.contains('wallet') ||
         type.contains('contribution')) {
-      final walletArgs = WalletPageArgs(flatId: flatId, canManage: canManage);
-      // payment_submitted + payment_request_received → PaymentsHubPage
-      // (manager verifies / member responds to a request from the hub)
-      if (type == 'payment_submitted' || type == 'payment_request_received') {
-        context.push(AppRoutes.walletRequests, extra: walletArgs);
+      // payment_submitted      → Awaiting tab (tab 1) — manager verifies
+      // payment_request_received → Pending tab (tab 0) — member pays
+      // payment_verified / payment_rejected / contribution → wallet home
+      if (type == 'payment_submitted') {
+        context.push(
+          AppRoutes.walletRequests,
+          extra: WalletPageArgs(flatId: flatId, canManage: canManage, initialTab: 1),
+        );
+      } else if (type == 'payment_request_received') {
+        context.push(
+          AppRoutes.walletRequests,
+          extra: WalletPageArgs(flatId: flatId, canManage: canManage),
+        );
       } else {
         // payment_verified, payment_rejected, fixed_contribution_deducted
         context.push(AppRoutes.walletHome, extra: walletArgs);

@@ -226,11 +226,21 @@ class PushNotificationService {
     if (type.contains('payment') ||
         type.contains('wallet') ||
         type.contains('contribution')) {
-      final walletArgs = WalletPageArgs(flatId: flatId, canManage: canManage);
-      if (type == 'payment_submitted' || type == 'payment_request_received') {
-        router.push(AppRoutes.walletRequests, extra: walletArgs);
+      if (type == 'payment_submitted') {
+        router.push(
+          AppRoutes.walletRequests,
+          extra: WalletPageArgs(flatId: flatId, canManage: canManage, initialTab: 1),
+        );
+      } else if (type == 'payment_request_received') {
+        router.push(
+          AppRoutes.walletRequests,
+          extra: WalletPageArgs(flatId: flatId, canManage: canManage),
+        );
       } else {
-        router.push(AppRoutes.walletHome, extra: walletArgs);
+        router.push(
+          AppRoutes.walletHome,
+          extra: WalletPageArgs(flatId: flatId, canManage: canManage),
+        );
       }
       return;
     }
