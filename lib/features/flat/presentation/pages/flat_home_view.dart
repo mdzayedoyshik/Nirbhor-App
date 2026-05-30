@@ -116,19 +116,18 @@ class _FlatHomeViewState extends State<FlatHomeView> {
   }
 
   /// Reloads all home-level pending-action blocs.
-  /// Called on initial mount, pull-to-refresh, and after navigating back from
-  /// screens that may change pending state (tasks, complaints, wallet, expenses).
+  /// Called on initial mount, pull-to-refresh, after navigating back from
+  /// screens that may change pending state, and on relevant foreground pushes.
   void _reloadPendingActions() {
     final me = _myMember();
     if (me == null) return;
-    final flatId = widget.flat.id;
+    final flatId    = widget.flat.id;
     final canManage = me.canManage;
     final myMemberId = me.flatMemberId;
 
     // Tasks assigned to me — pending status only for accuracy
     context.read<TaskBloc>().add(
-          TasksLoadRequested(flatId,
-              assignedTo: myMemberId, status: 'pending'),
+          TasksLoadRequested(flatId, assignedTo: myMemberId, status: 'pending'),
         );
 
     // Complaints — managers see all open, members see their own open
@@ -149,10 +148,18 @@ class _FlatHomeViewState extends State<FlatHomeView> {
       context.read<ExpenseBloc>().add(
             ExpensesLoadRequested(flatId, isApproved: false),
           );
-      // Month-close checklist (fetches oldest unclosed previous month + blockers)
+      // Month-close checklist (oldest unclosed previous month + blockers)
       context.read<MonthCloseChecklistBloc>().add(
             MonthCloseChecklistStatusRequested(flatId),
           );
+      // Join requests — powers both the quick-action badge and the pending card
+      context.read<JoinRequestsBloc>().add(
+            JoinRequestsLoadRequested(flatId),
+          );
+    } else {
+      // Member: reload wallet summary so the pending payment-request card stays
+      // accurate when a manager sends a new payment request.
+      context.read<WalletBloc>().add(WalletSummaryRequested(flatId));
     }
   }
 
@@ -188,14 +195,24 @@ class _FlatHomeViewState extends State<FlatHomeView> {
       if (event.flatId != widget.flat.id) return; // different flat — ignore
       if (_tab != 0) return;                       // Home tab not visible — skip
       final t = event.type;
-      if (t.contains('task')         ||
-          t.contains('complaint')    ||
-          t.contains('expense')      ||
-          t.contains('payment')      ||
-          t.contains('wallet')       ||
-          t.contains('contribution') ||
-          t.contains('join_request')) {
+
+      // Reload pending-actions blocs for all action-relevant push types.
+      if (t.contains('task')         ||  // task_assigned, task_status_updated
+          t.contains('complaint')    ||  // complaint_raised, complaint_status_updated
+          t.contains('expense')      ||  // expense_submitted, expense_approved
+          t.contains('payment')      ||  // payment_submitted/verified/rejected/request_received
+          t.contains('contribution') ||  // fixed_contribution_deducted
+          t.contains('join_request') ||  // join_request_received
+          t.contains('member')       ||  // member_joined, member_exit_initiated
+          t.contains('month_closed') ||  // month_closed (co-manager sees checklist clear)
+          t.contains('monthly')) {       // monthly_summary (any summary-related type)
         _reloadPendingActions();
+      }
+
+      // Member-count changes also need the flat entity itself refreshed
+      // so the Members stat card and member list stay accurate.
+      if (t.contains('member')) {
+        context.read<FlatBloc>().add(FlatRefreshRequested(widget.flat.id));
       }
     });
   }
