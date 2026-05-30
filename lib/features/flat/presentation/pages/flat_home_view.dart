@@ -1891,7 +1891,7 @@ class _PendingActionsSection extends StatelessWidget {
           onAction: () => context
               .push(
                 AppRoutes.walletRequests,
-                extra: WalletPageArgs(flatId: flat.id, canManage: true),
+                extra: WalletPageArgs(flatId: flat.id, canManage: true, initialTab: 1),
               )
               .then((_) {
             if (context.mounted) onReloadPending();
