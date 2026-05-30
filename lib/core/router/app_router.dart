@@ -522,6 +522,7 @@ GoRouter createRouter(AuthBloc authBloc) {
             child: RecordExpensePage(
               flatId: args.flatId,
               memberCount: args.memberCount,
+              canManage: args.canManage,
             ),
           );
         },

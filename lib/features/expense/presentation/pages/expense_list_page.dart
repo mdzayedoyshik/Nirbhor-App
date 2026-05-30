@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -133,21 +134,20 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
             style: AppTypography.headlineMedium
                 .copyWith(color: context.textPrimColor)),
       ),
-      floatingActionButton: widget.canManage
-          ? _GradientFab(
-              onPressed: () => context
-                  .push(
-                    AppRoutes.recordExpense,
-                    extra: RecordExpenseArgs(
-                      flatId: widget.flatId,
-                      memberCount: widget.memberCount,
-                    ),
-                  )
-                  .then((_) {
-                if (mounted) _loadExpenses();
-              }),
+      floatingActionButton: _GradientFab(
+        onPressed: () => context
+            .push(
+              AppRoutes.recordExpense,
+              extra: RecordExpenseArgs(
+                flatId: widget.flatId,
+                memberCount: widget.memberCount,
+                canManage: widget.canManage,
+              ),
             )
-          : null,
+            .then((_) {
+          if (mounted) _loadExpenses();
+        }),
+      ),
       body: BlocConsumer<ExpenseBloc, ExpenseState>(
         listener: (context, state) {
           if (state is ExpenseError) {
@@ -183,11 +183,13 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
                         },
                       ),
 
-                      // Summary cards
+                      // Summary cards + chart
                       if (state is ExpenseListLoaded &&
                           state.summary != null) ...[
                         const SizedBox(height: AppSizing.md),
                         _SummaryRow(summary: state.summary!),
+                        const SizedBox(height: AppSizing.md),
+                        _ExpenseChart(summary: state.summary!),
                       ],
 
                       const SizedBox(height: AppSizing.md),
@@ -543,6 +545,208 @@ class _Chip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Expense Distribution Chart ────────────────────────────────────────────────
+
+class _ExpenseChart extends StatefulWidget {
+  const _ExpenseChart({required this.summary});
+  final ExpenseSummaryEntity summary;
+
+  @override
+  State<_ExpenseChart> createState() => _ExpenseChartState();
+}
+
+class _ExpenseChartState extends State<_ExpenseChart> {
+  int _touchedIndex = -1;
+
+  static const _mealColor      = Color(0xFFF57C00);
+  static const _householdColor = Color(0xFF7B1FA2);
+  static const _fixedColor     = Color(0xFF1565C0);
+
+  @override
+  Widget build(BuildContext context) {
+    final meal      = widget.summary.meal.approvedTotal;
+    final household = widget.summary.household.approvedTotal;
+    final fixed     = widget.summary.fixed.approvedTotal;
+    final total     = meal + household + fixed;
+
+    if (total == 0) return const SizedBox.shrink();
+
+    // Build sections and a parallel labels list so touch index maps correctly
+    final sections = <({PieChartSectionData data, String label, double amount, Color color})>[];
+    if (meal      > 0) sections.add((data: _section(meal,      _mealColor,      0), label: 'Meal',      amount: meal,      color: _mealColor));
+    if (household > 0) sections.add((data: _section(household, _householdColor, 1), label: 'Household', amount: household, color: _householdColor));
+    if (fixed     > 0) sections.add((data: _section(fixed,     _fixedColor,     2), label: 'Fixed',     amount: fixed,     color: _fixedColor));
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+      child: Container(
+        padding: const EdgeInsets.all(AppSizing.md),
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Expense Distribution',
+              style: AppTypography.titleMedium.copyWith(color: context.textPrimColor),
+            ),
+            const SizedBox(height: AppSizing.md),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Donut chart
+                SizedBox(
+                  height: 150,
+                  width: 150,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      PieChart(
+                        PieChartData(
+                          pieTouchData: PieTouchData(
+                            touchCallback: (FlTouchEvent event, PieTouchResponse? res) {
+                              setState(() {
+                                if (!event.isInterestedForInteractions ||
+                                    res == null ||
+                                    res.touchedSection == null) {
+                                  _touchedIndex = -1;
+                                  return;
+                                }
+                                _touchedIndex =
+                                    res.touchedSection!.touchedSectionIndex;
+                              });
+                            },
+                          ),
+                          sections: sections.asMap().entries.map((e) {
+                            final isTouched = e.key == _touchedIndex;
+                            return e.value.data.copyWith(
+                              radius: isTouched ? 56 : 48,
+                            );
+                          }).toList(),
+                          centerSpaceRadius: 42,
+                          sectionsSpace: 2,
+                        ),
+                      ),
+                      // Center total
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '৳${total.toStringAsFixed(0)}',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: context.textPrimColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'Total',
+                            style: AppTypography.labelSmall
+                                .copyWith(color: context.textSecColor),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSizing.md),
+                // Legend
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: sections.asMap().entries.map((e) {
+                      final isTouched = e.key == _touchedIndex;
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          bottom: e.key < sections.length - 1 ? AppSizing.sm : 0,
+                        ),
+                        child: _LegendItem(
+                          color: e.value.color,
+                          label: e.value.label,
+                          amount: e.value.amount,
+                          total: total,
+                          highlighted: isTouched,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PieChartSectionData _section(double value, Color color, int index) {
+    return PieChartSectionData(
+      value: value,
+      color: color,
+      radius: 48,
+      showTitle: false,
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({
+    required this.color,
+    required this.label,
+    required this.amount,
+    required this.total,
+    this.highlighted = false,
+  });
+
+  final Color  color;
+  final String label;
+  final double amount;
+  final double total;
+  final bool   highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = total > 0 ? (amount / total * 100).toStringAsFixed(1) : '0.0';
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 3),
+          child: Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+        ),
+        const SizedBox(width: AppSizing.xs),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTypography.labelSmall.copyWith(
+                  color: context.textSecColor,
+                ),
+              ),
+              Text(
+                '৳${amount.toStringAsFixed(0)}  ($pct%)',
+                style: AppTypography.bodySmall.copyWith(
+                  color: highlighted ? color : context.textPrimColor,
+                  fontWeight: highlighted ? FontWeight.w700 : FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
