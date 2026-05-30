@@ -17,11 +17,11 @@ class MealConfigEntity extends Equatable {
   final double breakfastPoints;
   final double lunchPoints;
   final double dinnerPoints;
-  final String lockTimeBreakfast; // "HH:MM" UTC
+  final String lockTimeBreakfast; // "HH:MM" local time
   final String lockTimeLunch;
   final String lockTimeDinner;
 
-  /// Returns true if the UTC lock time for [shift] has passed for today.
+  /// Returns true if the local lock time for [shift] has passed for today.
   bool isLocked(String shift) {
     final lockTime = _lockTime(shift);
     if (lockTime == null) return false;
@@ -29,7 +29,7 @@ class MealConfigEntity extends Equatable {
     if (parts.length < 2) return false;
     final h = int.tryParse(parts[0]) ?? 0;
     final m = int.tryParse(parts[1]) ?? 0;
-    final now = DateTime.now().toUtc();
+    final now = DateTime.now(); // local time — lock times are set in local time
     return now.hour > h || (now.hour == h && now.minute >= m);
   }
 

@@ -297,7 +297,8 @@ class _DailyTabState extends State<_DailyTab>
     return BlocConsumer<MealBloc, MealState>(
       listener: (context, state) {
         if (state is MealActionSuccess) {
-          AppSnackbar.success(context, state.message);
+          // No success snackbar — the toggle visual is sufficient feedback.
+          // Refresh the pool breakdown so counts stay in sync.
           context.read<MealPoolBloc>().add(MealPoolLoadRequested(
                 flatId: widget.args.flatId,
                 month: DateTime.now().month,
