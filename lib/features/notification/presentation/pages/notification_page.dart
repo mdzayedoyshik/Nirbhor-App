@@ -367,7 +367,10 @@ class _NotificationPageState extends State<NotificationPage> {
         );
       } else {
         // payment_verified, payment_rejected, fixed_contribution_deducted
-        context.push(AppRoutes.walletHome, extra: walletArgs);
+        context.push(
+          AppRoutes.walletHome,
+          extra: WalletPageArgs(flatId: flatId, canManage: canManage),
+        );
       }
       return;
     }
