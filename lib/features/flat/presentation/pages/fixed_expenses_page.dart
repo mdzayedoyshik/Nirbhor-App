@@ -12,6 +12,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../wallet/presentation/bloc/payment_hints/payment_hints_bloc.dart';
 import '../../domain/entities/fixed_expense_entity.dart';
 import '../bloc/fixed_expenses_bloc.dart';
 import '../bloc/flat_bloc.dart';
@@ -36,6 +37,9 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
   void initState() {
     super.initState();
     context.read<FixedExpensesBloc>().add(FixedExpensesLoadRequested(widget.flatId));
+    if (widget.canManage) {
+      context.read<PaymentHintsBloc>().add(PaymentHintsLoadRequested(widget.flatId));
+    }
   }
 
   Future<void> _showAddSheet(BuildContext context) async {
@@ -84,6 +88,47 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
         ),
       );
     }
+  }
+
+  Future<void> _showHintsSheet(BuildContext context) async {
+    final hintsBloc = context.read<PaymentHintsBloc>();
+    final currentState = hintsBloc.state;
+
+    final mealCtrl = TextEditingController(
+      text: currentState is PaymentHintsLoaded
+          ? currentState.hints.suggestedMealAmount.toStringAsFixed(0)
+          : currentState is PaymentHintsUpdateSuccess
+              ? currentState.hints.suggestedMealAmount.toStringAsFixed(0)
+              : '',
+    );
+    final householdCtrl = TextEditingController(
+      text: currentState is PaymentHintsLoaded
+          ? currentState.hints.suggestedHouseholdAmount.toStringAsFixed(0)
+          : currentState is PaymentHintsUpdateSuccess
+              ? currentState.hints.suggestedHouseholdAmount.toStringAsFixed(0)
+              : '',
+    );
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
+      ),
+      builder: (sheetCtx) => BlocProvider.value(
+        value: hintsBloc,
+        child: _HintsSheet(
+          flatId: widget.flatId,
+          mealCtrl: mealCtrl,
+          householdCtrl: householdCtrl,
+        ),
+      ),
+    );
+
+    mealCtrl.dispose();
+    householdCtrl.dispose();
   }
 
   Future<void> _redistribute(BuildContext context) async {
@@ -537,6 +582,14 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                         ),
                       ),
                     ),
+
+                  // ── Payment Hints section (manager only) ──
+                  if (widget.canManage) ...[
+                    const SizedBox(height: AppSizing.lg),
+                    _HintsSectionCard(
+                      onEdit: () => _showHintsSheet(context),
+                    ),
+                  ],
                   const SizedBox(height: 80),
                 ],
               ),
@@ -569,6 +622,246 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
               ),
             )
           : null,
+    );
+  }
+}
+
+// ── Payment Hints card ───────────────────────────────────────────────────────
+
+class _HintsSectionCard extends StatelessWidget {
+  const _HintsSectionCard({required this.onEdit});
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<PaymentHintsBloc, PaymentHintsState>(
+      builder: (context, state) {
+        final hints = switch (state) {
+          PaymentHintsLoaded(hints: final h) => h,
+          PaymentHintsActionLoading(hints: final h) => h,
+          PaymentHintsUpdateSuccess(hints: final h) => h,
+          PaymentHintsError(hints: final h) when h != null => h,
+          _ => null,
+        };
+        final isLoading = state is PaymentHintsLoading;
+
+        return Container(
+          padding: const EdgeInsets.all(AppSizing.md),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: AppColors.brand.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    ),
+                    child: const Icon(Icons.savings_outlined,
+                        size: 18, color: AppColors.brand),
+                  ),
+                  const SizedBox(width: AppSizing.sm),
+                  Expanded(
+                    child: Text(
+                      AppStrings.paymentHintsTitle,
+                      style: AppTypography.titleMedium,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit_outlined,
+                        size: 18, color: AppColors.textSecondary),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                        minWidth: 32, minHeight: 32),
+                    tooltip: 'Edit hints',
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizing.xs),
+              Text(
+                AppStrings.paymentHintsHelperNote,
+                style: AppTypography.bodySmall
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppSizing.md),
+              if (isLoading)
+                const Center(
+                  child: SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.brand),
+                  ),
+                )
+              else if (hints != null) ...[
+                _HintRow(
+                  icon: Icons.restaurant_outlined,
+                  label: 'Meal estimate / person',
+                  value: '৳${hints.suggestedMealAmount.toStringAsFixed(0)}',
+                ),
+                const SizedBox(height: AppSizing.xs),
+                _HintRow(
+                  icon: Icons.home_outlined,
+                  label: 'Household estimate',
+                  value:
+                      '৳${hints.suggestedHouseholdAmount.toStringAsFixed(0)}',
+                ),
+              ] else
+                Text(
+                  'Tap edit to set hints',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: AppColors.textHint),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HintRow extends StatelessWidget {
+  const _HintRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: AppColors.textSecondary),
+        const SizedBox(width: AppSizing.xs),
+        Expanded(
+          child: Text(label,
+              style: AppTypography.bodySmall
+                  .copyWith(color: AppColors.textSecondary)),
+        ),
+        Text(value,
+            style: AppTypography.titleMedium.copyWith(color: AppColors.brand)),
+      ],
+    );
+  }
+}
+
+// ── Hints edit sheet ─────────────────────────────────────────────────────────
+
+class _HintsSheet extends StatelessWidget {
+  const _HintsSheet({
+    required this.flatId,
+    required this.mealCtrl,
+    required this.householdCtrl,
+  });
+  final String flatId;
+  final TextEditingController mealCtrl;
+  final TextEditingController householdCtrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<PaymentHintsBloc, PaymentHintsState>(
+      listenWhen: (_, curr) =>
+          curr is PaymentHintsUpdateSuccess || curr is PaymentHintsError,
+      listener: (context, state) {
+        if (state is PaymentHintsUpdateSuccess) {
+          Navigator.of(context).pop();
+          AppSnackbar.success(context, AppStrings.paymentHintsUpdatedMsg);
+        }
+        if (state is PaymentHintsError) {
+          AppSnackbar.error(context, state.message);
+        }
+      },
+      builder: (context, state) {
+        final isSaving = state is PaymentHintsActionLoading;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSizing.pagePadding,
+            AppSizing.md,
+            AppSizing.pagePadding,
+            MediaQuery.of(context).viewInsets.bottom + AppSizing.pagePadding,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: AppSizing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius:
+                        BorderRadius.circular(AppSizing.radiusFull),
+                  ),
+                ),
+              ),
+              Text(AppStrings.paymentHintsTitle,
+                  style: AppTypography.headlineSmall),
+              const SizedBox(height: AppSizing.xs),
+              Text(
+                AppStrings.paymentHintsHelperNote,
+                style: AppTypography.bodySmall
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppSizing.md),
+              AppTextField(
+                controller: mealCtrl,
+                label: AppStrings.suggestedMealLabel,
+                hint: '0',
+                keyboardType: TextInputType.number,
+                prefixIcon: const Icon(Icons.restaurant_outlined,
+                    color: AppColors.textSecondary, size: 20),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: AppSizing.md),
+              AppTextField(
+                controller: householdCtrl,
+                label: AppStrings.suggestedHouseholdLabel,
+                hint: '0',
+                keyboardType: TextInputType.number,
+                prefixIcon: const Icon(Icons.home_outlined,
+                    color: AppColors.textSecondary, size: 20),
+                textInputAction: TextInputAction.done,
+              ),
+              const SizedBox(height: AppSizing.lg),
+              AppButton(
+                label: AppStrings.saveChanges,
+                loading: isSaving,
+                onPressed: isSaving
+                    ? null
+                    : () {
+                        final meal =
+                            double.tryParse(mealCtrl.text.trim()) ?? 0;
+                        final household =
+                            double.tryParse(householdCtrl.text.trim()) ?? 0;
+                        context.read<PaymentHintsBloc>().add(
+                              PaymentHintsUpdateRequested(
+                                flatId: flatId,
+                                suggestedMealAmount: meal,
+                                suggestedHouseholdAmount: household,
+                              ),
+                            );
+                      },
+                variant: AppButtonVariant.primary,
+                fullWidth: true,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

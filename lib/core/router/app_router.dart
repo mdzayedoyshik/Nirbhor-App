@@ -341,8 +341,11 @@ GoRouter createRouter(AuthBloc authBloc) {
             state.extra is Map<String, dynamic> ? null : AppRoutes.flatJoin,
         builder: (ctx, state) {
           final extra = state.extra! as Map<String, dynamic>;
-          return BlocProvider(
-            create: (_) => sl<FixedExpensesBloc>(),
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => sl<FixedExpensesBloc>()),
+              BlocProvider(create: (_) => sl<PaymentHintsBloc>()),
+            ],
             child: FixedExpensesPage(
               flatId: extra['flatId'] as String,
               canManage: extra['canManage'] as bool,
