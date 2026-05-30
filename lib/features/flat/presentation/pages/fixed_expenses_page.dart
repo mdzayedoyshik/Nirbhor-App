@@ -36,9 +36,13 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
   @override
   void initState() {
     super.initState();
-    context.read<FixedExpensesBloc>().add(FixedExpensesLoadRequested(widget.flatId));
+    context.read<FixedExpensesBloc>().add(
+      FixedExpensesLoadRequested(widget.flatId),
+    );
     if (widget.canManage) {
-      context.read<PaymentHintsBloc>().add(PaymentHintsLoadRequested(widget.flatId));
+      context.read<PaymentHintsBloc>().add(
+        PaymentHintsLoadRequested(widget.flatId),
+      );
     }
   }
 
@@ -98,15 +102,15 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
       text: currentState is PaymentHintsLoaded
           ? currentState.hints.suggestedMealAmount.toStringAsFixed(0)
           : currentState is PaymentHintsUpdateSuccess
-              ? currentState.hints.suggestedMealAmount.toStringAsFixed(0)
-              : '',
+          ? currentState.hints.suggestedMealAmount.toStringAsFixed(0)
+          : '',
     );
     final householdCtrl = TextEditingController(
       text: currentState is PaymentHintsLoaded
           ? currentState.hints.suggestedHouseholdAmount.toStringAsFixed(0)
           : currentState is PaymentHintsUpdateSuccess
-              ? currentState.hints.suggestedHouseholdAmount.toStringAsFixed(0)
-              : '',
+          ? currentState.hints.suggestedHouseholdAmount.toStringAsFixed(0)
+          : '',
     );
 
     await showModalBottomSheet(
@@ -114,8 +118,9 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizing.radiusLg),
+        ),
       ),
       builder: (sheetCtx) => BlocProvider.value(
         value: hintsBloc,
@@ -157,8 +162,9 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
     }
 
     // Build controllers for each member
-    final double equalShare =
-        double.parse((totalFixed / members.length).toStringAsFixed(2));
+    final double equalShare = double.parse(
+      (totalFixed / members.length).toStringAsFixed(2),
+    );
     final controllers = <String, TextEditingController>{};
     for (final m in members) {
       controllers[m.flatMemberId] = TextEditingController(
@@ -175,8 +181,9 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizing.radiusLg),
+        ),
       ),
       builder: (sheetCtx) => StatefulBuilder(
         builder: (sheetCtx, setSheetState) {
@@ -193,8 +200,8 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
             final remainderCents = totalCents - perCents * members.length;
             for (int i = 0; i < members.length; i++) {
               final shareCents = perCents + (i == 0 ? remainderCents : 0);
-              controllers[members[i].flatMemberId]?.text =
-                  (shareCents / 100).toStringAsFixed(0);
+              controllers[members[i].flatMemberId]?.text = (shareCents / 100)
+                  .toStringAsFixed(0);
             }
             setSheetState(() {});
           }
@@ -217,30 +224,33 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                     margin: const EdgeInsets.only(bottom: AppSizing.md),
                     decoration: BoxDecoration(
                       color: AppColors.border,
-                      borderRadius:
-                          BorderRadius.circular(AppSizing.radiusFull),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                     ),
                   ),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(AppStrings.redistributeLabel,
-                        style: AppTypography.headlineSmall),
+                    Text(
+                      AppStrings.redistributeLabel,
+                      style: AppTypography.headlineSmall,
+                    ),
                     TextButton(
                       onPressed: resetToEqual,
                       child: Text(
                         'Equal Split',
-                        style: AppTypography.labelLarge
-                            .copyWith(color: AppColors.primary),
+                        style: AppTypography.labelLarge.copyWith(
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
                 ),
                 Text(
                   'Total fixed: ৳${totalFixed.toStringAsFixed(0)}',
-                  style: AppTypography.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: AppSizing.md),
                 ConstrainedBox(
@@ -251,8 +261,7 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                     child: Column(
                       children: members.map((m) {
                         return Padding(
-                          padding:
-                              const EdgeInsets.only(bottom: AppSizing.sm),
+                          padding: const EdgeInsets.only(bottom: AppSizing.sm),
                           child: Row(
                             children: [
                               Expanded(
@@ -260,17 +269,19 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(m.name,
-                                        style: AppTypography.titleMedium),
+                                    Text(
+                                      m.name,
+                                      style: AppTypography.titleMedium,
+                                    ),
                                     Text(
                                       m.role == 'manager'
                                           ? 'Manager'
                                           : m.role == 'co-manager'
-                                              ? 'Co-manager'
-                                              : 'Member',
-                                      style: AppTypography.labelSmall
-                                          .copyWith(
-                                              color: AppColors.textSecondary),
+                                          ? 'Co-manager'
+                                          : 'Member',
+                                      style: AppTypography.labelSmall.copyWith(
+                                        color: AppColors.textSecondary,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -281,23 +292,24 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                                 child: StatefulBuilder(
                                   builder: (ctx, setSub) {
                                     return TextField(
-                                      controller:
-                                          controllers[m.flatMemberId],
+                                      controller: controllers[m.flatMemberId],
                                       keyboardType: TextInputType.number,
                                       decoration: InputDecoration(
                                         prefix: const Text('৳ '),
                                         border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                         contentPadding:
                                             const EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 8),
+                                              horizontal: 8,
+                                              vertical: 8,
+                                            ),
                                         isDense: true,
                                       ),
                                       style: AppTypography.titleMedium,
-                                      onChanged: (_) =>
-                                          setSheetState(() {}),
+                                      onChanged: (_) => setSheetState(() {}),
                                     );
                                   },
                                 ),
@@ -311,41 +323,46 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                 ),
                 const SizedBox(height: AppSizing.sm),
                 // Running total indicator
-                Builder(builder: (_) {
-                  final total = currentTotal();
-                  final diff = (total - totalFixed).abs();
-                  final isValid = diff < 0.1;
-                  return Container(
-                    padding: const EdgeInsets.all(AppSizing.sm),
-                    decoration: BoxDecoration(
-                      color: isValid
-                          ? AppColors.success.withValues(alpha: 0.1)
-                          : AppColors.error.withValues(alpha: 0.1),
-                      borderRadius:
-                          BorderRadius.circular(AppSizing.radiusMd),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          isValid ? Icons.check_circle_outline : Icons.warning_amber_rounded,
-                          color: isValid ? AppColors.success : AppColors.error,
-                          size: 16,
-                        ),
-                        const SizedBox(width: AppSizing.xs),
-                        Text(
-                          isValid
-                              ? 'Total: ৳${total.toStringAsFixed(0)} ✓'
-                              : 'Total: ৳${total.toStringAsFixed(0)} — must equal ৳${totalFixed.toStringAsFixed(0)}',
-                          style: AppTypography.bodySmall.copyWith(
+                Builder(
+                  builder: (_) {
+                    final total = currentTotal();
+                    final diff = (total - totalFixed).abs();
+                    final isValid = diff < 0.1;
+                    return Container(
+                      padding: const EdgeInsets.all(AppSizing.sm),
+                      decoration: BoxDecoration(
+                        color: isValid
+                            ? AppColors.success.withValues(alpha: 0.1)
+                            : AppColors.error.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isValid
+                                ? Icons.check_circle_outline
+                                : Icons.warning_amber_rounded,
                             color: isValid
                                 ? AppColors.success
                                 : AppColors.error,
+                            size: 16,
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
+                          const SizedBox(width: AppSizing.xs),
+                          Text(
+                            isValid
+                                ? 'Total: ৳${total.toStringAsFixed(0)} ✓'
+                                : 'Total: ৳${total.toStringAsFixed(0)} — must equal ৳${totalFixed.toStringAsFixed(0)}',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: isValid
+                                  ? AppColors.success
+                                  : AppColors.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
                 const SizedBox(height: AppSizing.md),
                 AppButton(
                   label: 'Apply Distribution',
@@ -359,21 +376,25 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                       return;
                     }
                     final contributions = members
-                        .map((m) => {
-                              'flat_member_id': m.flatMemberId,
-                              'amount': double.tryParse(
-                                      controllers[m.flatMemberId]
-                                              ?.text
-                                              .trim() ??
-                                          '0') ??
-                                  0.0,
-                            })
+                        .map(
+                          (m) => {
+                            'flat_member_id': m.flatMemberId,
+                            'amount':
+                                double.tryParse(
+                                  controllers[m.flatMemberId]?.text.trim() ??
+                                      '0',
+                                ) ??
+                                0.0,
+                          },
+                        )
                         .toList();
                     Navigator.pop(sheetCtx);
-                    bloc.add(FixedExpensesRedistributeRequested(
-                      widget.flatId,
-                      contributions: contributions,
-                    ));
+                    bloc.add(
+                      FixedExpensesRedistributeRequested(
+                        widget.flatId,
+                        contributions: contributions,
+                      ),
+                    );
                   },
                   variant: AppButtonVariant.primary,
                   fullWidth: true,
@@ -498,8 +519,7 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius:
-                          BorderRadius.circular(AppSizing.radiusLg),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusLg),
                     ),
                     child: Row(
                       children: [
@@ -523,14 +543,12 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                             Text(
                               AppStrings.totalExpenses,
                               style: AppTypography.bodySmall.copyWith(
-                                color:
-                                    AppColors.white.withValues(alpha: 0.8),
+                                color: AppColors.white.withValues(alpha: 0.8),
                               ),
                             ),
                             Text(
                               '৳${total.toStringAsFixed(0)}',
-                              style:
-                                  AppTypography.headlineMedium.copyWith(
+                              style: AppTypography.headlineMedium.copyWith(
                                 color: AppColors.white,
                               ),
                             ),
@@ -586,9 +604,7 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                   // ── Payment Hints section (manager only) ──
                   if (widget.canManage) ...[
                     const SizedBox(height: AppSizing.lg),
-                    _HintsSectionCard(
-                      onEdit: () => _showHintsSheet(context),
-                    ),
+                    _HintsSectionCard(onEdit: () => _showHintsSheet(context)),
                   ],
                   const SizedBox(height: 80),
                 ],
@@ -664,8 +680,11 @@ class _HintsSectionCard extends StatelessWidget {
                       color: AppColors.brand.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                     ),
-                    child: const Icon(Icons.savings_outlined,
-                        size: 18, color: AppColors.brand),
+                    child: const Icon(
+                      Icons.savings_outlined,
+                      size: 18,
+                      color: AppColors.brand,
+                    ),
                   ),
                   const SizedBox(width: AppSizing.sm),
                   Expanded(
@@ -676,11 +695,16 @@ class _HintsSectionCard extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: onEdit,
-                    icon: const Icon(Icons.edit_outlined,
-                        size: 18, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(
-                        minWidth: 32, minHeight: 32),
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                     tooltip: 'Edit hints',
                   ),
                 ],
@@ -688,8 +712,9 @@ class _HintsSectionCard extends StatelessWidget {
               const SizedBox(height: AppSizing.xs),
               Text(
                 AppStrings.paymentHintsHelperNote,
-                style: AppTypography.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSizing.md),
               if (isLoading)
@@ -698,7 +723,9 @@ class _HintsSectionCard extends StatelessWidget {
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColors.brand),
+                      strokeWidth: 2,
+                      color: AppColors.brand,
+                    ),
                   ),
                 )
               else if (hints != null) ...[
@@ -717,8 +744,9 @@ class _HintsSectionCard extends StatelessWidget {
               ] else
                 Text(
                   'Tap edit to set hints',
-                  style: AppTypography.bodySmall
-                      .copyWith(color: AppColors.textHint),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textHint,
+                  ),
                 ),
             ],
           ),
@@ -745,12 +773,17 @@ class _HintRow extends StatelessWidget {
         Icon(icon, size: 15, color: AppColors.textSecondary),
         const SizedBox(width: AppSizing.xs),
         Expanded(
-          child: Text(label,
-              style: AppTypography.bodySmall
-                  .copyWith(color: AppColors.textSecondary)),
+          child: Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
         ),
-        Text(value,
-            style: AppTypography.titleMedium.copyWith(color: AppColors.brand)),
+        Text(
+          value,
+          style: AppTypography.titleMedium.copyWith(color: AppColors.brand),
+        ),
       ],
     );
   }
@@ -758,16 +791,22 @@ class _HintRow extends StatelessWidget {
 
 // ── Hints edit sheet ─────────────────────────────────────────────────────────
 
-class _HintsSheet extends StatelessWidget {
+class _HintsSheet extends StatefulWidget {
   const _HintsSheet({
     required this.flatId,
     required this.mealCtrl,
     required this.householdCtrl,
   });
+
   final String flatId;
   final TextEditingController mealCtrl;
   final TextEditingController householdCtrl;
 
+  @override
+  State<_HintsSheet> createState() => _HintsSheetState();
+}
+
+class _HintsSheetState extends State<_HintsSheet> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<PaymentHintsBloc, PaymentHintsState>(
@@ -775,8 +814,11 @@ class _HintsSheet extends StatelessWidget {
           curr is PaymentHintsUpdateSuccess || curr is PaymentHintsError,
       listener: (context, state) {
         if (state is PaymentHintsUpdateSuccess) {
-          Navigator.of(context).pop();
-          AppSnackbar.success(context, AppStrings.paymentHintsUpdatedMsg);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            Navigator.of(context).pop();
+            AppSnackbar.success(context, AppStrings.paymentHintsUpdatedMsg);
+          });
         }
         if (state is PaymentHintsError) {
           AppSnackbar.error(context, state.message);
@@ -784,7 +826,7 @@ class _HintsSheet extends StatelessWidget {
       },
       builder: (context, state) {
         final isSaving = state is PaymentHintsActionLoading;
-        return Padding(
+        return SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
             AppSizing.pagePadding,
             AppSizing.md,
@@ -803,37 +845,45 @@ class _HintsSheet extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: AppSizing.md),
                   decoration: BoxDecoration(
                     color: AppColors.border,
-                    borderRadius:
-                        BorderRadius.circular(AppSizing.radiusFull),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                   ),
                 ),
               ),
-              Text(AppStrings.paymentHintsTitle,
-                  style: AppTypography.headlineSmall),
+              Text(
+                AppStrings.paymentHintsTitle,
+                style: AppTypography.headlineSmall,
+              ),
               const SizedBox(height: AppSizing.xs),
               Text(
                 AppStrings.paymentHintsHelperNote,
-                style: AppTypography.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSizing.md),
               AppTextField(
-                controller: mealCtrl,
+                controller: widget.mealCtrl,
                 label: AppStrings.suggestedMealLabel,
                 hint: '0',
                 keyboardType: TextInputType.number,
-                prefixIcon: const Icon(Icons.restaurant_outlined,
-                    color: AppColors.textSecondary, size: 20),
+                prefixIcon: const Icon(
+                  Icons.restaurant_outlined,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: AppSizing.md),
               AppTextField(
-                controller: householdCtrl,
+                controller: widget.householdCtrl,
                 label: AppStrings.suggestedHouseholdLabel,
                 hint: '0',
                 keyboardType: TextInputType.number,
-                prefixIcon: const Icon(Icons.home_outlined,
-                    color: AppColors.textSecondary, size: 20),
+                prefixIcon: const Icon(
+                  Icons.home_outlined,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
                 textInputAction: TextInputAction.done,
               ),
               const SizedBox(height: AppSizing.lg),
@@ -843,17 +893,19 @@ class _HintsSheet extends StatelessWidget {
                 onPressed: isSaving
                     ? null
                     : () {
+                        FocusScope.of(context).unfocus();
                         final meal =
-                            double.tryParse(mealCtrl.text.trim()) ?? 0;
+                            double.tryParse(widget.mealCtrl.text.trim()) ?? 0;
                         final household =
-                            double.tryParse(householdCtrl.text.trim()) ?? 0;
+                            double.tryParse(widget.householdCtrl.text.trim()) ??
+                            0;
                         context.read<PaymentHintsBloc>().add(
-                              PaymentHintsUpdateRequested(
-                                flatId: flatId,
-                                suggestedMealAmount: meal,
-                                suggestedHouseholdAmount: household,
-                              ),
-                            );
+                          PaymentHintsUpdateRequested(
+                            flatId: widget.flatId,
+                            suggestedMealAmount: meal,
+                            suggestedHouseholdAmount: household,
+                          ),
+                        );
                       },
                 variant: AppButtonVariant.primary,
                 fullWidth: true,
@@ -903,22 +955,27 @@ class _ExpenseFormState extends State<_ExpenseForm> {
 
   void _submit(BuildContext context) {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    FocusScope.of(context).unfocus();
     final type = _typeCtrl.text.trim();
     final amount = double.parse(_amountCtrl.text.trim());
 
     if (widget.expense != null) {
-      context.read<FixedExpensesBloc>().add(FixedExpenseUpdateRequested(
-        flatId: widget.flatId,
-        expenseId: widget.expense!.id,
-        expenseType: type,
-        amount: amount,
-      ));
+      context.read<FixedExpensesBloc>().add(
+        FixedExpenseUpdateRequested(
+          flatId: widget.flatId,
+          expenseId: widget.expense!.id,
+          expenseType: type,
+          amount: amount,
+        ),
+      );
     } else {
-      context.read<FixedExpensesBloc>().add(FixedExpenseAddRequested(
-        flatId: widget.flatId,
-        expenseType: type,
-        amount: amount,
-      ));
+      context.read<FixedExpensesBloc>().add(
+        FixedExpenseAddRequested(
+          flatId: widget.flatId,
+          expenseType: type,
+          amount: amount,
+        ),
+      );
     }
   }
 
@@ -929,8 +986,11 @@ class _ExpenseFormState extends State<_ExpenseForm> {
           curr is FixedExpensesActionSuccess && curr.isFormAction,
       listener: (context, state) {
         if (state is FixedExpensesActionSuccess && state.isFormAction) {
-          Navigator.of(context).pop();
-          AppSnackbar.success(context, state.message);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            Navigator.of(context).pop();
+            AppSnackbar.success(context, state.message);
+          });
         }
       },
       builder: (context, state) {
@@ -957,8 +1017,9 @@ class _ExpenseFormState extends State<_ExpenseForm> {
                 controller: _amountCtrl,
                 label: AppStrings.amountLabel,
                 hint: AppStrings.amountHint,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 textInputAction: TextInputAction.done,
                 prefixIcon: const Padding(
                   padding: EdgeInsets.all(AppSizing.sm + 4),

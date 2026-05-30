@@ -38,7 +38,9 @@ class _ComplaintPageState extends State<ComplaintPage> {
     _load();
     _scroll.addListener(_onScroll);
     // Reload when a complaint-related push arrives in the foreground
-    _pushSub = PushNotificationService.instance.foregroundStream.listen((event) {
+    _pushSub = PushNotificationService.instance.foregroundStream.listen((
+      event,
+    ) {
       if (event.isComplaint && mounted) _load();
     });
   }
@@ -51,11 +53,13 @@ class _ComplaintPageState extends State<ComplaintPage> {
   }
 
   void _load() {
-    context.read<ComplaintBloc>().add(ComplaintsLoadRequested(
-          widget.args.flatId,
-          status: _statusFilter,
-          raisedBy: _mineOnly ? widget.args.myMemberId : null,
-        ));
+    context.read<ComplaintBloc>().add(
+      ComplaintsLoadRequested(
+        widget.args.flatId,
+        status: _statusFilter,
+        raisedBy: _mineOnly ? widget.args.myMemberId : null,
+      ),
+    );
   }
 
   void _onScroll() {
@@ -65,12 +69,14 @@ class _ComplaintPageState extends State<ComplaintPage> {
     final s = context.read<ComplaintBloc>().state;
     if (s is! ComplaintListLoaded || !s.hasMore || s.isLoadingMore) return;
     final page = (s.pagination['page'] as int?) ?? 1;
-    context.read<ComplaintBloc>().add(ComplaintsLoadMoreRequested(
-          widget.args.flatId,
-          status: _statusFilter,
-          raisedBy: _mineOnly ? widget.args.myMemberId : null,
-          nextPage: page + 1,
-        ));
+    context.read<ComplaintBloc>().add(
+      ComplaintsLoadMoreRequested(
+        widget.args.flatId,
+        status: _statusFilter,
+        raisedBy: _mineOnly ? widget.args.myMemberId : null,
+        nextPage: page + 1,
+      ),
+    );
   }
 
   @override
@@ -79,13 +85,19 @@ class _ComplaintPageState extends State<ComplaintPage> {
       appBar: AppBar(
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              color: context.textPrimColor, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: context.textPrimColor,
+            size: 20,
+          ),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Text('Complaints',
-            style: AppTypography.headlineMedium
-                .copyWith(color: context.textPrimColor)),
+        title: Text(
+          'Complaints',
+          style: AppTypography.headlineMedium.copyWith(
+            color: context.textPrimColor,
+          ),
+        ),
       ),
       floatingActionButton: _GradientFab(
         onPressed: () => _showRaiseSheet(context),
@@ -156,8 +168,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
                 if (isFirstLoad)
                   const SliverFillRemaining(
                     child: Center(
-                      child:
-                          CircularProgressIndicator(color: AppColors.brand),
+                      child: CircularProgressIndicator(color: AppColors.brand),
                     ),
                   )
                 else if (displayState != null) ...[
@@ -191,8 +202,8 @@ class _ComplaintPageState extends State<ComplaintPage> {
                                   ),
                                 )
                                 .then((_) {
-                              if (mounted) _load();
-                            }),
+                                  if (mounted) _load();
+                                }),
                           );
                         },
                       ),
@@ -203,7 +214,8 @@ class _ComplaintPageState extends State<ComplaintPage> {
                           padding: EdgeInsets.all(AppSizing.md),
                           child: Center(
                             child: CircularProgressIndicator(
-                                color: AppColors.brand),
+                              color: AppColors.brand,
+                            ),
                           ),
                         ),
                       ),
@@ -283,8 +295,11 @@ class _StatsStrip extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppSizing.pagePadding, AppSizing.md,
-          AppSizing.pagePadding, AppSizing.sm),
+        AppSizing.pagePadding,
+        AppSizing.md,
+        AppSizing.pagePadding,
+        AppSizing.sm,
+      ),
       child: Row(
         children: [
           _StatTile(
@@ -336,7 +351,9 @@ class _StatTile extends StatelessWidget {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSizing.sm, vertical: AppSizing.sm),
+          horizontal: AppSizing.sm,
+          vertical: AppSizing.sm,
+        ),
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
@@ -351,10 +368,7 @@ class _StatTile extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            Text(
-              label,
-              style: AppTypography.labelS.copyWith(color: textColor),
-            ),
+            Text(label, style: AppTypography.labelS.copyWith(color: textColor)),
           ],
         ),
       ),
@@ -381,14 +395,20 @@ class _Filters extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppSizing.pagePadding, AppSizing.sm, 0, AppSizing.md,
+        AppSizing.pagePadding,
+        AppSizing.sm,
+        0,
+        AppSizing.md,
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _Chip(label: 'All', selected: statusFilter == null,
-                onTap: () => onStatusChanged(null)),
+            _Chip(
+              label: 'All',
+              selected: statusFilter == null,
+              onTap: () => onStatusChanged(null),
+            ),
             const SizedBox(width: AppSizing.xs),
             _Chip(
               label: 'Open',
@@ -457,16 +477,14 @@ class _Chip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 13,
-                  color: selected ? c : context.textSecColor),
+              Icon(icon, size: 13, color: selected ? c : context.textSecColor),
               const SizedBox(width: 4),
             ],
             Text(
               label,
               style: AppTypography.labelSmall.copyWith(
                 color: selected ? c : context.textSecColor,
-                fontWeight:
-                    selected ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
           ],
@@ -504,9 +522,11 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSizing.md),
-            Text('No complaints — great teamwork!',
-                style: AppTypography.headlineSmall,
-                textAlign: TextAlign.center),
+            Text(
+              'No complaints — great teamwork!',
+              style: AppTypography.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: AppSizing.xs),
             Text(
               'Everything looks good! Raise a complaint if something needs attention.',
@@ -544,14 +564,20 @@ class _RaiseComplaintSheetState extends State<_RaiseComplaintSheet> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    context.read<ComplaintBloc>().add(ComplaintRaiseRequested(
-          flatId: widget.flatId,
-          subject: _subjectCtrl.text.trim(),
-          description: _descCtrl.text.trim().isEmpty
-              ? null
-              : _descCtrl.text.trim(),
-        ));
-    Navigator.pop(context);
+    FocusScope.of(context).unfocus();
+    context.read<ComplaintBloc>().add(
+      ComplaintRaiseRequested(
+        flatId: widget.flatId,
+        subject: _subjectCtrl.text.trim(),
+        description: _descCtrl.text.trim().isEmpty
+            ? null
+            : _descCtrl.text.trim(),
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.pop(context);
+    });
   }
 
   @override
@@ -559,8 +585,10 @@ class _RaiseComplaintSheetState extends State<_RaiseComplaintSheet> {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        AppSizing.pagePadding, 0,
-        AppSizing.pagePadding, AppSizing.md + bottom,
+        AppSizing.pagePadding,
+        0,
+        AppSizing.pagePadding,
+        AppSizing.md + bottom,
       ),
       child: Form(
         key: _formKey,
@@ -576,8 +604,7 @@ class _RaiseComplaintSheetState extends State<_RaiseComplaintSheet> {
                   height: AppSizing.bottomSheetHandleHeight,
                   decoration: BoxDecoration(
                     color: AppColors.border,
-                    borderRadius:
-                        BorderRadius.circular(AppSizing.radiusFull),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                   ),
                 ),
               ),
@@ -588,8 +615,9 @@ class _RaiseComplaintSheetState extends State<_RaiseComplaintSheet> {
                 controller: _subjectCtrl,
                 label: 'Subject',
                 hint: "What's the issue?",
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Subject is required' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Subject is required'
+                    : null,
               ),
               const SizedBox(height: AppSizing.sm),
               AppTextField(

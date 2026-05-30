@@ -40,7 +40,9 @@ class _TaskPageState extends State<TaskPage> {
     _load();
     _scroll.addListener(_onScroll);
     // Reload when a task-related push arrives in the foreground
-    _pushSub = PushNotificationService.instance.foregroundStream.listen((event) {
+    _pushSub = PushNotificationService.instance.foregroundStream.listen((
+      event,
+    ) {
       if (event.isTask && mounted) _load();
     });
   }
@@ -53,24 +55,29 @@ class _TaskPageState extends State<TaskPage> {
   }
 
   void _load() {
-    context.read<TaskBloc>().add(TasksLoadRequested(
-          widget.args.flatId,
-          status: _statusFilter,
-          assignedTo: _myTasksOnly ? widget.args.myMemberId : null,
-        ));
+    context.read<TaskBloc>().add(
+      TasksLoadRequested(
+        widget.args.flatId,
+        status: _statusFilter,
+        assignedTo: _myTasksOnly ? widget.args.myMemberId : null,
+      ),
+    );
   }
 
   void _onScroll() {
-    if (_scroll.position.pixels < _scroll.position.maxScrollExtent - 200) return;
+    if (_scroll.position.pixels < _scroll.position.maxScrollExtent - 200)
+      return;
     final s = context.read<TaskBloc>().state;
     if (s is! TaskListLoaded || !s.hasMore || s.isLoadingMore) return;
     final page = (s.pagination['page'] as int?) ?? 1;
-    context.read<TaskBloc>().add(TasksLoadMoreRequested(
-          widget.args.flatId,
-          status: _statusFilter,
-          assignedTo: _myTasksOnly ? widget.args.myMemberId : null,
-          nextPage: page + 1,
-        ));
+    context.read<TaskBloc>().add(
+      TasksLoadMoreRequested(
+        widget.args.flatId,
+        status: _statusFilter,
+        assignedTo: _myTasksOnly ? widget.args.myMemberId : null,
+        nextPage: page + 1,
+      ),
+    );
   }
 
   @override
@@ -79,13 +86,19 @@ class _TaskPageState extends State<TaskPage> {
       appBar: AppBar(
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              color: context.textPrimColor, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: context.textPrimColor,
+            size: 20,
+          ),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Text('Tasks',
-            style: AppTypography.headlineMedium
-                .copyWith(color: context.textPrimColor)),
+        title: Text(
+          'Tasks',
+          style: AppTypography.headlineMedium.copyWith(
+            color: context.textPrimColor,
+          ),
+        ),
       ),
       floatingActionButton: widget.args.canManage
           ? _GradientFab(onPressed: () => _showCreateSheet(context))
@@ -104,9 +117,7 @@ class _TaskPageState extends State<TaskPage> {
 
           // Resolve the display state: prefer live loaded state, fall back to
           // cached data so that a reload never flashes an empty spinner.
-          final displayState = (state is TaskListLoaded)
-              ? state
-              : _lastLoaded;
+          final displayState = (state is TaskListLoaded) ? state : _lastLoaded;
 
           // Only show the full-screen spinner on the very first load (no cache)
           final isFirstLoad = state is TaskListLoading && _lastLoaded == null;
@@ -189,8 +200,8 @@ class _TaskPageState extends State<TaskPage> {
                                   ),
                                 )
                                 .then((_) {
-                              if (mounted) _load();
-                            }),
+                                  if (mounted) _load();
+                                }),
                           );
                         },
                       ),
@@ -220,15 +231,17 @@ class _TaskPageState extends State<TaskPage> {
   }
 
   void _showCreateSheet(BuildContext context) {
-    context.push(
-      AppRoutes.taskCreate,
-      extra: CreateTaskArgs(
-        flatId: widget.args.flatId,
-        members: widget.args.members,
-      ),
-    ).then((_) {
-      if (mounted) _load();
-    });
+    context
+        .push(
+          AppRoutes.taskCreate,
+          extra: CreateTaskArgs(
+            flatId: widget.args.flatId,
+            members: widget.args.members,
+          ),
+        )
+        .then((_) {
+          if (mounted) _load();
+        });
   }
 }
 
@@ -277,11 +290,16 @@ class _StatsHeader extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppSizing.pagePadding, AppSizing.md,
-          AppSizing.pagePadding, AppSizing.sm),
+        AppSizing.pagePadding,
+        AppSizing.md,
+        AppSizing.pagePadding,
+        AppSizing.sm,
+      ),
       child: Container(
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSizing.lg, vertical: AppSizing.md),
+          horizontal: AppSizing.lg,
+          vertical: AppSizing.md,
+        ),
         decoration: BoxDecoration(
           gradient: AppColors.brandGradient,
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
@@ -290,12 +308,21 @@ class _StatsHeader extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _StatPill(label: 'Total', count: total,
-                color: AppColors.white.withValues(alpha: 0.25)),
-            _StatPill(label: 'Pending', count: pending,
-                color: AppColors.warning.withValues(alpha: 0.35)),
-            _StatPill(label: 'Done', count: done,
-                color: AppColors.success.withValues(alpha: 0.35)),
+            _StatPill(
+              label: 'Total',
+              count: total,
+              color: AppColors.white.withValues(alpha: 0.25),
+            ),
+            _StatPill(
+              label: 'Pending',
+              count: pending,
+              color: AppColors.warning.withValues(alpha: 0.35),
+            ),
+            _StatPill(
+              label: 'Done',
+              count: done,
+              color: AppColors.success.withValues(alpha: 0.35),
+            ),
           ],
         ),
       ),
@@ -317,7 +344,10 @@ class _StatPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSizing.md, vertical: AppSizing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizing.md,
+        vertical: AppSizing.sm,
+      ),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(AppSizing.radiusFull),
@@ -412,7 +442,10 @@ class _Filters extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppSizing.pagePadding, AppSizing.sm, 0, AppSizing.md,
+        AppSizing.pagePadding,
+        AppSizing.sm,
+        0,
+        AppSizing.md,
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -601,22 +634,27 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
     context.read<TaskBloc>().add(
-          TaskCreateRequested(
-            flatId: widget.flatId,
-            title: _titleCtrl.text.trim(),
-            description:
-                _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-            assignedTo: _selectedMember?.flatMemberId,
-            dueDate: _dueDate != null
-                ? '${_dueDate!.year}-'
-                    '${_dueDate!.month.toString().padLeft(2, '0')}-'
-                    '${_dueDate!.day.toString().padLeft(2, '0')}'
-                : null,
-            subTaskTitles: _subTasks.isEmpty ? null : List.from(_subTasks),
-          ),
-        );
-    Navigator.pop(context);
+      TaskCreateRequested(
+        flatId: widget.flatId,
+        title: _titleCtrl.text.trim(),
+        description: _descCtrl.text.trim().isEmpty
+            ? null
+            : _descCtrl.text.trim(),
+        assignedTo: _selectedMember?.flatMemberId,
+        dueDate: _dueDate != null
+            ? '${_dueDate!.year}-'
+                  '${_dueDate!.month.toString().padLeft(2, '0')}-'
+                  '${_dueDate!.day.toString().padLeft(2, '0')}'
+            : null,
+        subTaskTitles: _subTasks.isEmpty ? null : List.from(_subTasks),
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.pop(context);
+    });
   }
 
   Future<void> _pickDate() async {
@@ -640,7 +678,10 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        AppSizing.pagePadding, 0, AppSizing.pagePadding, AppSizing.md + bottom,
+        AppSizing.pagePadding,
+        0,
+        AppSizing.pagePadding,
+        AppSizing.md + bottom,
       ),
       child: Form(
         key: _formKey,
@@ -656,8 +697,7 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                   height: AppSizing.bottomSheetHandleHeight,
                   decoration: BoxDecoration(
                     color: AppColors.border,
-                    borderRadius:
-                        BorderRadius.circular(AppSizing.radiusFull),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                   ),
                 ),
               ),
@@ -669,8 +709,9 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                 controller: _titleCtrl,
                 label: 'Title',
                 hint: 'What needs to be done?',
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Title is required' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Title is required'
+                    : null,
               ),
               const SizedBox(height: AppSizing.sm),
 
@@ -803,8 +844,7 @@ class _SubTasksInput extends StatelessWidget {
               onPressed: onAdd,
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.brand,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSizing.sm),
+                padding: const EdgeInsets.symmetric(horizontal: AppSizing.sm),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),

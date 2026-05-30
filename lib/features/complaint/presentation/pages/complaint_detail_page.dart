@@ -25,10 +25,9 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
   @override
   void initState() {
     super.initState();
-    context.read<ComplaintBloc>().add(ComplaintDetailRequested(
-          widget.args.flatId,
-          widget.args.complaint.id,
-        ));
+    context.read<ComplaintBloc>().add(
+      ComplaintDetailRequested(widget.args.flatId, widget.args.complaint.id),
+    );
   }
 
   ComplaintEntity? _resolveComplaint(ComplaintState state) {
@@ -52,8 +51,8 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
     ).then((confirmed) {
       if (confirmed == true && mounted) {
         context.read<ComplaintBloc>().add(
-              ComplaintDeleteRequested(widget.args.flatId, c.id),
-            );
+          ComplaintDeleteRequested(widget.args.flatId, c.id),
+        );
       }
     });
   }
@@ -74,7 +73,8 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
               final isLoading = state is ComplaintActionLoading;
 
               // Show menu if: manager OR (own open complaint)
-              final canEdit = (widget.args.canManage || _isMyComplaint) && c.isOpen;
+              final canEdit =
+                  (widget.args.canManage || _isMyComplaint) && c.isOpen;
               final canDelete = widget.args.canManage && c.isOpen;
 
               if (!canEdit && !canDelete) return const SizedBox.shrink();
@@ -145,13 +145,19 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
     );
   }
 
-  void _showMenu(BuildContext context, ComplaintEntity c, bool canEdit, bool canDelete) {
+  void _showMenu(
+    BuildContext context,
+    ComplaintEntity c,
+    bool canEdit,
+    bool canDelete,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizing.radiusLg),
+        ),
       ),
       builder: (sheetCtx) => SafeArea(
         child: Column(
@@ -169,8 +175,10 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
             const SizedBox(height: AppSizing.sm),
             if (canEdit)
               ListTile(
-                leading: const Icon(Icons.edit_outlined,
-                    color: AppColors.textPrimary),
+                leading: const Icon(
+                  Icons.edit_outlined,
+                  color: AppColors.textPrimary,
+                ),
                 title: Text('Edit Complaint', style: AppTypography.bodyMedium),
                 onTap: () {
                   Navigator.pop(sheetCtx);
@@ -179,12 +187,15 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
               ),
             if (canDelete)
               ListTile(
-                leading:
-                    const Icon(Icons.delete_outline, color: AppColors.error),
+                leading: const Icon(
+                  Icons.delete_outline,
+                  color: AppColors.error,
+                ),
                 title: Text(
                   'Delete Complaint',
-                  style: AppTypography.bodyMedium
-                      .copyWith(color: AppColors.error),
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.error,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(sheetCtx);
@@ -204,15 +215,13 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizing.radiusLg),
+        ),
       ),
       builder: (_) => BlocProvider.value(
         value: context.read<ComplaintBloc>(),
-        child: _EditComplaintSheet(
-          flatId: widget.args.flatId,
-          complaint: c,
-        ),
+        child: _EditComplaintSheet(flatId: widget.args.flatId, complaint: c),
       ),
     );
   }
@@ -404,8 +413,9 @@ class _StatusActions extends StatelessWidget {
     final icon = complaint.isOpen
         ? Icons.play_arrow_rounded
         : Icons.check_circle_outline_rounded;
-    final color =
-        complaint.isOpen ? const Color(0xFF3B82F6) : AppColors.success;
+    final color = complaint.isOpen
+        ? const Color(0xFF3B82F6)
+        : AppColors.success;
 
     return BlocBuilder<ComplaintBloc, ComplaintState>(
       builder: (context, state) {
@@ -436,20 +446,19 @@ class _StatusActions extends StatelessWidget {
                     backgroundColor: color,
                     foregroundColor: AppColors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(AppSizing.radiusSm),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusSm),
                     ),
                     elevation: 0,
                   ),
                   onPressed: isLoading
                       ? null
                       : () => context.read<ComplaintBloc>().add(
-                            ComplaintStatusUpdateRequested(
-                              flatId: flatId,
-                              complaintId: complaint.id,
-                              status: nextStatus,
-                            ),
+                          ComplaintStatusUpdateRequested(
+                            flatId: flatId,
+                            complaintId: complaint.id,
+                            status: nextStatus,
                           ),
+                        ),
                   icon: isLoading
                       ? const SizedBox(
                           width: 16,
@@ -480,10 +489,7 @@ class _StatusActions extends StatelessWidget {
 // ── Edit Complaint Sheet ───────────────────────────────────────────────────────
 
 class _EditComplaintSheet extends StatefulWidget {
-  const _EditComplaintSheet({
-    required this.flatId,
-    required this.complaint,
-  });
+  const _EditComplaintSheet({required this.flatId, required this.complaint});
 
   final String flatId;
   final ComplaintEntity complaint;
@@ -501,8 +507,7 @@ class _EditComplaintSheetState extends State<_EditComplaintSheet> {
   void initState() {
     super.initState();
     _subjectCtrl = TextEditingController(text: widget.complaint.subject);
-    _descCtrl = TextEditingController(
-        text: widget.complaint.description ?? '');
+    _descCtrl = TextEditingController(text: widget.complaint.description ?? '');
   }
 
   @override
@@ -514,15 +519,21 @@ class _EditComplaintSheetState extends State<_EditComplaintSheet> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    context.read<ComplaintBloc>().add(ComplaintEditRequested(
-          flatId: widget.flatId,
-          complaintId: widget.complaint.id,
-          subject: _subjectCtrl.text.trim(),
-          description: _descCtrl.text.trim().isEmpty
-              ? null
-              : _descCtrl.text.trim(),
-        ));
-    Navigator.pop(context);
+    FocusScope.of(context).unfocus();
+    context.read<ComplaintBloc>().add(
+      ComplaintEditRequested(
+        flatId: widget.flatId,
+        complaintId: widget.complaint.id,
+        subject: _subjectCtrl.text.trim(),
+        description: _descCtrl.text.trim().isEmpty
+            ? null
+            : _descCtrl.text.trim(),
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.pop(context);
+    });
   }
 
   @override
@@ -530,8 +541,10 @@ class _EditComplaintSheetState extends State<_EditComplaintSheet> {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        AppSizing.pagePadding, 0,
-        AppSizing.pagePadding, AppSizing.md + bottom,
+        AppSizing.pagePadding,
+        0,
+        AppSizing.pagePadding,
+        AppSizing.md + bottom,
       ),
       child: Form(
         key: _formKey,
@@ -547,8 +560,7 @@ class _EditComplaintSheetState extends State<_EditComplaintSheet> {
                   height: AppSizing.bottomSheetHandleHeight,
                   decoration: BoxDecoration(
                     color: AppColors.border,
-                    borderRadius:
-                        BorderRadius.circular(AppSizing.radiusFull),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                   ),
                 ),
               ),
@@ -559,8 +571,9 @@ class _EditComplaintSheetState extends State<_EditComplaintSheet> {
                 controller: _subjectCtrl,
                 label: 'Subject',
                 hint: "What's the issue?",
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Subject is required' : null,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Subject is required'
+                    : null,
               ),
               const SizedBox(height: AppSizing.sm),
               AppTextField(

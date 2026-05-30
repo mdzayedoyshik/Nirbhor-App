@@ -70,20 +70,30 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
             actions: [
               if (canManage) ...[
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined, color: AppColors.textPrimary),
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.textPrimary,
+                  ),
                   onPressed: isLoading || task.isCompleted
                       ? null
                       : () => _showEditSheet(context, task),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
-                  onPressed: isLoading ? null : () => _confirmDelete(context, task),
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.error,
+                  ),
+                  onPressed: isLoading
+                      ? null
+                      : () => _confirmDelete(context, task),
                 ),
               ],
             ],
           ),
           body: state is TaskDetailLoading
-              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                )
               : RefreshIndicator(
                   color: AppColors.primary,
                   onRefresh: () async {
@@ -111,11 +121,13 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                             canManage: canManage,
                             isLoading: isLoading,
                             onUpdateStatus: (status) {
-                              context.read<TaskBloc>().add(TaskUpdateRequested(
-                                flatId: widget.args.flatId,
-                                taskId: task.id,
-                                status: status,
-                              ));
+                              context.read<TaskBloc>().add(
+                                TaskUpdateRequested(
+                                  flatId: widget.args.flatId,
+                                  taskId: task.id,
+                                  status: status,
+                                ),
+                              );
                             },
                           ),
 
@@ -125,11 +137,13 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                           _RevertButton(
                             isLoading: isLoading,
                             onRevert: () {
-                              context.read<TaskBloc>().add(TaskUpdateRequested(
-                                flatId: widget.args.flatId,
-                                taskId: task.id,
-                                status: 'in_progress',
-                              ));
+                              context.read<TaskBloc>().add(
+                                TaskUpdateRequested(
+                                  flatId: widget.args.flatId,
+                                  taskId: task.id,
+                                  status: 'in_progress',
+                                ),
+                              );
                             },
                           ),
                         ],
@@ -159,12 +173,15 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     AppDialog.confirm(
       context: context,
       title: 'Delete Task',
-      message: 'Are you sure you want to delete "${task.title}"? This cannot be undone.',
+      message:
+          'Are you sure you want to delete "${task.title}"? This cannot be undone.',
       confirmLabel: 'Delete',
       destructive: true,
     ).then((confirmed) {
       if (confirmed == true && mounted) {
-        context.read<TaskBloc>().add(TaskDeleteRequested(widget.args.flatId, task.id));
+        context.read<TaskBloc>().add(
+          TaskDeleteRequested(widget.args.flatId, task.id),
+        );
       }
     });
   }
@@ -175,7 +192,9 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizing.radiusLg),
+        ),
       ),
       builder: (_) => BlocProvider.value(
         value: context.read<TaskBloc>(),
@@ -215,16 +234,24 @@ class _HeaderCard extends StatelessWidget {
                 child: Text(
                   task.title,
                   style: AppTypography.headlineSmall.copyWith(
-                    decoration: task.isCompleted ? TextDecoration.lineThrough : null,
-                    color: task.isCompleted ? AppColors.textSecondary : AppColors.textPrimary,
+                    decoration: task.isCompleted
+                        ? TextDecoration.lineThrough
+                        : null,
+                    color: task.isCompleted
+                        ? AppColors.textSecondary
+                        : AppColors.textPrimary,
                   ),
                 ),
               ),
               const SizedBox(width: AppSizing.sm),
               if (isLoading)
                 const SizedBox(
-                  width: 16, height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
                 )
               else
                 TaskStatusBadge(status: task.status),
@@ -232,7 +259,12 @@ class _HeaderCard extends StatelessWidget {
           ),
           if (task.description != null && task.description!.isNotEmpty) ...[
             const SizedBox(height: AppSizing.sm),
-            Text(task.description!, style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
+            Text(
+              task.description!,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
           ],
         ],
       ),
@@ -278,12 +310,23 @@ class _InfoCard extends StatelessWidget {
               accent: task.isOverdue ? AppColors.error : null,
               trailing: task.isOverdue
                   ? Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.error.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                        borderRadius: BorderRadius.circular(
+                          AppSizing.radiusFull,
+                        ),
                       ),
-                      child: Text('Overdue', style: AppTypography.labelSmall.copyWith(color: AppColors.error, fontWeight: FontWeight.w600)),
+                      child: Text(
+                        'Overdue',
+                        style: AppTypography.labelSmall.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     )
                   : null,
             ),
@@ -305,7 +348,20 @@ class _InfoCard extends StatelessWidget {
   String _formatDate(String iso) {
     try {
       final dt = DateTime.parse(iso).toLocal();
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
     } catch (_) {
       return iso;
@@ -346,13 +402,14 @@ class _InfoRow extends StatelessWidget {
             child: Text(
               value,
               style: AppTypography.bodyMedium.copyWith(
-                color: muted ? AppColors.textHint
+                color: muted
+                    ? AppColors.textHint
                     : accent ?? AppColors.textPrimary,
                 fontStyle: muted ? FontStyle.italic : null,
               ),
             ),
           ),
-          if (trailing != null) trailing!,
+          ?trailing,
         ],
       ),
     );
@@ -385,8 +442,12 @@ class _StatusActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final nextStatus = task.isPending ? 'in_progress' : 'completed';
     final nextLabel = task.isPending ? 'Mark In Progress' : 'Mark Completed';
-    final nextIcon = task.isPending ? Icons.play_arrow_rounded : Icons.check_rounded;
-    final nextColor = task.isPending ? const Color(0xFF3B82F6) : AppColors.success;
+    final nextIcon = task.isPending
+        ? Icons.play_arrow_rounded
+        : Icons.check_rounded;
+    final nextColor = task.isPending
+        ? const Color(0xFF3B82F6)
+        : AppColors.success;
 
     return Row(
       children: [
@@ -394,12 +455,17 @@ class _StatusActions extends StatelessWidget {
           child: ElevatedButton.icon(
             onPressed: isLoading ? null : () => onUpdateStatus(nextStatus),
             icon: Icon(nextIcon, size: 18),
-            label: Text(nextLabel, style: AppTypography.titleMedium.copyWith(color: AppColors.white)),
+            label: Text(
+              nextLabel,
+              style: AppTypography.titleMedium.copyWith(color: AppColors.white),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: nextColor,
               foregroundColor: AppColors.white,
               padding: const EdgeInsets.symmetric(vertical: AppSizing.sm + 2),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizing.radiusMd)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+              ),
               elevation: 0,
             ),
           ),
@@ -426,7 +492,9 @@ class _RevertButton extends StatelessWidget {
           foregroundColor: AppColors.textSecondary,
           side: const BorderSide(color: AppColors.border),
           padding: const EdgeInsets.symmetric(vertical: AppSizing.sm + 2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizing.radiusMd)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          ),
         ),
       ),
     );
@@ -482,7 +550,12 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppSizing.md, AppSizing.md, AppSizing.sm, AppSizing.sm),
+            padding: const EdgeInsets.fromLTRB(
+              AppSizing.md,
+              AppSizing.md,
+              AppSizing.sm,
+              AppSizing.sm,
+            ),
             child: Row(
               children: [
                 Text('Sub-tasks', style: AppTypography.titleLarge),
@@ -490,13 +563,19 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
                 if (subTasks.isNotEmpty) ...[
                   Text(
                     '${subTasks.where((s) => s.isCompleted).length}/${subTasks.length}',
-                    style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(width: AppSizing.sm),
                 ],
                 if (canInteract && !isLocked)
                   IconButton(
-                    icon: Icon(_showAdd ? Icons.close : Icons.add, size: 20, color: AppColors.primary),
+                    icon: Icon(
+                      _showAdd ? Icons.close : Icons.add,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
                     onPressed: () => setState(() => _showAdd = !_showAdd),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -508,11 +587,19 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
           // Progress bar
           if (subTasks.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSizing.md, 0, AppSizing.md, AppSizing.sm),
+              padding: const EdgeInsets.fromLTRB(
+                AppSizing.md,
+                0,
+                AppSizing.md,
+                AppSizing.sm,
+              ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                 child: LinearProgressIndicator(
-                  value: subTasks.isEmpty ? 0 : subTasks.where((s) => s.isCompleted).length / subTasks.length,
+                  value: subTasks.isEmpty
+                      ? 0
+                      : subTasks.where((s) => s.isCompleted).length /
+                            subTasks.length,
                   backgroundColor: AppColors.border,
                   valueColor: const AlwaysStoppedAnimation(AppColors.success),
                   minHeight: 4,
@@ -525,10 +612,17 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
           // Add input
           if (_showAdd && !isLocked)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizing.md, vertical: AppSizing.sm),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizing.md,
+                vertical: AppSizing.sm,
+              ),
               child: Row(
                 children: [
-                  const Icon(Icons.add_circle_outline_rounded, size: 18, color: AppColors.primary),
+                  const Icon(
+                    Icons.add_circle_outline_rounded,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: AppSizing.sm),
                   Expanded(
                     child: TextField(
@@ -537,7 +631,9 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
                       style: AppTypography.bodyMedium,
                       decoration: InputDecoration(
                         hintText: 'New sub-task...',
-                        hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textHint),
+                        hintStyle: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textHint,
+                        ),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
@@ -550,7 +646,9 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
                     onPressed: _submitAdd,
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(horizontal: AppSizing.sm),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizing.sm,
+                      ),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
@@ -566,7 +664,9 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
               padding: const EdgeInsets.all(AppSizing.md),
               child: Text(
                 isLocked ? 'No sub-tasks' : 'No sub-tasks yet',
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textHint),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textHint,
+                ),
               ),
             )
           else
@@ -580,20 +680,24 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
                 canDelete: widget.canManage && !isLocked,
                 isLoading: widget.isLoading,
                 onToggle: () {
-                  context.read<TaskBloc>().add(SubTaskUpdateRequested(
-                    flatId: widget.flatId,
-                    taskId: widget.task.id,
-                    subTaskId: s.id,
-                    isCompleted: !s.isCompleted,
-                  ));
+                  context.read<TaskBloc>().add(
+                    SubTaskUpdateRequested(
+                      flatId: widget.flatId,
+                      taskId: widget.task.id,
+                      subTaskId: s.id,
+                      isCompleted: !s.isCompleted,
+                    ),
+                  );
                 },
                 onRename: () => _showRenameDialog(context, s),
                 onDelete: () {
-                  context.read<TaskBloc>().add(SubTaskDeleteRequested(
-                    flatId: widget.flatId,
-                    taskId: widget.task.id,
-                    subTaskId: s.id,
-                  ));
+                  context.read<TaskBloc>().add(
+                    SubTaskDeleteRequested(
+                      flatId: widget.flatId,
+                      taskId: widget.task.id,
+                      subTaskId: s.id,
+                    ),
+                  );
                 },
                 showDivider: i < subTasks.length - 1 || _showAdd,
               );
@@ -606,11 +710,13 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
   void _submitAdd() {
     final t = _addCtrl.text.trim();
     if (t.isEmpty) return;
-    context.read<TaskBloc>().add(SubTaskAddRequested(
-      flatId: widget.flatId,
-      taskId: widget.task.id,
-      title: t,
-    ));
+    context.read<TaskBloc>().add(
+      SubTaskAddRequested(
+        flatId: widget.flatId,
+        taskId: widget.task.id,
+        title: t,
+      ),
+    );
     _addCtrl.clear();
     setState(() => _showAdd = false);
   }
@@ -621,7 +727,9 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
       context: context,
       builder: (dCtx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizing.radiusMd)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+        ),
         title: Text('Rename Sub-task', style: AppTypography.headlineSmall),
         content: TextField(
           controller: ctrl,
@@ -629,8 +737,12 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
           style: AppTypography.bodyMedium,
           decoration: InputDecoration(
             hintText: 'Sub-task title',
-            hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textHint),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSizing.radiusMd)),
+            hintStyle: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textHint,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+            ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSizing.radiusMd),
               borderSide: const BorderSide(color: AppColors.primary),
@@ -646,12 +758,14 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
             onPressed: () {
               final t = ctrl.text.trim();
               if (t.isEmpty) return;
-              context.read<TaskBloc>().add(SubTaskUpdateRequested(
-                flatId: widget.flatId,
-                taskId: widget.task.id,
-                subTaskId: s.id,
-                title: t,
-              ));
+              context.read<TaskBloc>().add(
+                SubTaskUpdateRequested(
+                  flatId: widget.flatId,
+                  taskId: widget.task.id,
+                  subTaskId: s.id,
+                  title: t,
+                ),
+              );
               Navigator.pop(dCtx);
             },
             child: Text('Save', style: TextStyle(color: AppColors.primary)),
@@ -691,7 +805,10 @@ class _SubTaskTile extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSizing.md, vertical: AppSizing.xs + 2),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizing.md,
+            vertical: AppSizing.xs + 2,
+          ),
           child: Row(
             children: [
               GestureDetector(
@@ -704,7 +821,9 @@ class _SubTaskTile extends StatelessWidget {
                         : Icons.radio_button_unchecked_rounded,
                     key: ValueKey(subTask.isCompleted),
                     size: 22,
-                    color: subTask.isCompleted ? AppColors.success : AppColors.border,
+                    color: subTask.isCompleted
+                        ? AppColors.success
+                        : AppColors.border,
                   ),
                 ),
               ),
@@ -715,15 +834,23 @@ class _SubTaskTile extends StatelessWidget {
                   child: Text(
                     subTask.title,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: subTask.isCompleted ? AppColors.textSecondary : AppColors.textPrimary,
-                      decoration: subTask.isCompleted ? TextDecoration.lineThrough : null,
+                      color: subTask.isCompleted
+                          ? AppColors.textSecondary
+                          : AppColors.textPrimary,
+                      decoration: subTask.isCompleted
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
                 ),
               ),
               if (canDelete)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.textHint),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: AppColors.textHint,
+                  ),
                   onPressed: isLoading ? null : onDelete,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -740,7 +867,11 @@ class _SubTaskTile extends StatelessWidget {
 // ── Edit Task Sheet ───────────────────────────────────────────────────────────
 
 class _EditTaskSheet extends StatefulWidget {
-  const _EditTaskSheet({required this.flatId, required this.task, required this.members});
+  const _EditTaskSheet({
+    required this.flatId,
+    required this.task,
+    required this.members,
+  });
   final String flatId;
   final TaskEntity task;
   final List<FlatMemberEntity> members;
@@ -765,7 +896,9 @@ class _EditTaskSheetState extends State<_EditTaskSheet> {
     // Resolve current assignee
     if (widget.task.assignedTo != null) {
       try {
-        _selectedMember = widget.members.firstWhere((m) => m.flatMemberId == widget.task.assignedTo);
+        _selectedMember = widget.members.firstWhere(
+          (m) => m.flatMemberId == widget.task.assignedTo,
+        );
       } catch (_) {}
     }
     // Resolve current due date
@@ -789,19 +922,25 @@ class _EditTaskSheetState extends State<_EditTaskSheet> {
     final dueStr = _dueDate != null && !_clearDueDate
         ? '${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}'
         : null;
-    context.read<TaskBloc>().add(TaskUpdateRequested(
-          flatId: widget.flatId,
-          taskId: widget.task.id,
-          title: title != widget.task.title ? title : null,
-          description: _descCtrl.text.trim() != (widget.task.description ?? '')
-              ? _descCtrl.text.trim()
-              : null,
-          assignedTo: _clearAssignee ? null : _selectedMember?.flatMemberId,
-          clearAssignee: _clearAssignee,
-          dueDate: _clearDueDate ? null : dueStr,
-          clearDueDate: _clearDueDate,
-        ));
-    Navigator.pop(context);
+    FocusScope.of(context).unfocus();
+    context.read<TaskBloc>().add(
+      TaskUpdateRequested(
+        flatId: widget.flatId,
+        taskId: widget.task.id,
+        title: title != widget.task.title ? title : null,
+        description: _descCtrl.text.trim() != (widget.task.description ?? '')
+            ? _descCtrl.text.trim()
+            : null,
+        assignedTo: _clearAssignee ? null : _selectedMember?.flatMemberId,
+        clearAssignee: _clearAssignee,
+        dueDate: _clearDueDate ? null : dueStr,
+        clearDueDate: _clearDueDate,
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.pop(context);
+    });
   }
 
   Future<void> _pickDate() async {
@@ -811,18 +950,29 @@ class _EditTaskSheetState extends State<_EditTaskSheet> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(colorScheme: const ColorScheme.light(primary: AppColors.primary)),
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(primary: AppColors.primary),
+        ),
         child: child!,
       ),
     );
-    if (picked != null) setState(() { _dueDate = picked; _clearDueDate = false; });
+    if (picked != null)
+      setState(() {
+        _dueDate = picked;
+        _clearDueDate = false;
+      });
   }
 
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
-      padding: EdgeInsets.fromLTRB(AppSizing.pagePadding, 0, AppSizing.pagePadding, AppSizing.md + bottom),
+      padding: EdgeInsets.fromLTRB(
+        AppSizing.pagePadding,
+        0,
+        AppSizing.pagePadding,
+        AppSizing.md + bottom,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -833,7 +983,10 @@ class _EditTaskSheetState extends State<_EditTaskSheet> {
               child: Container(
                 width: AppSizing.bottomSheetHandleWidth,
                 height: AppSizing.bottomSheetHandleHeight,
-                decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(AppSizing.radiusFull)),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                ),
               ),
             ),
             const SizedBox(height: AppSizing.md),
@@ -842,25 +995,38 @@ class _EditTaskSheetState extends State<_EditTaskSheet> {
 
             AppTextField(controller: _titleCtrl, label: 'Title'),
             const SizedBox(height: AppSizing.sm),
-            AppTextField(controller: _descCtrl, label: 'Description (optional)', maxLines: 3, textInputAction: TextInputAction.newline),
+            AppTextField(
+              controller: _descCtrl,
+              label: 'Description (optional)',
+              maxLines: 3,
+              textInputAction: TextInputAction.newline,
+            ),
             const SizedBox(height: AppSizing.sm),
 
             Row(
               children: [
-                Expanded(child: TaskAssigneePicker(
-                  members: widget.members,
-                  selected: _clearAssignee ? null : _selectedMember,
-                  onChanged: (m) => setState(() {
-                    _selectedMember = m;
-                    _clearAssignee = m == null && widget.task.assignedTo != null;
-                  }),
-                )),
+                Expanded(
+                  child: TaskAssigneePicker(
+                    members: widget.members,
+                    selected: _clearAssignee ? null : _selectedMember,
+                    onChanged: (m) => setState(() {
+                      _selectedMember = m;
+                      _clearAssignee =
+                          m == null && widget.task.assignedTo != null;
+                    }),
+                  ),
+                ),
                 const SizedBox(width: AppSizing.sm),
-                Expanded(child: TaskDueDatePicker(
-                  dueDate: _clearDueDate ? null : _dueDate,
-                  onTap: _pickDate,
-                  onClear: () => setState(() { _dueDate = null; _clearDueDate = true; }),
-                )),
+                Expanded(
+                  child: TaskDueDatePicker(
+                    dueDate: _clearDueDate ? null : _dueDate,
+                    onTap: _pickDate,
+                    onClear: () => setState(() {
+                      _dueDate = null;
+                      _clearDueDate = true;
+                    }),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: AppSizing.md),
