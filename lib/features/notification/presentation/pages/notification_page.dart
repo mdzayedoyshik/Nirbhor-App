@@ -8,6 +8,9 @@ import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../complaint/presentation/args/complaint_page_args.dart';
+import '../../../expense/presentation/args/expense_list_args.dart';
+import '../../../flat/presentation/bloc/flat_bloc.dart';
+import '../../../summary/presentation/args/summary_page_args.dart';
 import '../../../task/presentation/args/task_page_args.dart';
 import '../../../wallet/presentation/args/wallet_page_args.dart';
 import '../../domain/entities/notification_entity.dart';
@@ -281,46 +284,107 @@ class _NotificationPageState extends State<NotificationPage> {
     }
 
     final type = n.type.toLowerCase();
+    final flatId = widget.args.flatId;
+    final canManage = widget.args.canManage;
+    final myMemberId = widget.args.myMemberId;
 
-    if (type.contains('join_request') || type.contains('join request')) {
-      if (widget.args.canManage) {
-        context.push(AppRoutes.flatRequests, extra: widget.args.flatId);
+    // ── Join requests ────────────────────────────────────────────────────────
+    if (type.contains('join_request')) {
+      // join_request_received  → manager sees pending requests list
+      // join_request_declined  → non-manager; push-only, no in-app navigation
+      if (canManage) {
+        context.push(AppRoutes.flatRequests, extra: flatId);
       }
       return;
     }
 
+    // ── New member joined ────────────────────────────────────────────────────
+    if (type == 'member_joined') {
+      // FlatBloc is a root-level singleton — always accessible.
+      final raw = context.read<FlatBloc>().state;
+      final resolved = raw is FlatActionLoading
+          ? raw.base
+          : raw is FlatError
+              ? raw.fallback
+              : raw;
+      if (resolved is FlatLoaded) {
+        context.push(AppRoutes.flatMembers, extra: resolved.flat);
+      }
+      return;
+    }
+
+    // ── Exit initiated (received by the exiting member) ──────────────────────
+    if (type.contains('exit')) {
+      // Home will automatically render PendingExitPage when FlatState is
+      // FlatPendingExit — no need to construct SettlementPageArgs here.
+      context.go(AppRoutes.home);
+      return;
+    }
+
+    // ── Tasks ────────────────────────────────────────────────────────────────
+    if (type.contains('task')) {
+      context.push(
+        AppRoutes.tasks,
+        extra: TaskPageArgs(
+          flatId: flatId,
+          canManage: canManage,
+          myMemberId: myMemberId,
+          members: const [],
+        ),
+      );
+      return;
+    }
+
+    // ── Complaints ───────────────────────────────────────────────────────────
     if (type.contains('complaint')) {
       context.push(
         AppRoutes.complaints,
         extra: ComplaintPageArgs(
-          flatId: widget.args.flatId,
-          canManage: widget.args.canManage,
-          myMemberId: widget.args.myMemberId,
+          flatId: flatId,
+          canManage: canManage,
+          myMemberId: myMemberId,
         ),
       );
-    } else if (type.contains('task')) {
-      // TaskPageArgs requires members list — navigate without members (empty)
-      context.push(
-        AppRoutes.tasks,
-        extra: TaskPageArgs(
-          flatId: widget.args.flatId,
-          canManage: widget.args.canManage,
-          myMemberId: widget.args.myMemberId,
-          members: const [],
-        ),
-      );
-    } else if (type.contains('payment') ||
+      return;
+    }
+
+    // ── Wallet / payments ────────────────────────────────────────────────────
+    if (type.contains('payment') ||
         type.contains('wallet') ||
         type.contains('contribution')) {
+      final walletArgs = WalletPageArgs(flatId: flatId, canManage: canManage);
+      // payment_submitted + payment_request_received → PaymentsHubPage
+      // (manager verifies / member responds to a request from the hub)
+      if (type == 'payment_submitted' || type == 'payment_request_received') {
+        context.push(AppRoutes.walletRequests, extra: walletArgs);
+      } else {
+        // payment_verified, payment_rejected, fixed_contribution_deducted
+        context.push(AppRoutes.walletHome, extra: walletArgs);
+      }
+      return;
+    }
+
+    // ── Expense approved ─────────────────────────────────────────────────────
+    if (type.contains('expense')) {
       context.push(
-        AppRoutes.walletHome,
-        extra: WalletPageArgs(
-          flatId: widget.args.flatId,
-          canManage: widget.args.canManage,
+        AppRoutes.expenses,
+        extra: ExpenseListArgs(flatId: flatId, canManage: canManage),
+      );
+      return;
+    }
+
+    // ── Month closed → summary ───────────────────────────────────────────────
+    if (type.contains('month_closed') || type.contains('monthly')) {
+      context.push(
+        AppRoutes.summary,
+        extra: SummaryPageArgs(
+          flatId: flatId,
+          isManager: canManage,
+          myMemberId: myMemberId,
         ),
       );
+      return;
     }
-    // other types: no navigation
   }
 }
 

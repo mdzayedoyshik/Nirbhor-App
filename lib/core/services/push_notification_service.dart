@@ -7,9 +7,11 @@ import 'package:go_router/go_router.dart';
 import '../di/injection_container.dart';
 import '../router/app_router.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/expense/presentation/args/expense_list_args.dart';
 import '../../features/flat/presentation/bloc/flat_bloc.dart';
 import '../../features/notification/presentation/bloc/notification_bloc.dart';
 import '../../features/notification/presentation/bloc/notification_event.dart';
+import '../../features/summary/presentation/args/summary_page_args.dart';
 import '../../features/task/presentation/args/task_page_args.dart';
 import '../../features/complaint/presentation/args/complaint_page_args.dart';
 import '../../features/wallet/presentation/args/wallet_page_args.dart';
@@ -148,86 +150,111 @@ class PushNotificationService {
     final router = _router;
     if (router == null) return;
 
-    final data = message.data;
-    final type = (data['type'] as String? ?? '').toLowerCase();
-    final flatId = data['flat_id'] as String? ?? '';
+    final data    = message.data;
+    final type    = (data['type'] as String? ?? '').toLowerCase();
+    final flatId  = data['flat_id'] as String? ?? '';
 
-    if (flatId.isEmpty) {
-      router.go(AppRoutes.home);
-      return;
-    }
+    if (flatId.isEmpty) { router.go(AppRoutes.home); return; }
 
-    // Resolve flat context from the BLoC singleton
+    // Resolve flat + user context from singleton BLoCs
     final flatState = sl<FlatBloc>().state;
     final flat = switch (flatState) {
-      FlatLoaded(:final flat) => flat,
+      FlatLoaded(:final flat)      => flat,
       FlatPendingExit(:final flat) => flat,
-      _ => null,
+      _                            => null,
     };
 
     if (flat == null || flat.id != flatId) {
-      // Notification is for a different flat or flat not loaded — go home
       router.go(AppRoutes.home);
       return;
     }
 
-    // Resolve current user context
     final authState = sl<AuthBloc>().state;
     if (authState is! AuthAuthenticated) {
       router.go(AppRoutes.home);
       return;
     }
 
-    final member = flat.memberByUserId(authState.user.id);
-    final canManage = member?.canManage ?? false;
-    final myMemberId = member?.flatMemberId ?? '';
+    final member      = flat.memberByUserId(authState.user.id);
+    final canManage   = member?.canManage ?? false;
+    final myMemberId  = member?.flatMemberId ?? '';
 
-    // Use the explicit 'route' field (set by backend) or fall back to type matching
-    final route = data['route'] as String? ?? '';
-    final destination = route.isNotEmpty ? route : _routeFromType(type);
+    // ── Route by type (mirrors notification_page._handleTap) ────────────────
 
-    switch (destination) {
-      case 'tasks':
-        router.push(
-          AppRoutes.tasks,
-          extra: TaskPageArgs(
-            flatId: flatId,
-            canManage: canManage,
-            myMemberId: myMemberId,
-            members: flat.activeMembers,
-          ),
-        );
-      case 'complaints':
-        router.push(
-          AppRoutes.complaints,
-          extra: ComplaintPageArgs(
-            flatId: flatId,
-            canManage: canManage,
-            myMemberId: myMemberId,
-          ),
-        );
-      case 'wallet':
-        router.push(
-          AppRoutes.walletHome,
-          extra: WalletPageArgs(flatId: flatId, canManage: canManage),
-        );
-      case 'join_requests':
-        if (canManage) {
-          router.push(AppRoutes.flatRequests, extra: flatId);
-        } else {
-          router.go(AppRoutes.home);
-        }
-      default:
-        router.go(AppRoutes.home);
+    if (type.contains('join_request')) {
+      if (canManage) router.push(AppRoutes.flatRequests, extra: flatId);
+      else           router.go(AppRoutes.home);
+      return;
     }
-  }
 
-  static String _routeFromType(String type) {
-    if (type.contains('task')) { return 'tasks'; }
-    if (type.contains('complaint')) { return 'complaints'; }
+    if (type == 'member_joined') {
+      router.push(AppRoutes.flatMembers, extra: flat);
+      return;
+    }
+
+    if (type.contains('exit')) {
+      // Home auto-renders PendingExitPage when FlatState is FlatPendingExit
+      router.go(AppRoutes.home);
+      return;
+    }
+
+    if (type.contains('task')) {
+      router.push(
+        AppRoutes.tasks,
+        extra: TaskPageArgs(
+          flatId: flatId,
+          canManage: canManage,
+          myMemberId: myMemberId,
+          members: flat.activeMembers,
+        ),
+      );
+      return;
+    }
+
+    if (type.contains('complaint')) {
+      router.push(
+        AppRoutes.complaints,
+        extra: ComplaintPageArgs(
+          flatId: flatId,
+          canManage: canManage,
+          myMemberId: myMemberId,
+        ),
+      );
+      return;
+    }
+
     if (type.contains('payment') ||
         type.contains('wallet') ||
-        type.contains('contribution')) { return 'wallet'; }
-    return 'home';
+        type.contains('contribution')) {
+      final walletArgs = WalletPageArgs(flatId: flatId, canManage: canManage);
+      if (type == 'payment_submitted' || type == 'payment_request_received') {
+        router.push(AppRoutes.walletRequests, extra: walletArgs);
+      } else {
+        router.push(AppRoutes.walletHome, extra: walletArgs);
+      }
+      return;
+    }
+
+    if (type.contains('expense')) {
+      router.push(
+        AppRoutes.expenses,
+        extra: ExpenseListArgs(flatId: flatId, canManage: canManage),
+      );
+      return;
+    }
+
+    if (type.contains('month_closed') || type.contains('monthly')) {
+      router.push(
+        AppRoutes.summary,
+        extra: SummaryPageArgs(
+          flatId: flatId,
+          isManager: canManage,
+          myMemberId: myMemberId,
+        ),
+      );
+      return;
+    }
+
+    router.go(AppRoutes.home);
   }
 }
