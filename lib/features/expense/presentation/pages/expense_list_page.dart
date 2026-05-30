@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -127,30 +128,26 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
         elevation: 0,
         title: Text(AppStrings.expenseListTitle,
-            style: AppTypography.headlineMedium),
+            style: AppTypography.headlineMedium
+                .copyWith(color: context.textPrimColor)),
       ),
-      floatingActionButton: widget.canManage
-          ? FloatingActionButton(
-              backgroundColor: AppColors.primary,
-              onPressed: () => context
-                  .push(
-                    AppRoutes.recordExpense,
-                    extra: RecordExpenseArgs(
-                      flatId: widget.flatId,
-                      memberCount: widget.memberCount,
-                    ),
-                  )
-                  .then((_) {
-                if (mounted) _loadExpenses();
-              }),
-              child: const Icon(Icons.add, color: AppColors.white),
+      floatingActionButton: _GradientFab(
+        onPressed: () => context
+            .push(
+              AppRoutes.recordExpense,
+              extra: RecordExpenseArgs(
+                flatId: widget.flatId,
+                memberCount: widget.memberCount,
+                canManage: widget.canManage,
+              ),
             )
-          : null,
+            .then((_) {
+          if (mounted) _loadExpenses();
+        }),
+      ),
       body: BlocConsumer<ExpenseBloc, ExpenseState>(
         listener: (context, state) {
           if (state is ExpenseError) {
@@ -163,7 +160,7 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
         },
         builder: (context, state) {
           return RefreshIndicator(
-            color: AppColors.primary,
+            color: AppColors.brand,
             onRefresh: () async {
               _loadExpenses();
               await Future.delayed(const Duration(milliseconds: 600));
@@ -186,11 +183,13 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
                         },
                       ),
 
-                      // Summary cards
+                      // Summary cards + chart
                       if (state is ExpenseListLoaded &&
                           state.summary != null) ...[
                         const SizedBox(height: AppSizing.md),
                         _SummaryRow(summary: state.summary!),
+                        const SizedBox(height: AppSizing.md),
+                        _ExpenseChart(summary: state.summary!),
                       ],
 
                       const SizedBox(height: AppSizing.md),
@@ -215,48 +214,28 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
 
                 // List content
                 if (state is ExpenseListLoading)
-                  const SliverFillRemaining(
-                    child: Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
-                    ),
-                  )
+                  const SliverToBoxAdapter(child: _ShimmerRows())
                 else if (state is ExpenseError)
                   SliverFillRemaining(
                     child: Center(
                       child: Text(
                         state.message,
                         style: AppTypography.bodyMedium
-                            .copyWith(color: AppColors.textSecondary),
+                            .copyWith(color: context.textSecColor),
                         textAlign: TextAlign.center,
                       ),
                     ),
                   )
                 else if (state is ExpenseListLoaded) ...[
                   if (state.expenses.isEmpty)
-                    SliverFillRemaining(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.receipt_long_outlined,
-                                size: 48, color: AppColors.textSecondary),
-                            const SizedBox(height: AppSizing.md),
-                            Text(
-                              AppStrings.noExpensesRecorded,
-                              style: AppTypography.bodyMedium
-                                  .copyWith(color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
+                    const SliverFillRemaining(child: _EmptyState())
                   else ...[
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: AppSizing.pagePadding),
                       sliver: SliverList.separated(
                         itemCount: state.expenses.length,
-                        separatorBuilder: (_, _) =>
+                        separatorBuilder: (context, index) =>
                             const SizedBox(height: AppSizing.md),
                         itemBuilder: (context, index) {
                           final expense = state.expenses[index];
@@ -284,7 +263,7 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
                           padding: EdgeInsets.all(AppSizing.md),
                           child: Center(
                             child: CircularProgressIndicator(
-                                color: AppColors.primary),
+                                color: AppColors.brand),
                           ),
                         ),
                       ),
@@ -300,6 +279,32 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
     );
   }
 }
+
+// ── Gradient FAB ──────────────────────────────────────────────────────────────
+
+class _GradientFab extends StatelessWidget {
+  const _GradientFab({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: AppColors.brandGradient,
+          shape: BoxShape.circle,
+          boxShadow: AppColors.shadowMd,
+        ),
+        child: const Icon(Icons.add_rounded, color: AppColors.white, size: 28),
+      ),
+    );
+  }
+}
+
+// ── Month Picker ──────────────────────────────────────────────────────────────
 
 class _MonthPicker extends StatelessWidget {
   const _MonthPicker({
@@ -317,7 +322,7 @@ class _MonthPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.surface,
+      color: context.cardColor,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizing.pagePadding,
         vertical: AppSizing.sm,
@@ -326,16 +331,19 @@ class _MonthPicker extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary),
+            icon: Icon(Icons.chevron_left_rounded,
+                color: context.textPrimColor),
             onPressed: onPrevious,
           ),
-          Text(label, style: AppTypography.titleLarge),
+          Text(label,
+              style: AppTypography.titleLarge
+                  .copyWith(color: context.textPrimColor)),
           IconButton(
             icon: Icon(
-              Icons.chevron_right,
+              Icons.chevron_right_rounded,
               color: canGoNext()
-                  ? AppColors.textPrimary
-                  : AppColors.textSecondary,
+                  ? context.textPrimColor
+                  : context.textSecColor,
             ),
             onPressed: canGoNext() ? onNext : null,
           ),
@@ -344,6 +352,8 @@ class _MonthPicker extends StatelessWidget {
     );
   }
 }
+
+// ── Summary Row ───────────────────────────────────────────────────────────────
 
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({required this.summary});
@@ -426,6 +436,8 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
+// ── Filter Row ────────────────────────────────────────────────────────────────
+
 class _FilterRow extends StatelessWidget {
   const _FilterRow({
     required this.approvedFilter,
@@ -456,12 +468,14 @@ class _FilterRow extends StatelessWidget {
             label: 'Pending',
             selected: approvedFilter == false,
             onTap: () => onApprovedFilterChanged(false),
+            color: AppColors.warning,
           ),
           const SizedBox(width: AppSizing.xs),
           _Chip(
             label: 'Approved',
             selected: approvedFilter == true,
             onTap: () => onApprovedFilterChanged(true),
+            color: AppColors.success,
           ),
           const SizedBox(width: AppSizing.md),
           _Chip(
@@ -508,15 +522,16 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = color ?? AppColors.primary;
+    final activeColor = color ?? AppColors.brand;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: selected
               ? activeColor.withValues(alpha: 0.1)
-              : AppColors.surface,
+              : context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusFull),
           border: Border.all(
             color: selected ? activeColor : AppColors.border,
@@ -525,8 +540,343 @@ class _Chip extends StatelessWidget {
         child: Text(
           label,
           style: AppTypography.labelSmall.copyWith(
-            color: selected ? activeColor : AppColors.textSecondary,
+            color: selected ? activeColor : context.textSecColor,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Expense Distribution Chart ────────────────────────────────────────────────
+
+class _ExpenseChart extends StatefulWidget {
+  const _ExpenseChart({required this.summary});
+  final ExpenseSummaryEntity summary;
+
+  @override
+  State<_ExpenseChart> createState() => _ExpenseChartState();
+}
+
+class _ExpenseChartState extends State<_ExpenseChart> {
+  int _touchedIndex = -1;
+
+  static const _mealColor      = Color(0xFFF57C00);
+  static const _householdColor = Color(0xFF7B1FA2);
+  static const _fixedColor     = Color(0xFF1565C0);
+
+  @override
+  Widget build(BuildContext context) {
+    final meal      = widget.summary.meal.approvedTotal;
+    final household = widget.summary.household.approvedTotal;
+    final fixed     = widget.summary.fixed.approvedTotal;
+    final total     = meal + household + fixed;
+
+    if (total == 0) return const SizedBox.shrink();
+
+    // Build sections and a parallel labels list so touch index maps correctly
+    final sections = <({PieChartSectionData data, String label, double amount, Color color})>[];
+    if (meal      > 0) sections.add((data: _section(meal,      _mealColor,      0), label: 'Meal',      amount: meal,      color: _mealColor));
+    if (household > 0) sections.add((data: _section(household, _householdColor, 1), label: 'Household', amount: household, color: _householdColor));
+    if (fixed     > 0) sections.add((data: _section(fixed,     _fixedColor,     2), label: 'Fixed',     amount: fixed,     color: _fixedColor));
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+      child: Container(
+        padding: const EdgeInsets.all(AppSizing.lg),
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Donut chart
+            SizedBox(
+              height: 150,
+              width: 150,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      pieTouchData: PieTouchData(
+                        touchCallback: (FlTouchEvent event, PieTouchResponse? res) {
+                          setState(() {
+                            if (!event.isInterestedForInteractions ||
+                                res == null ||
+                                res.touchedSection == null) {
+                              _touchedIndex = -1;
+                              return;
+                            }
+                            _touchedIndex =
+                                res.touchedSection!.touchedSectionIndex;
+                          });
+                        },
+                      ),
+                      sections: sections.asMap().entries.map((e) {
+                        final isTouched = e.key == _touchedIndex;
+                        return e.value.data.copyWith(
+                          radius: isTouched ? 56 : 48,
+                        );
+                      }).toList(),
+                      centerSpaceRadius: 42,
+                      sectionsSpace: 2,
+                    ),
+                  ),
+                  // Center total
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '৳${total.toStringAsFixed(0)}',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: context.textPrimColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Total',
+                        style: AppTypography.labelSmall
+                            .copyWith(color: context.textSecColor),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSizing.lg),
+            // Legend
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: sections.asMap().entries.map((e) {
+                  final isTouched = e.key == _touchedIndex;
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: e.key < sections.length - 1 ? AppSizing.sm : 0,
+                    ),
+                    child: _LegendItem(
+                      color: e.value.color,
+                      label: e.value.label,
+                      amount: e.value.amount,
+                      total: total,
+                      highlighted: isTouched,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PieChartSectionData _section(double value, Color color, int index) {
+    return PieChartSectionData(
+      value: value,
+      color: color,
+      radius: 48,
+      showTitle: false,
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({
+    required this.color,
+    required this.label,
+    required this.amount,
+    required this.total,
+    this.highlighted = false,
+  });
+
+  final Color  color;
+  final String label;
+  final double amount;
+  final double total;
+  final bool   highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = total > 0 ? (amount / total * 100).toStringAsFixed(1) : '0.0';
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 3),
+          child: Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+        ),
+        const SizedBox(width: AppSizing.xs),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTypography.labelSmall.copyWith(
+                  color: context.textSecColor,
+                ),
+              ),
+              Text(
+                '৳${amount.toStringAsFixed(0)}  ($pct%)',
+                style: AppTypography.bodySmall.copyWith(
+                  color: highlighted ? color : context.textPrimColor,
+                  fontWeight: highlighted ? FontWeight.w700 : FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Empty State ───────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppColors.brand.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.receipt_long_outlined,
+              size: 36,
+              color: AppColors.brand,
+            ),
+          ),
+          const SizedBox(height: AppSizing.md),
+          Text(
+            AppStrings.noExpensesRecorded,
+            style: AppTypography.bodyMedium
+                .copyWith(color: context.textSecColor),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Shimmer Placeholder Rows ──────────────────────────────────────────────────
+
+class _ShimmerRows extends StatefulWidget {
+  const _ShimmerRows();
+
+  @override
+  State<_ShimmerRows> createState() => _ShimmerRowsState();
+}
+
+class _ShimmerRowsState extends State<_ShimmerRows>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _anim = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, child) => Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSizing.pagePadding, vertical: AppSizing.sm),
+        child: Column(
+          children: List.generate(
+            3,
+            (_) => Opacity(
+              opacity: _anim.value,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: AppSizing.md),
+                padding: const EdgeInsets.all(AppSizing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.surface200,
+                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface300,
+                        borderRadius:
+                            BorderRadius.circular(AppSizing.radiusMd),
+                      ),
+                    ),
+                    const SizedBox(width: AppSizing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                              height: 12,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: AppColors.surface300,
+                                borderRadius: BorderRadius.circular(
+                                    AppSizing.radiusFull),
+                              )),
+                          const SizedBox(height: AppSizing.xs),
+                          Container(
+                              height: 10,
+                              width: 120,
+                              decoration: BoxDecoration(
+                                color: AppColors.surface300,
+                                borderRadius: BorderRadius.circular(
+                                    AppSizing.radiusFull),
+                              )),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSizing.md),
+                    Container(
+                        height: 14,
+                        width: 60,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface300,
+                          borderRadius:
+                              BorderRadius.circular(AppSizing.radiusFull),
+                        )),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),

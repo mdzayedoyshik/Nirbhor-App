@@ -8,13 +8,16 @@ class CategorySummaryModel extends CategorySummary {
     required super.approvedTotal,
   });
 
-  factory CategorySummaryModel.fromJson(Map<String, dynamic> json) =>
-      CategorySummaryModel(
-        count: (json['count'] as num).toInt(),
-        total: (json['total'] as num).toDouble(),
-        approvedCount: (json['approved_count'] as num).toInt(),
-        approvedTotal: (json['approved_total'] as num).toDouble(),
-      );
+  factory CategorySummaryModel.fromJson(Map<String, dynamic> json) {
+    final approved = (json['total_approved'] as num? ?? 0).toDouble();
+    final pending  = (json['total_pending']  as num? ?? 0).toDouble();
+    return CategorySummaryModel(
+      count:         (json['count']          as num? ?? 0).toInt(),
+      total:         approved + pending,
+      approvedCount: (json['approved_count'] as num? ?? 0).toInt(),
+      approvedTotal: approved,
+    );
+  }
 }
 
 class ExpenseSummaryModel extends ExpenseSummaryEntity {

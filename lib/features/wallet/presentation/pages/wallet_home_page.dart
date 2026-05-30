@@ -45,9 +45,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
       },
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
             elevation: 0,
             title: Text(AppStrings.walletTitle,
                 style: AppTypography.headlineMedium),
@@ -61,15 +59,6 @@ class _WalletHomePageState extends State<WalletHomePage> {
                     extra: widget.args,
                   ),
                 ),
-              if (widget.args.canManage)
-                IconButton(
-                  icon: const Icon(Icons.receipt_long_outlined),
-                  tooltip: AppStrings.paymentsListTitle,
-                  onPressed: () => context.push(
-                    AppRoutes.walletPayments,
-                    extra: widget.args.flatId,
-                  ),
-                ),
             ],
           ),
           body: _buildBody(context, state),
@@ -81,7 +70,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
   Widget _buildBody(BuildContext context, WalletState state) {
     if (state is WalletLoading) {
       return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary));
+          child: CircularProgressIndicator(color: AppColors.brand));
     }
 
     final (summary, flatWallet) = switch (state) {
@@ -102,7 +91,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
           children: [
             Text(AppStrings.somethingWentWrong,
                 style: AppTypography.bodyMedium
-                    .copyWith(color: AppColors.textSecondary)),
+                    .copyWith(color: context.textSecColor)),
             const SizedBox(height: AppSizing.md),
             AppButton(
               label: AppStrings.retry,
@@ -119,7 +108,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
     final isLoading = state is WalletActionLoading;
 
     return RefreshIndicator(
-      color: AppColors.primary,
+      color: AppColors.brand,
       onRefresh: () async {
         context
             .read<WalletBloc>()
@@ -131,31 +120,27 @@ class _WalletHomePageState extends State<WalletHomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Hero balance card ──────────────────────────
-            _HeroBalanceCard(summary: summary),
+            // ── Balance section ────────────────────────────
+            _BalanceSection(summary: summary, flatWallet: flatWallet),
 
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSizing.pagePadding,
-                AppSizing.lg,
+                AppSizing.md,
                 AppSizing.pagePadding,
                 0,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Flat Cash Pool ─────────────────────────
-                  if (flatWallet != null) ...[
-                    _FlatPoolCard(
-                      flatWallet: flatWallet,
-                      flatId: widget.args.flatId,
-                    ),
-                    const SizedBox(height: AppSizing.lg),
-                  ],
-
-                  // ── Contribution breakdown ─────────────────
-                  _ContributionStrip(summary: summary),
-                  const SizedBox(height: AppSizing.lg),
+                  // ── Quick actions ──────────────────────────
+                  // _QuickActionsRow(
+                  //   flatId: widget.args.flatId,
+                  //   args: widget.args,
+                  //   summary: summary,
+                  //   isLoading: isLoading,
+                  // ),
+                  // const SizedBox(height: AppSizing.lg),
 
                   // ── Suggested deposit banner ───────────────
                   if (summary.suggestedTotalToPay > 0) ...[
@@ -172,7 +157,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
                     const SizedBox(height: AppSizing.lg),
                   ],
 
-                  // ── Pending payment requests ───────────────
+                  // ── Pending / awaiting payment requests ───────────────
                   if (summary.hasPendingRequests) ...[
                     _SectionHeader(
                       title: AppStrings.paymentRequestsTitle,
@@ -185,7 +170,8 @@ class _WalletHomePageState extends State<WalletHomePage> {
                         child: _RequestCard(
                           amount: req.amount,
                           note: req.note,
-                          onPayNow: isLoading
+                          isSubmitted: req.isSubmitted,
+                          onPayNow: req.isSubmitted || isLoading
                               ? null
                               : () => context.push(
                                     AppRoutes.walletSubmitPayment,
@@ -213,7 +199,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
                           extra: widget.args.flatId,
                         ),
                         style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
+                          foregroundColor: AppColors.brand,
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -221,87 +207,17 @@ class _WalletHomePageState extends State<WalletHomePage> {
                         child: Text(
                           AppStrings.seeAllTransactions,
                           style: AppTypography.titleMedium
-                              .copyWith(color: AppColors.primary),
+                              .copyWith(color: AppColors.brand),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: AppSizing.sm),
                   if (summary.recentTransactions.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: AppSizing.md),
-                      child: Center(
-                        child: Text(
-                          'No recent transactions.',
-                          style: AppTypography.bodyMedium
-                              .copyWith(color: AppColors.textSecondary),
-                        ),
-                      ),
-                    )
+                    _EmptyTransactionsState()
                   else
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius:
-                            BorderRadius.circular(AppSizing.radiusMd),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizing.md, vertical: AppSizing.xs),
-                      child: Column(
-                        children: summary.recentTransactions
-                            .map((t) => TransactionRow(transaction: t))
-                            .toList(),
-                      ),
-                    ),
-
-                  const SizedBox(height: AppSizing.xl),
-
-                  // ── Actions ────────────────────────────────
-                  AppButton(
-                    label: AppStrings.submitPaymentLabel,
-                    onPressed: isLoading
-                        ? null
-                        : () => context.push(
-                              AppRoutes.walletSubmitPayment,
-                              extra: SubmitPaymentArgs(
-                                flatId: widget.args.flatId,
-                                initialAmount:
-                                    summary.suggestedTotalToPay > 0
-                                        ? summary.suggestedTotalToPay
-                                        : null,
-                              ),
-                            ),
-                    variant: AppButtonVariant.primary,
-                    fullWidth: true,
-                    loading: isLoading,
-                    icon: const Icon(Icons.send_rounded, size: 18),
-                  ),
-
-                  if (widget.args.canManage) ...[
-                    const SizedBox(height: AppSizing.sm),
-                    AppButton(
-                      label: AppStrings.paymentRequestsTitle,
-                      onPressed: () => context.push(
-                        AppRoutes.walletRequests,
-                        extra: widget.args,
-                      ),
-                      variant: AppButtonVariant.outlined,
-                      fullWidth: true,
-                      icon: const Icon(Icons.request_page_outlined, size: 18),
-                    ),
-                    const SizedBox(height: AppSizing.sm),
-                    AppButton(
-                      label: AppStrings.paymentHintsTitle,
-                      onPressed: () => context.push(
-                        AppRoutes.walletHints,
-                        extra: widget.args.flatId,
-                      ),
-                      variant: AppButtonVariant.text,
-                      fullWidth: true,
-                    ),
-                  ],
+                    _TransactionsList(
+                        transactions: summary.recentTransactions),
 
                   const SizedBox(height: AppSizing.xxl),
                 ],
@@ -314,189 +230,113 @@ class _WalletHomePageState extends State<WalletHomePage> {
   }
 }
 
-// ── Hero balance card ────────────────────────────────────────────────────────
+// ── Balance section ───────────────────────────────────────────────────────────
 
-class _HeroBalanceCard extends StatelessWidget {
-  const _HeroBalanceCard({required this.summary});
+class _BalanceSection extends StatelessWidget {
+  const _BalanceSection({required this.summary, required this.flatWallet});
   final WalletSummaryEntity summary;
+  final FlatWalletEntity? flatWallet;
 
   @override
   Widget build(BuildContext context) {
     final isNeg = summary.isNegative;
-    return Container(
-      width: double.infinity,
+    final statusColor = isNeg ? AppColors.error : AppColors.success;
+    final amountColor = isNeg ? AppColors.error : context.textPrimColor;
+
+    return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSizing.pagePadding,
-        AppSizing.lg,
+        AppSizing.xs,
         AppSizing.pagePadding,
-        AppSizing.xl,
+        0,
       ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isNeg
-              ? [
-                  AppColors.error,
-                  AppColors.error.withValues(alpha: 0.7),
-                ]
-              : [
-                  AppColors.primary,
-                  AppColors.primaryDark,
-                ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Hi, ${summary.memberName}',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.white.withValues(alpha: 0.85),
-            ),
-          ),
-          const SizedBox(height: AppSizing.xs),
-          Text(
-            '${isNeg ? '−' : ''}৳${summary.walletBalance.abs().toStringAsFixed(0)}',
-            style: AppTypography.headlineMedium.copyWith(
-              color: AppColors.white,
-              fontSize: 40,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppSizing.xs),
-          Row(
-            children: [
-              Icon(
-                isNeg
-                    ? Icons.warning_amber_rounded
-                    : Icons.check_circle_outline_rounded,
-                color: AppColors.white.withValues(alpha: 0.9),
-                size: 14,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  isNeg
-                      ? 'You owe ৳${summary.walletBalance.abs().toStringAsFixed(0)} — please deposit soon'
-                      : AppStrings.walletCurrentBalance,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.white.withValues(alpha: 0.9),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (isNeg) ...[
-            const SizedBox(height: AppSizing.sm),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizing.sm, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-              ),
-              child: Text(
-                'Due',
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// ── Flat pool card ────────────────────────────────────────────────────────────
-
-class _FlatPoolCard extends StatelessWidget {
-  const _FlatPoolCard({required this.flatWallet, required this.flatId});
-  final FlatWalletEntity flatWallet;
-  final String flatId;
-
-  @override
-  Widget build(BuildContext context) {
-    final isNeg = flatWallet.isNegative;
-    final color = isNeg ? AppColors.error : AppColors.success;
-
-    return GestureDetector(
-      onTap: () =>
-          context.push(AppRoutes.walletTransactions, extra: flatId),
       child: Container(
-        padding: const EdgeInsets.all(AppSizing.md),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSizing.md + 2, vertical: AppSizing.md),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(AppSizing.r16),
           border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-              ),
-              child: Icon(Icons.account_balance_rounded, color: color, size: 22),
-            ),
-            const SizedBox(width: AppSizing.md),
+            // My balance
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    AppStrings.flatWalletTitle,
-                    style: AppTypography.labelSmall
-                        .copyWith(color: AppColors.textSecondary),
+                    AppStrings.walletCurrentBalance,
+                    style: AppTypography.labelS
+                        .copyWith(color: context.textSecColor),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        '${isNeg ? '−' : ''}৳${flatWallet.balance.abs().toStringAsFixed(0)}',
-                        style: AppTypography.titleLarge.copyWith(
-                          color: color,
-                          fontWeight: FontWeight.w700,
+                        '${isNeg ? '−' : ''}৳${summary.walletBalance.abs().toStringAsFixed(0)}',
+                        style: AppTypography.amountXL.copyWith(
+                          color: amountColor,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      if (isNeg) ...[
-                        const SizedBox(width: AppSizing.xs),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.error.withValues(alpha: 0.1),
-                            borderRadius:
-                                BorderRadius.circular(AppSizing.radiusFull),
-                          ),
-                          child: Text(
-                            'Deficit',
-                            style: AppTypography.labelSmall.copyWith(
-                              color: AppColors.error,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      const SizedBox(width: AppSizing.xs),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.1),
+                          borderRadius:
+                              BorderRadius.circular(AppSizing.radiusFull),
+                        ),
+                        child: Text(
+                          isNeg ? 'Due' : 'Healthy',
+                          style: AppTypography.labelS.copyWith(
+                            color: statusColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
                           ),
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded,
-                color: AppColors.textSecondary, size: 20),
+
+            // Divider + pool balance
+            if (flatWallet != null) ...[
+              Container(
+                width: 1,
+                height: 44,
+                margin: const EdgeInsets.symmetric(horizontal: AppSizing.md),
+                color: AppColors.border,
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Flat Pool',
+                    style: AppTypography.labelS
+                        .copyWith(color: context.textSecColor),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${flatWallet!.isNegative ? '−' : ''}৳${flatWallet!.balance.abs().toStringAsFixed(0)}',
+                    style: AppTypography.amountM.copyWith(
+                      color: flatWallet!.isNegative
+                          ? AppColors.error
+                          : context.textPrimColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -504,84 +344,126 @@ class _FlatPoolCard extends StatelessWidget {
   }
 }
 
-// ── Contribution strip ────────────────────────────────────────────────────────
+// ── Quick actions row ────────────────────────────────────────────────────────
 
-class _ContributionStrip extends StatelessWidget {
-  const _ContributionStrip({required this.summary});
-  final WalletSummaryEntity summary;
+// class _QuickActionsRow extends StatelessWidget {
+//   const _QuickActionsRow({
+//     required this.flatId,
+//     required this.args,
+//     required this.summary,
+//     required this.isLoading,
+//   });
+//   final String flatId;
+//   final WalletPageArgs args;
+//   final WalletSummaryEntity summary;
+//   final bool isLoading;
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSizing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          _StripItem(
-            label: 'Fixed',
-            value: '৳${summary.fixedContribution.toStringAsFixed(0)}',
-            icon: Icons.receipt_long_outlined,
-          ),
-          _VerticalDivider(),
-          _StripItem(
-            label: 'Meal',
-            value:
-                '৳${summary.paymentHints.suggestedMealAmount.toStringAsFixed(0)}',
-            icon: Icons.restaurant_outlined,
-          ),
-          _VerticalDivider(),
-          _StripItem(
-            label: 'Household',
-            value:
-                '৳${summary.paymentHints.suggestedHouseholdAmount.toStringAsFixed(0)}',
-            icon: Icons.home_outlined,
-          ),
-        ],
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Row(
+//       children: [
+//         _QuickActionButton(
+//           icon: Icons.send_rounded,
+//           label: 'Pay',
+//           isPrimary: true,
+//           onTap: isLoading
+//               ? null
+//               : () => context.push(
+//                     AppRoutes.walletSubmitPayment,
+//                     extra: SubmitPaymentArgs(
+//                       flatId: flatId,
+//                       initialAmount: summary.suggestedTotalToPay > 0
+//                           ? summary.suggestedTotalToPay
+//                           : null,
+//                     ),
+//                   ),
+//         ),
+//         const SizedBox(width: AppSizing.sm),
+//         _QuickActionButton(
+//           icon: Icons.payments_outlined,
+//           label: 'Payments',
+//           onTap: () => context.push(
+//             AppRoutes.walletRequests,
+//             extra: args,
+//           ),
+//         ),
+//         const SizedBox(width: AppSizing.sm),
+//         _QuickActionButton(
+//           icon: Icons.history_rounded,
+//           label: 'History',
+//           onTap: () => context.push(
+//             AppRoutes.walletTransactions,
+//             extra: flatId,
+//           ),
+//         ),
+//       ],
+//     );
+//   }
+// }
 
-class _StripItem extends StatelessWidget {
-  const _StripItem(
-      {required this.label, required this.value, required this.icon});
-  final String label;
-  final String value;
-  final IconData icon;
+// class _QuickActionButton extends StatelessWidget {
+//   const _QuickActionButton({
+//     required this.icon,
+//     required this.label,
+//     required this.onTap,
+//     this.isPrimary = false,
+//   });
+//   final IconData icon;
+//   final String label;
+//   final VoidCallback? onTap;
+//   final bool isPrimary;
 
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(height: 4),
-          Text(value,
-              style: AppTypography.titleMedium
-                  .copyWith(fontWeight: FontWeight.w600)),
-          Text(label,
-              style: AppTypography.labelSmall
-                  .copyWith(color: AppColors.textSecondary)),
-        ],
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     final enabled = onTap != null;
+//     final accent = isPrimary && enabled ? AppColors.brand : null;
 
-class _VerticalDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 44,
-      color: AppColors.border,
-    );
-  }
-}
+//     return Expanded(
+//       child: GestureDetector(
+//         onTap: onTap,
+//         child: Container(
+//           padding: const EdgeInsets.symmetric(vertical: 10),
+//           decoration: BoxDecoration(
+//             color: accent != null
+//                 ? AppColors.brand.withValues(alpha: 0.07)
+//                 : context.cardColor,
+//             borderRadius: BorderRadius.circular(AppSizing.r12),
+//             border: Border.all(
+//               color: accent != null
+//                   ? AppColors.brand.withValues(alpha: 0.35)
+//                   : AppColors.border,
+//             ),
+//           ),
+//           child: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               Icon(
+//                 icon,
+//                 size: 18,
+//                 color: enabled
+//                     ? (accent ?? AppColors.brand)
+//                     : AppColors.textHint,
+//               ),
+//               const SizedBox(height: 4),
+//               Text(
+//                 label,
+//                 style: AppTypography.labelS.copyWith(
+//                   color: enabled
+//                       ? (accent != null
+//                           ? AppColors.brand
+//                           : context.textPrimColor)
+//                       : AppColors.textHint,
+//                   fontWeight: FontWeight.w600,
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
 
 // ── Suggested deposit banner ──────────────────────────────────────────────────
 
@@ -594,11 +476,12 @@ class _SuggestedDepositBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSizing.md),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSizing.md, vertical: AppSizing.sm + 2),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+        color: AppColors.brand.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppSizing.r12),
+        border: Border.all(color: AppColors.brand.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [
@@ -608,22 +491,26 @@ class _SuggestedDepositBanner extends StatelessWidget {
               children: [
                 Text(
                   AppStrings.suggestedDeposit,
-                  style: AppTypography.labelSmall
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.labelS
+                      .copyWith(color: context.textSecColor),
                 ),
-                const SizedBox(height: 2),
                 Text(
                   '৳${summary.suggestedTotalToPay.toStringAsFixed(0)}',
-                  style: AppTypography.titleLarge.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.brand,
+                    fontWeight: FontWeight.w600,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
                 Text(
-                  'Fixed ৳${summary.fixedContribution.toStringAsFixed(0)} + Meal ৳${summary.paymentHints.suggestedMealAmount.toStringAsFixed(0)} + Household ৳${summary.paymentHints.suggestedHouseholdAmount.toStringAsFixed(0)}',
-                  style: AppTypography.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                  'Fixed ${summary.fixedContribution.toStringAsFixed(0)} + Meal ${summary.paymentHints.suggestedMealAmount.toStringAsFixed(0)} + HH ${summary.paymentHints.suggestedHouseholdAmount.toStringAsFixed(0)}',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.brand,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -682,51 +569,153 @@ class _SectionHeader extends StatelessWidget {
 // ── Request card ──────────────────────────────────────────────────────────────
 
 class _RequestCard extends StatelessWidget {
-  const _RequestCard({required this.amount, this.note, this.onPayNow});
+  const _RequestCard({
+    required this.amount,
+    this.note,
+    this.onPayNow,
+    this.isSubmitted = false,
+  });
   final double amount;
   final String? note;
   final VoidCallback? onPayNow;
+  final bool isSubmitted;
 
   @override
   Widget build(BuildContext context) {
+    final accent = isSubmitted ? AppColors.success : AppColors.brand;
+
     return Container(
-      padding: const EdgeInsets.all(AppSizing.md),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSizing.md, vertical: AppSizing.sm + 2),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(AppSizing.r12),
+        border: Border.all(color: accent.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
+          Icon(
+            isSubmitted ? Icons.hourglass_top_rounded : Icons.request_page_outlined,
+            size: 18,
+            color: accent,
+          ),
+          const SizedBox(width: AppSizing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '৳${amount.toStringAsFixed(0)}',
-                  style: AppTypography.headlineMedium.copyWith(
-                    color: AppColors.primary,
+                  style: AppTypography.amountM.copyWith(
+                    color: accent,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (note != null && note!.isNotEmpty)
-                  Text(
-                    note!,
-                    style: AppTypography.bodySmall
-                        .copyWith(color: AppColors.textSecondary),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Text(
+                  isSubmitted ? 'Awaiting verification' : (note ?? 'Payment request'),
+                  style: AppTypography.bodySmall
+                      .copyWith(color: context.textSecColor),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
           const SizedBox(width: AppSizing.sm),
-          AppButton(
-            label: AppStrings.payNow,
-            onPressed: onPayNow,
-            variant: AppButtonVariant.primary,
-            height: AppSizing.buttonHeightSm,
-            fullWidth: false,
+          if (isSubmitted)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                border: Border.all(
+                    color: AppColors.success.withValues(alpha: 0.25)),
+              ),
+              child: Text(
+                'Paid',
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.success,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
+                ),
+              ),
+            )
+          else
+            AppButton(
+              label: AppStrings.payNow,
+              onPressed: onPayNow,
+              variant: AppButtonVariant.primary,
+              height: AppSizing.buttonHeightSm,
+              fullWidth: false,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Transactions list ─────────────────────────────────────────────────────────
+
+class _TransactionsList extends StatelessWidget {
+  const _TransactionsList({required this.transactions});
+  final List<dynamic> transactions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(AppSizing.r16),
+        border: Border.all(color: AppColors.border),
+      ),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSizing.md, vertical: AppSizing.xs),
+      child: Column(
+        children:
+            transactions.map((t) => TransactionRow(transaction: t)).toList(),
+      ),
+    );
+  }
+}
+
+// ── Empty transactions state ──────────────────────────────────────────────────
+
+class _EmptyTransactionsState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+          vertical: AppSizing.xl, horizontal: AppSizing.lg),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(AppSizing.r16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.brand.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.receipt_long_outlined,
+                color: AppColors.brand, size: 26),
+          ),
+          const SizedBox(height: AppSizing.md),
+          Text(
+            'No transactions yet',
+            style: AppTypography.h4.copyWith(color: context.textPrimColor),
+          ),
+          const SizedBox(height: AppSizing.xs),
+          Text(
+            'Your recent payments will appear here.',
+            style: AppTypography.bodyS
+                .copyWith(color: context.textSecColor),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

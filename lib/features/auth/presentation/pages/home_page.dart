@@ -6,17 +6,33 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../../features/complaint/presentation/bloc/complaint_bloc.dart';
+import '../../../../features/expense/presentation/bloc/expense_bloc.dart';
 import '../../../../features/flat/presentation/bloc/flat_bloc.dart';
+import '../../../../features/summary/presentation/bloc/month_close_checklist_bloc.dart';
 import '../../../../features/flat/presentation/bloc/join_requests_bloc.dart';
 import '../../../../features/flat/presentation/pages/flat_home_view.dart';
 import '../../../../features/flat/presentation/pages/flat_landing_view.dart';
 import '../../../../features/flat/presentation/pages/pending_request_view.dart';
+import '../../../../features/meal/presentation/bloc/meal_bloc.dart';
+import '../../../../features/meal/presentation/bloc/meal_pool_bloc.dart';
 import '../../../../features/member/presentation/pages/exit_summary_page.dart';
 import '../../../../features/member/presentation/pages/pending_exit_page.dart';
+import '../../../../features/task/presentation/bloc/task_bloc.dart';
+import '../../../../features/wallet/presentation/bloc/payments/payments_bloc.dart';
 import '../../../../features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  // Ensures JoinRequestsBloc is loaded only once per flat session;
+  // the bloc re-fetches internally after every approve/decline.
+  bool _joinRequestsLoaded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -24,8 +40,28 @@ class HomePage extends StatelessWidget {
       listener: (context, state) {
         final resolved = _resolveDisplay(state);
         if (resolved is FlatLoaded) {
-          // Load wallet summary whenever flat becomes visible
+          // Refresh wallet summary whenever flat becomes visible
           context.read<WalletBloc>().add(WalletSummaryRequested(resolved.flat.id));
+          // Eagerly load today's meal log + current-month pool for home stat card
+          final now = DateTime.now();
+          final todayStr =
+              '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+          context.read<MealBloc>().add(MealDailyLoadRequested(
+                flatId: resolved.flat.id,
+                date: todayStr,
+              ));
+          context.read<MealPoolBloc>().add(MealPoolLoadRequested(
+                flatId: resolved.flat.id,
+                month: now.month,
+                year: now.year,
+              ));
+          // Load join-requests badge only once; bloc self-refreshes after approve/decline
+          if (!_joinRequestsLoaded) {
+            _joinRequestsLoaded = true;
+            context
+                .read<JoinRequestsBloc>()
+                .add(JoinRequestsLoadRequested(resolved.flat.id));
+          }
         }
         if (state is FlatError) {
           AppSnackbar.error(context, state.message);
@@ -49,10 +85,17 @@ class HomePage extends StatelessWidget {
         if (displayState is FlatLoaded) {
           return MultiBlocProvider(
             providers: [
-              BlocProvider(
-                create: (_) => sl<JoinRequestsBloc>()
-                  ..add(JoinRequestsLoadRequested(displayState.flat.id)),
-              ),
+              // BlocProvider.value — singleton shared with JoinRequestsPage;
+              // .value never closes the bloc when this widget is removed.
+              BlocProvider.value(value: sl<JoinRequestsBloc>()),
+              // Factory instances scoped to the home session.
+              // FlatHomeView.initState loads them; _reloadPendingActions
+              // refreshes them on pull-to-refresh and navigation returns.
+              BlocProvider(create: (_) => sl<PaymentsBloc>()),
+              BlocProvider(create: (_) => sl<TaskBloc>()),
+              BlocProvider(create: (_) => sl<ComplaintBloc>()),
+              BlocProvider(create: (_) => sl<ExpenseBloc>()),
+              BlocProvider(create: (_) => sl<MonthCloseChecklistBloc>()),
             ],
             child: Scaffold(
               backgroundColor: AppColors.background,

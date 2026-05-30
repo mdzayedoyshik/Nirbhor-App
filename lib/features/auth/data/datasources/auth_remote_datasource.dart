@@ -95,6 +95,13 @@ class AuthRemoteDataSource {
         auth: true,
       );
 
+  Future<void> setPassword({required String newPassword}) =>
+      _apiClient.put(
+        ApiEndpoints.setPassword,
+        {'new_password': newPassword},
+        auth: true,
+      );
+
   Future<void> saveTokens(TokenModel tokens) => _tokenService.saveTokens(
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,

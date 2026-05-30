@@ -151,6 +151,10 @@ class AuthRepositoryImpl implements AuthRepository {
         newPassword: newPassword,
       );
 
+  @override
+  Future<void> setPassword({required String newPassword}) =>
+      _dataSource.setPassword(newPassword: newPassword);
+
   Future<AuthResult> _parseAuthResult(Map<String, dynamic> response) async {
     final data = response['data'] as Map<String, dynamic>;
     final tokens =

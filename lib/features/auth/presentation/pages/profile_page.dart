@@ -52,6 +52,14 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  /// Returns up to 2 uppercase initials from the name.
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<ProfileBloc, ProfileState>(
@@ -111,38 +119,76 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SizedBox(height: AppSizing.md),
+                      const SizedBox(height: AppSizing.lg),
+                      // ── Profile Header ────────────────────────────────────
                       Center(
-                        child: AppImagePicker(
-                          imageUrl: user.avatarUrl,
-                          name: user.name,
-                          size: AppSizing.avatarRadius * 2,
-                          onUploaded: (url) {
-                            context.read<ProfileBloc>().add(
-                              ProfileUpdateRequested(
-                                name: user.name,
-                                avatarUrl: url,
-                              ),
-                            );
-                          },
+                        child: Column(
+                          children: [
+                            // Avatar: use image picker if available, otherwise gradient initials
+                            user.avatarUrl != null
+                                ? AppImagePicker(
+                                    imageUrl: user.avatarUrl,
+                                    name: user.name,
+                                    size: AppSizing.avatar80,
+                                    onUploaded: (url) {
+                                      context.read<ProfileBloc>().add(
+                                        ProfileUpdateRequested(
+                                          name: user.name,
+                                          avatarUrl: url,
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : GestureDetector(
+                                    onTap: () {},
+                                    child: Container(
+                                      width: AppSizing.avatar80,
+                                      height: AppSizing.avatar80,
+                                      decoration: BoxDecoration(
+                                        gradient: AppColors.brandGradient,
+                                        shape: BoxShape.circle,
+                                        boxShadow: AppColors.shadowMd,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          _initials(user.name),
+                                          style: AppTypography.h2.copyWith(
+                                            color: AppColors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                            const SizedBox(height: AppSizing.md),
+                            Text(
+                              user.name,
+                              style: AppTypography.h2,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: AppSizing.xs),
+                            Text(
+                              user.email,
+                              style: AppTypography.bodyM
+                                  .copyWith(color: AppColors.textSecondary),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: AppSizing.md),
+                      const SizedBox(height: AppSizing.xl),
+
                       if (_editing) ...[
+                        // ── Edit Form ─────────────────────────────────────
                         Form(
                           key: _formKey,
-                          child: Column(
-                            children: [
-                              AppTextField(
-                                controller: _nameCtrl,
-                                label: AppStrings.nameLabel,
-                                hint: AppStrings.nameHint,
-                                textInputAction: TextInputAction.done,
-                                validator: (v) => v == null || v.trim().isEmpty
-                                    ? 'Name is required'
-                                    : null,
-                              ),
-                            ],
+                          child: AppTextField(
+                            controller: _nameCtrl,
+                            label: AppStrings.nameLabel,
+                            hint: AppStrings.nameHint,
+                            textInputAction: TextInputAction.done,
+                            validator: (v) => v == null || v.trim().isEmpty
+                                ? 'Name is required'
+                                : null,
                           ),
                         ),
                         const SizedBox(height: AppSizing.lg),
@@ -158,16 +204,46 @@ class _ProfilePageState extends State<ProfilePage> {
                           onPressed: () => setState(() => _editing = false),
                         ),
                       ] else ...[
-                        _InfoTile(label: 'Name', value: user.name),
-                        _InfoTile(label: 'Email', value: user.email),
-                        const SizedBox(height: AppSizing.xl),
-                        AppButton(
-                          label: AppStrings.changePasswordTitle,
-                          variant: AppButtonVariant.outlined,
-                          onPressed: () =>
-                              context.push(AppRoutes.changePassword),
+                        // ── Account Section ────────────────────────────────
+                        _SectionLabel(label: 'Account'),
+                        const SizedBox(height: AppSizing.sm),
+                        _SettingsCard(
+                          children: [
+                            _SettingsRow(
+                              icon: Icons.person_outline_rounded,
+                              label: 'Name',
+                              value: user.name,
+                            ),
+                            _SettingsDivider(),
+                            _SettingsRow(
+                              icon: Icons.mail_outline_rounded,
+                              label: 'Email',
+                              value: user.email,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: AppSizing.md),
+                        const SizedBox(height: AppSizing.lg),
+                        // ── Security Section ───────────────────────────────
+                        _SectionLabel(label: 'Security'),
+                        const SizedBox(height: AppSizing.sm),
+                        _SettingsCard(
+                          children: [
+                            _SettingsRow(
+                              icon: Icons.lock_outline_rounded,
+                              label: user.hasPassword
+                                  ? AppStrings.changePasswordTitle
+                                  : 'Set Password',
+                              showArrow: true,
+                              onTap: () => context.push(
+                                user.hasPassword
+                                    ? AppRoutes.changePassword
+                                    : AppRoutes.setPassword,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSizing.xl),
+                        // ── Logout ─────────────────────────────────────────
                         AppButton(
                           label: AppStrings.logoutLabel,
                           variant: AppButtonVariant.secondary,
@@ -187,6 +263,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           },
                         ),
                       ],
+                      const SizedBox(height: AppSizing.xl),
                     ],
                   ),
                 ),
@@ -196,34 +273,134 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
-// ── Info tile ──────────────────────────────────────────────────────────────
+// ── Section Label ─────────────────────────────────────────────────────────────
 
-class _InfoTile extends StatelessWidget {
+class _SectionLabel extends StatelessWidget {
   final String label;
-  final String value;
-  const _InfoTile({required this.label, required this.value});
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: AppSizing.xs),
+      child: Text(
+        label.toUpperCase(),
+        style: AppTypography.overline.copyWith(
+          color: AppColors.textTertiary,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Settings Card ─────────────────────────────────────────────────────────────
+
+class _SettingsCard extends StatelessWidget {
+  final List<Widget> children;
+  const _SettingsCard({required this.children});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        vertical: AppSizing.md,
-        horizontal: AppSizing.md,
-      ),
-      margin: const EdgeInsets.only(bottom: AppSizing.sm),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        boxShadow: AppColors.shadowSm,
         border: Border.all(color: AppColors.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: AppTypography.labelSmall),
-          const SizedBox(height: AppSizing.xs),
-          Text(value, style: AppTypography.bodyLarge),
-        ],
+      child: Column(children: children),
+    );
+  }
+}
+
+// ── Settings Row ──────────────────────────────────────────────────────────────
+
+class _SettingsRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? value;
+  final bool showArrow;
+  final VoidCallback? onTap;
+
+  const _SettingsRow({
+    required this.icon,
+    required this.label,
+    this.value,
+    this.showArrow = false,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizing.md,
+            vertical: AppSizing.sp12,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.surface100,
+                  borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                ),
+                child: Icon(
+                  icon,
+                  color: AppColors.brand,
+                  size: AppSizing.iconMd,
+                ),
+              ),
+              const SizedBox(width: AppSizing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: AppTypography.labelM),
+                    if (value != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        value!,
+                        style: AppTypography.bodyS.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (showArrow)
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textTertiary,
+                  size: AppSizing.iconMd,
+                ),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+}
+
+// ── Settings Divider ──────────────────────────────────────────────────────────
+
+class _SettingsDivider extends StatelessWidget {
+  const _SettingsDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Divider(
+      height: 1,
+      thickness: 1,
+      color: AppColors.border,
+      indent: AppSizing.md + 36 + AppSizing.md,
     );
   }
 }

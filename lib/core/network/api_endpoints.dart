@@ -12,6 +12,7 @@ class ApiEndpoints {
   static const String refresh = '/auth/refresh';
   static const String profile = '/auth/profile';
   static const String changePassword = '/auth/change-password';
+  static const String setPassword = '/auth/set-password';
   static const String logout = '/auth/logout';
   static const String deviceToken = '/auth/device-token';
   static const String upload = '/upload';
@@ -69,6 +70,19 @@ class ApiEndpoints {
   static String flatExpenseApprove(String flatId, String expenseId) =>
       '/flats/$flatId/expenses/$expenseId/approve';
 
+  // Meal
+  static String mealConfig(String flatId) => '/flats/$flatId/meal-config';
+  static String mealToggles(String flatId) => '/flats/$flatId/meal-toggles';
+  static String mealLogs(String flatId) => '/flats/$flatId/meal-logs';
+  static String myMealLog(String flatId) => '/flats/$flatId/meal-logs/me';
+  static String mealLogForMember(String flatId, String memberId) =>
+      '/flats/$flatId/meal-logs/$memberId';
+  static String mealPool(String flatId) => '/flats/$flatId/meal-pool';
+  static String mealPreferences(String flatId, String memberId) =>
+      '/flats/$flatId/members/$memberId/meal-preferences';
+  static String memberMealLogs(String flatId, String memberId) =>
+      '/flats/$flatId/members/$memberId/meal-logs';
+
   // Member
   static String flatMembers(String flatId) => '/flats/$flatId/members';
   static String flatMemberRole(String flatId, String memberId) =>
@@ -89,4 +103,45 @@ class ApiEndpoints {
   static String meAcknowledgeExit() => '/flats/me/acknowledge-exit';
   static String flatMemberPendingExits(String flatId) =>
       '/flats/$flatId/members/pending-exits';
+
+  // Tasks
+  static String flatTasks(String flatId) => '/flats/$flatId/tasks';
+  static String flatTask(String flatId, String taskId) =>
+      '/flats/$flatId/tasks/$taskId';
+  static String flatSubTasks(String flatId, String taskId) =>
+      '/flats/$flatId/tasks/$taskId/sub-tasks';
+  static String flatSubTask(String flatId, String taskId, String subTaskId) =>
+      '/flats/$flatId/tasks/$taskId/sub-tasks/$subTaskId';
+
+  // Complaints
+  static String flatComplaints(String flatId) =>
+      '/flats/$flatId/complaints';
+  static String flatComplaint(String flatId, String complaintId) =>
+      '/flats/$flatId/complaints/$complaintId';
+  static String flatComplaintStatus(String flatId, String complaintId) =>
+      '/flats/$flatId/complaints/$complaintId/status';
+
+  // Notifications
+  static const String notifications = '/notifications';
+  static const String notificationsUnreadCount = '/notifications/unread-count';
+  static const String notificationsReadAll = '/notifications/read-all';
+  static String notificationRead(String id) => '/notifications/$id/read';
+  static String notification(String id) => '/notifications/$id';
+
+  // Audit Logs
+  static String flatAuditLogs(String flatId) => '/flats/$flatId/audit-logs';
+  static String flatAuditLog(String flatId, String logId) =>
+      '/flats/$flatId/audit-logs/$logId';
+
+  // Summary
+  static String flatMonthlySummary(String flatId) =>
+      '/flats/$flatId/monthly-summary';
+  static String flatMonthlySummaryPreview(String flatId) =>
+      '/flats/$flatId/monthly-summary/preview';
+  static String flatMonthlySummaryClose(String flatId) =>
+      '/flats/$flatId/monthly-summary/close';
+  static String flatMonthlySummaries(String flatId) =>
+      '/flats/$flatId/monthly-summaries';
+  static String flatMonthlySummaryCloseStatus(String flatId) =>
+      '/flats/$flatId/monthly-summary/close-status';
 }

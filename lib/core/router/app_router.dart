@@ -10,6 +10,7 @@ import '../../features/auth/presentation/args/otp_page_args.dart';
 import '../../features/auth/presentation/args/reset_password_page_args.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/pages/change_password_page.dart';
+import '../../features/auth/presentation/pages/set_password_page.dart';
 import '../../features/auth/presentation/pages/complete_setup_page.dart';
 import '../../features/auth/presentation/pages/email_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
@@ -44,8 +45,7 @@ import '../../features/wallet/presentation/bloc/transactions/transactions_bloc.d
 import '../../features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
 import '../../features/wallet/presentation/pages/all_wallets_page.dart';
 import '../../features/wallet/presentation/pages/payment_hints_page.dart';
-import '../../features/wallet/presentation/pages/payment_requests_page.dart';
-import '../../features/wallet/presentation/pages/payments_list_page.dart';
+import '../../features/wallet/presentation/pages/payments_hub_page.dart';
 import '../../features/wallet/presentation/pages/submit_payment_page.dart';
 import '../../features/wallet/presentation/pages/transaction_history_page.dart';
 import '../../features/wallet/presentation/pages/wallet_home_page.dart';
@@ -58,6 +58,31 @@ import '../../features/expense/presentation/pages/edit_expense_page.dart';
 import '../../features/expense/presentation/pages/expense_detail_page.dart';
 import '../../features/expense/presentation/pages/expense_list_page.dart';
 import '../../features/expense/presentation/pages/record_expense_page.dart';
+import '../../features/meal/presentation/args/meal_page_args.dart';
+import '../../features/meal/presentation/bloc/meal_bloc.dart';
+import '../../features/meal/presentation/bloc/meal_pool_bloc.dart';
+import '../../features/meal/presentation/bloc/meal_prefs_bloc.dart';
+import '../../features/meal/presentation/pages/meal_page.dart';
+import '../../features/summary/presentation/args/summary_page_args.dart';
+import '../../features/summary/presentation/bloc/summary_bloc.dart';
+import '../../features/summary/presentation/pages/summary_page.dart';
+import '../../features/task/presentation/args/task_page_args.dart';
+import '../../features/task/presentation/bloc/task_bloc.dart';
+import '../../features/task/presentation/pages/create_task_page.dart';
+import '../../features/task/presentation/pages/task_detail_page.dart';
+import '../../features/task/presentation/pages/task_page.dart';
+import '../../features/complaint/presentation/args/complaint_page_args.dart';
+import '../../features/complaint/presentation/bloc/complaint_bloc.dart';
+import '../../features/complaint/presentation/pages/complaint_detail_page.dart';
+import '../../features/complaint/presentation/pages/complaint_page.dart';
+import '../../features/notification/presentation/args/notification_page_args.dart';
+import '../../features/notification/presentation/bloc/notification_bloc.dart';
+import '../../features/notification/presentation/bloc/notification_event.dart';
+import '../../features/notification/presentation/pages/notification_page.dart';
+import '../../features/audit_log/presentation/args/audit_log_page_args.dart';
+import '../../features/audit_log/presentation/bloc/audit_log_bloc.dart';
+import '../../features/audit_log/presentation/bloc/audit_log_event.dart';
+import '../../features/audit_log/presentation/pages/audit_log_page.dart';
 import '../di/injection_container.dart';
 
 class AppRoutes {
@@ -73,6 +98,7 @@ class AppRoutes {
   static const home = '/home';
   static const profile = '/profile';
   static const changePassword = '/profile/change-password';
+  static const setPassword = '/profile/set-password';
 
   // Wallet
   static const walletHome = '/wallet/home';
@@ -92,6 +118,27 @@ class AppRoutes {
   static const flatMembers = '/flat/members';
   static const flatSettlement = '/flat/settlement';
   static const flatSettings = '/flat/settings';
+
+  // Meal
+  static const meals = '/meals';
+
+  // Tasks
+  static const tasks = '/tasks';
+  static const taskCreate = '/tasks/create';
+  static const taskDetail = '/tasks/detail';
+
+  // Complaints
+  static const complaints = '/complaints';
+  static const complaintDetail = '/complaints/detail';
+
+  // Notifications
+  static const notifications = '/notifications';
+
+  // Audit Log
+  static const auditLog = '/audit-log';
+
+  // Summary
+  static const summary = '/summary';
 
   // Expense
   static const expenses = '/expenses';
@@ -162,8 +209,19 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: AppRoutes.home,
-        builder: (_, _) => BlocProvider.value(
-          value: sl<WalletBloc>(),
+        builder: (_, _) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: sl<WalletBloc>()),
+            // MealBloc + MealPoolBloc are factory-registered, so we own
+            // one instance here and share it down via .value in the Meals tab
+            // and the home-screen meal stat card.
+            BlocProvider(create: (_) => sl<MealBloc>()),
+            BlocProvider(create: (_) => sl<MealPoolBloc>()),
+            BlocProvider.value(
+              value: sl<NotificationBloc>()
+                ..add(const NotificationUnreadCountRequested()),
+            ),
+          ],
           child: const HomePage(),
         ),
       ),
@@ -174,6 +232,10 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: AppRoutes.changePassword,
         builder: (_, _) => const ChangePasswordPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.setPassword,
+        builder: (_, _) => const SetPasswordPage(),
       ),
 
       // ── Wallet ────────────────────────────────────────
@@ -206,20 +268,25 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: AppRoutes.walletPayments,
-        redirect: (_, state) =>
-            state.extra is String ? null : AppRoutes.home,
-        builder: (_, state) => BlocProvider(
-          create: (_) => sl<PaymentsBloc>(),
-          child: PaymentsListPage(flatId: state.extra! as String),
-        ),
+        redirect: (_, state) {
+          // Redirect legacy walletPayments to walletRequests;
+          // pass a WalletPageArgs if possible, else go home
+          return AppRoutes.walletRequests;
+        },
       ),
       GoRoute(
         path: AppRoutes.walletRequests,
         redirect: (_, state) =>
             state.extra is WalletPageArgs ? null : AppRoutes.home,
-        builder: (_, state) => BlocProvider(
-          create: (_) => sl<PaymentRequestsBloc>(),
-          child: PaymentRequestsPage(args: state.extra! as WalletPageArgs),
+        builder: (_, state) => MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (_) => sl<PaymentRequestsBloc>()),
+            BlocProvider(create: (_) => sl<PaymentsBloc>()),
+          ],
+          child: BlocProvider.value(
+            value: sl<WalletBloc>(),
+            child: PaymentsHubPage(args: state.extra! as WalletPageArgs),
+          ),
         ),
       ),
       GoRoute(
@@ -266,8 +333,9 @@ GoRouter createRouter(AuthBloc authBloc) {
             state.extra is String ? null : AppRoutes.flatJoin,
         builder: (ctx, state) {
           final flatId = state.extra! as String;
-          return BlocProvider(
-            create: (_) => sl<JoinRequestsBloc>(),
+          // BlocProvider.value — does not close the singleton when popped
+          return BlocProvider.value(
+            value: sl<JoinRequestsBloc>(),
             child: JoinRequestsPage(flatId: flatId),
           );
         },
@@ -278,8 +346,11 @@ GoRouter createRouter(AuthBloc authBloc) {
             state.extra is Map<String, dynamic> ? null : AppRoutes.flatJoin,
         builder: (ctx, state) {
           final extra = state.extra! as Map<String, dynamic>;
-          return BlocProvider(
-            create: (_) => sl<FixedExpensesBloc>(),
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => sl<FixedExpensesBloc>()),
+              BlocProvider(create: (_) => sl<PaymentHintsBloc>()),
+            ],
             child: FixedExpensesPage(
               flatId: extra['flatId'] as String,
               canManage: extra['canManage'] as bool,
@@ -311,6 +382,102 @@ GoRouter createRouter(AuthBloc authBloc) {
             FlatSettingsPage(flat: state.extra! as FlatEntity),
       ),
 
+      // ── Meal ─────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.meals,
+        redirect: (_, state) =>
+            state.extra is MealPageArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as MealPageArgs;
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => sl<MealBloc>()),
+              BlocProvider(create: (_) => sl<MealPoolBloc>()),
+              BlocProvider(create: (_) => sl<MealPrefsBloc>()),
+            ],
+            child: MealPage(args: args),
+          );
+        },
+      ),
+
+      // ── Tasks ────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.tasks,
+        redirect: (_, state) =>
+            state.extra is TaskPageArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as TaskPageArgs;
+          return BlocProvider(
+            create: (_) => sl<TaskBloc>(),
+            child: TaskPage(args: args),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.taskCreate,
+        redirect: (_, state) =>
+            state.extra is CreateTaskArgs ? null : AppRoutes.tasks,
+        builder: (_, state) {
+          final args = state.extra! as CreateTaskArgs;
+          return BlocProvider(
+            create: (_) => sl<TaskBloc>(),
+            child: CreateTaskPage(args: args),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.taskDetail,
+        redirect: (_, state) =>
+            state.extra is TaskDetailArgs ? null : AppRoutes.tasks,
+        builder: (_, state) {
+          final args = state.extra! as TaskDetailArgs;
+          return BlocProvider(
+            create: (_) => sl<TaskBloc>(),
+            child: TaskDetailPage(args: args),
+          );
+        },
+      ),
+
+      // ── Complaints ───────────────────────────────────
+      GoRoute(
+        path: AppRoutes.complaints,
+        redirect: (_, state) =>
+            state.extra is ComplaintPageArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as ComplaintPageArgs;
+          return BlocProvider(
+            create: (_) => sl<ComplaintBloc>(),
+            child: ComplaintPage(args: args),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.complaintDetail,
+        redirect: (_, state) =>
+            state.extra is ComplaintDetailArgs ? null : AppRoutes.complaints,
+        builder: (_, state) {
+          final args = state.extra! as ComplaintDetailArgs;
+          return BlocProvider(
+            create: (_) => sl<ComplaintBloc>(),
+            child: ComplaintDetailPage(args: args),
+          );
+        },
+      ),
+
+      // ── Summary ──────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.summary,
+        redirect: (_, state) =>
+            state.extra is SummaryPageArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as SummaryPageArgs;
+          return BlocProvider(
+            create: (_) => sl<SummaryBloc>(),
+            child: SummaryPage(args: args),
+          );
+        },
+      ),
+
       // ── Expense ───────────────────────────────────────
       GoRoute(
         path: AppRoutes.expenses,
@@ -323,6 +490,7 @@ GoRouter createRouter(AuthBloc authBloc) {
             child: ExpenseListPage(
               flatId: args.flatId,
               canManage: args.canManage,
+              memberCount: args.memberCount,
             ),
           );
         },
@@ -354,6 +522,7 @@ GoRouter createRouter(AuthBloc authBloc) {
             child: RecordExpensePage(
               flatId: args.flatId,
               memberCount: args.memberCount,
+              canManage: args.canManage,
             ),
           );
         },
@@ -370,6 +539,39 @@ GoRouter createRouter(AuthBloc authBloc) {
               flatId: args.flatId,
               expense: args.expense,
             ),
+          );
+        },
+      ),
+
+      // ── Notifications ─────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.notifications,
+        redirect: (_, state) =>
+            state.extra is NotificationPageArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as NotificationPageArgs;
+          return BlocProvider.value(
+            value: sl<NotificationBloc>()
+              ..add(const NotificationLoadRequested()),
+            child: NotificationPage(args: args),
+          );
+        },
+      ),
+
+      // ── Audit Log ─────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.auditLog,
+        redirect: (_, state) =>
+            state.extra is AuditLogPageArgs ? null : AppRoutes.home,
+        builder: (_, state) {
+          final args = state.extra! as AuditLogPageArgs;
+          return BlocProvider(
+            create: (_) => sl<AuditLogBloc>()
+              ..add(AuditLogLoadRequested(
+                flatId: args.flatId,
+                filters: const AuditLogFilters(),
+              )),
+            child: AuditLogPage(args: args),
           );
         },
       ),

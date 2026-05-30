@@ -12,6 +12,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../wallet/presentation/bloc/payment_hints/payment_hints_bloc.dart';
 import '../../domain/entities/fixed_expense_entity.dart';
 import '../bloc/fixed_expenses_bloc.dart';
 import '../bloc/flat_bloc.dart';
@@ -35,7 +36,14 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
   @override
   void initState() {
     super.initState();
-    context.read<FixedExpensesBloc>().add(FixedExpensesLoadRequested(widget.flatId));
+    context.read<FixedExpensesBloc>().add(
+      FixedExpensesLoadRequested(widget.flatId),
+    );
+    if (widget.canManage) {
+      context.read<PaymentHintsBloc>().add(
+        PaymentHintsLoadRequested(widget.flatId),
+      );
+    }
   }
 
   Future<void> _showAddSheet(BuildContext context) async {
@@ -86,6 +94,48 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
     }
   }
 
+  Future<void> _showHintsSheet(BuildContext context) async {
+    final hintsBloc = context.read<PaymentHintsBloc>();
+    final currentState = hintsBloc.state;
+
+    final mealCtrl = TextEditingController(
+      text: currentState is PaymentHintsLoaded
+          ? currentState.hints.suggestedMealAmount.toStringAsFixed(0)
+          : currentState is PaymentHintsUpdateSuccess
+          ? currentState.hints.suggestedMealAmount.toStringAsFixed(0)
+          : '',
+    );
+    final householdCtrl = TextEditingController(
+      text: currentState is PaymentHintsLoaded
+          ? currentState.hints.suggestedHouseholdAmount.toStringAsFixed(0)
+          : currentState is PaymentHintsUpdateSuccess
+          ? currentState.hints.suggestedHouseholdAmount.toStringAsFixed(0)
+          : '',
+    );
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizing.radiusLg),
+        ),
+      ),
+      builder: (sheetCtx) => BlocProvider.value(
+        value: hintsBloc,
+        child: _HintsSheet(
+          flatId: widget.flatId,
+          mealCtrl: mealCtrl,
+          householdCtrl: householdCtrl,
+        ),
+      ),
+    );
+
+    mealCtrl.dispose();
+    householdCtrl.dispose();
+  }
+
   Future<void> _redistribute(BuildContext context) async {
     final flatState = sl<FlatBloc>().state;
     final members = (flatState is FlatLoaded)
@@ -112,8 +162,9 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
     }
 
     // Build controllers for each member
-    final double equalShare =
-        double.parse((totalFixed / members.length).toStringAsFixed(2));
+    final double equalShare = double.parse(
+      (totalFixed / members.length).toStringAsFixed(2),
+    );
     final controllers = <String, TextEditingController>{};
     for (final m in members) {
       controllers[m.flatMemberId] = TextEditingController(
@@ -130,8 +181,9 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizing.radiusLg),
+        ),
       ),
       builder: (sheetCtx) => StatefulBuilder(
         builder: (sheetCtx, setSheetState) {
@@ -143,9 +195,13 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
           }
 
           void resetToEqual() {
-            final eq = totalFixed / members.length;
-            for (final m in members) {
-              controllers[m.flatMemberId]?.text = eq.toStringAsFixed(0);
+            final totalCents = (totalFixed * 100).round();
+            final perCents = totalCents ~/ members.length;
+            final remainderCents = totalCents - perCents * members.length;
+            for (int i = 0; i < members.length; i++) {
+              final shareCents = perCents + (i == 0 ? remainderCents : 0);
+              controllers[members[i].flatMemberId]?.text = (shareCents / 100)
+                  .toStringAsFixed(0);
             }
             setSheetState(() {});
           }
@@ -168,30 +224,33 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                     margin: const EdgeInsets.only(bottom: AppSizing.md),
                     decoration: BoxDecoration(
                       color: AppColors.border,
-                      borderRadius:
-                          BorderRadius.circular(AppSizing.radiusFull),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                     ),
                   ),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(AppStrings.redistributeLabel,
-                        style: AppTypography.headlineSmall),
+                    Text(
+                      AppStrings.redistributeLabel,
+                      style: AppTypography.headlineSmall,
+                    ),
                     TextButton(
                       onPressed: resetToEqual,
                       child: Text(
                         'Equal Split',
-                        style: AppTypography.labelLarge
-                            .copyWith(color: AppColors.primary),
+                        style: AppTypography.labelLarge.copyWith(
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
                 ),
                 Text(
                   'Total fixed: ৳${totalFixed.toStringAsFixed(0)}',
-                  style: AppTypography.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: AppSizing.md),
                 ConstrainedBox(
@@ -202,8 +261,7 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                     child: Column(
                       children: members.map((m) {
                         return Padding(
-                          padding:
-                              const EdgeInsets.only(bottom: AppSizing.sm),
+                          padding: const EdgeInsets.only(bottom: AppSizing.sm),
                           child: Row(
                             children: [
                               Expanded(
@@ -211,17 +269,19 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(m.name,
-                                        style: AppTypography.titleMedium),
+                                    Text(
+                                      m.name,
+                                      style: AppTypography.titleMedium,
+                                    ),
                                     Text(
                                       m.role == 'manager'
                                           ? 'Manager'
                                           : m.role == 'co-manager'
-                                              ? 'Co-manager'
-                                              : 'Member',
-                                      style: AppTypography.labelSmall
-                                          .copyWith(
-                                              color: AppColors.textSecondary),
+                                          ? 'Co-manager'
+                                          : 'Member',
+                                      style: AppTypography.labelSmall.copyWith(
+                                        color: AppColors.textSecondary,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -232,23 +292,24 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                                 child: StatefulBuilder(
                                   builder: (ctx, setSub) {
                                     return TextField(
-                                      controller:
-                                          controllers[m.flatMemberId],
+                                      controller: controllers[m.flatMemberId],
                                       keyboardType: TextInputType.number,
                                       decoration: InputDecoration(
                                         prefix: const Text('৳ '),
                                         border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                         contentPadding:
                                             const EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 8),
+                                              horizontal: 8,
+                                              vertical: 8,
+                                            ),
                                         isDense: true,
                                       ),
                                       style: AppTypography.titleMedium,
-                                      onChanged: (_) =>
-                                          setSheetState(() {}),
+                                      onChanged: (_) => setSheetState(() {}),
                                     );
                                   },
                                 ),
@@ -262,41 +323,46 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                 ),
                 const SizedBox(height: AppSizing.sm),
                 // Running total indicator
-                Builder(builder: (_) {
-                  final total = currentTotal();
-                  final diff = (total - totalFixed).abs();
-                  final isValid = diff < 0.1;
-                  return Container(
-                    padding: const EdgeInsets.all(AppSizing.sm),
-                    decoration: BoxDecoration(
-                      color: isValid
-                          ? AppColors.success.withValues(alpha: 0.1)
-                          : AppColors.error.withValues(alpha: 0.1),
-                      borderRadius:
-                          BorderRadius.circular(AppSizing.radiusMd),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          isValid ? Icons.check_circle_outline : Icons.warning_amber_rounded,
-                          color: isValid ? AppColors.success : AppColors.error,
-                          size: 16,
-                        ),
-                        const SizedBox(width: AppSizing.xs),
-                        Text(
-                          isValid
-                              ? 'Total: ৳${total.toStringAsFixed(0)} ✓'
-                              : 'Total: ৳${total.toStringAsFixed(0)} — must equal ৳${totalFixed.toStringAsFixed(0)}',
-                          style: AppTypography.bodySmall.copyWith(
+                Builder(
+                  builder: (_) {
+                    final total = currentTotal();
+                    final diff = (total - totalFixed).abs();
+                    final isValid = diff < 0.1;
+                    return Container(
+                      padding: const EdgeInsets.all(AppSizing.sm),
+                      decoration: BoxDecoration(
+                        color: isValid
+                            ? AppColors.success.withValues(alpha: 0.1)
+                            : AppColors.error.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isValid
+                                ? Icons.check_circle_outline
+                                : Icons.warning_amber_rounded,
                             color: isValid
                                 ? AppColors.success
                                 : AppColors.error,
+                            size: 16,
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
+                          const SizedBox(width: AppSizing.xs),
+                          Text(
+                            isValid
+                                ? 'Total: ৳${total.toStringAsFixed(0)} ✓'
+                                : 'Total: ৳${total.toStringAsFixed(0)} — must equal ৳${totalFixed.toStringAsFixed(0)}',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: isValid
+                                  ? AppColors.success
+                                  : AppColors.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
                 const SizedBox(height: AppSizing.md),
                 AppButton(
                   label: 'Apply Distribution',
@@ -310,21 +376,25 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                       return;
                     }
                     final contributions = members
-                        .map((m) => {
-                              'flat_member_id': m.flatMemberId,
-                              'amount': double.tryParse(
-                                      controllers[m.flatMemberId]
-                                              ?.text
-                                              .trim() ??
-                                          '0') ??
-                                  0.0,
-                            })
+                        .map(
+                          (m) => {
+                            'flat_member_id': m.flatMemberId,
+                            'amount':
+                                double.tryParse(
+                                  controllers[m.flatMemberId]?.text.trim() ??
+                                      '0',
+                                ) ??
+                                0.0,
+                          },
+                        )
                         .toList();
                     Navigator.pop(sheetCtx);
-                    bloc.add(FixedExpensesRedistributeRequested(
-                      widget.flatId,
-                      contributions: contributions,
-                    ));
+                    bloc.add(
+                      FixedExpensesRedistributeRequested(
+                        widget.flatId,
+                        contributions: contributions,
+                      ),
+                    );
                   },
                   variant: AppButtonVariant.primary,
                   fullWidth: true,
@@ -449,8 +519,7 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius:
-                          BorderRadius.circular(AppSizing.radiusLg),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusLg),
                     ),
                     child: Row(
                       children: [
@@ -474,14 +543,12 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                             Text(
                               AppStrings.totalExpenses,
                               style: AppTypography.bodySmall.copyWith(
-                                color:
-                                    AppColors.white.withValues(alpha: 0.8),
+                                color: AppColors.white.withValues(alpha: 0.8),
                               ),
                             ),
                             Text(
                               '৳${total.toStringAsFixed(0)}',
-                              style:
-                                  AppTypography.headlineMedium.copyWith(
+                              style: AppTypography.headlineMedium.copyWith(
                                 color: AppColors.white,
                               ),
                             ),
@@ -533,6 +600,12 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                         ),
                       ),
                     ),
+
+                  // ── Payment Hints section (manager only) ──
+                  if (widget.canManage) ...[
+                    const SizedBox(height: AppSizing.lg),
+                    _HintsSectionCard(onEdit: () => _showHintsSheet(context)),
+                  ],
                   const SizedBox(height: 80),
                 ],
               ),
@@ -565,6 +638,282 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
               ),
             )
           : null,
+    );
+  }
+}
+
+// ── Payment Hints card ───────────────────────────────────────────────────────
+
+class _HintsSectionCard extends StatelessWidget {
+  const _HintsSectionCard({required this.onEdit});
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<PaymentHintsBloc, PaymentHintsState>(
+      builder: (context, state) {
+        final hints = switch (state) {
+          PaymentHintsLoaded(hints: final h) => h,
+          PaymentHintsActionLoading(hints: final h) => h,
+          PaymentHintsUpdateSuccess(hints: final h) => h,
+          PaymentHintsError(hints: final h) when h != null => h,
+          _ => null,
+        };
+        final isLoading = state is PaymentHintsLoading;
+
+        return Container(
+          padding: const EdgeInsets.all(AppSizing.md),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: AppColors.brand.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    ),
+                    child: const Icon(
+                      Icons.savings_outlined,
+                      size: 18,
+                      color: AppColors.brand,
+                    ),
+                  ),
+                  const SizedBox(width: AppSizing.sm),
+                  Expanded(
+                    child: Text(
+                      AppStrings.paymentHintsTitle,
+                      style: AppTypography.titleMedium,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: onEdit,
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    tooltip: 'Edit hints',
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizing.xs),
+              Text(
+                AppStrings.paymentHintsHelperNote,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSizing.md),
+              if (isLoading)
+                const Center(
+                  child: SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.brand,
+                    ),
+                  ),
+                )
+              else if (hints != null) ...[
+                _HintRow(
+                  icon: Icons.restaurant_outlined,
+                  label: 'Meal estimate / person',
+                  value: '৳${hints.suggestedMealAmount.toStringAsFixed(0)}',
+                ),
+                const SizedBox(height: AppSizing.xs),
+                _HintRow(
+                  icon: Icons.home_outlined,
+                  label: 'Household estimate',
+                  value:
+                      '৳${hints.suggestedHouseholdAmount.toStringAsFixed(0)}',
+                ),
+              ] else
+                Text(
+                  'Tap edit to set hints',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textHint,
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HintRow extends StatelessWidget {
+  const _HintRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: AppColors.textSecondary),
+        const SizedBox(width: AppSizing.xs),
+        Expanded(
+          child: Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: AppTypography.titleMedium.copyWith(color: AppColors.brand),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Hints edit sheet ─────────────────────────────────────────────────────────
+
+class _HintsSheet extends StatefulWidget {
+  const _HintsSheet({
+    required this.flatId,
+    required this.mealCtrl,
+    required this.householdCtrl,
+  });
+
+  final String flatId;
+  final TextEditingController mealCtrl;
+  final TextEditingController householdCtrl;
+
+  @override
+  State<_HintsSheet> createState() => _HintsSheetState();
+}
+
+class _HintsSheetState extends State<_HintsSheet> {
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<PaymentHintsBloc, PaymentHintsState>(
+      listenWhen: (_, curr) =>
+          curr is PaymentHintsUpdateSuccess || curr is PaymentHintsError,
+      listener: (context, state) {
+        if (state is PaymentHintsUpdateSuccess) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            Navigator.of(context).pop();
+            AppSnackbar.success(context, AppStrings.paymentHintsUpdatedMsg);
+          });
+        }
+        if (state is PaymentHintsError) {
+          AppSnackbar.error(context, state.message);
+        }
+      },
+      builder: (context, state) {
+        final isSaving = state is PaymentHintsActionLoading;
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            AppSizing.pagePadding,
+            AppSizing.md,
+            AppSizing.pagePadding,
+            MediaQuery.of(context).viewInsets.bottom + AppSizing.pagePadding,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: AppSizing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                  ),
+                ),
+              ),
+              Text(
+                AppStrings.paymentHintsTitle,
+                style: AppTypography.headlineSmall,
+              ),
+              const SizedBox(height: AppSizing.xs),
+              Text(
+                AppStrings.paymentHintsHelperNote,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSizing.md),
+              AppTextField(
+                controller: widget.mealCtrl,
+                label: AppStrings.suggestedMealLabel,
+                hint: '0',
+                keyboardType: TextInputType.number,
+                prefixIcon: const Icon(
+                  Icons.restaurant_outlined,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: AppSizing.md),
+              AppTextField(
+                controller: widget.householdCtrl,
+                label: AppStrings.suggestedHouseholdLabel,
+                hint: '0',
+                keyboardType: TextInputType.number,
+                prefixIcon: const Icon(
+                  Icons.home_outlined,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+                textInputAction: TextInputAction.done,
+              ),
+              const SizedBox(height: AppSizing.lg),
+              AppButton(
+                label: AppStrings.saveChanges,
+                loading: isSaving,
+                onPressed: isSaving
+                    ? null
+                    : () {
+                        FocusScope.of(context).unfocus();
+                        final meal =
+                            double.tryParse(widget.mealCtrl.text.trim()) ?? 0;
+                        final household =
+                            double.tryParse(widget.householdCtrl.text.trim()) ??
+                            0;
+                        context.read<PaymentHintsBloc>().add(
+                          PaymentHintsUpdateRequested(
+                            flatId: widget.flatId,
+                            suggestedMealAmount: meal,
+                            suggestedHouseholdAmount: household,
+                          ),
+                        );
+                      },
+                variant: AppButtonVariant.primary,
+                fullWidth: true,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -606,22 +955,27 @@ class _ExpenseFormState extends State<_ExpenseForm> {
 
   void _submit(BuildContext context) {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    FocusScope.of(context).unfocus();
     final type = _typeCtrl.text.trim();
     final amount = double.parse(_amountCtrl.text.trim());
 
     if (widget.expense != null) {
-      context.read<FixedExpensesBloc>().add(FixedExpenseUpdateRequested(
-        flatId: widget.flatId,
-        expenseId: widget.expense!.id,
-        expenseType: type,
-        amount: amount,
-      ));
+      context.read<FixedExpensesBloc>().add(
+        FixedExpenseUpdateRequested(
+          flatId: widget.flatId,
+          expenseId: widget.expense!.id,
+          expenseType: type,
+          amount: amount,
+        ),
+      );
     } else {
-      context.read<FixedExpensesBloc>().add(FixedExpenseAddRequested(
-        flatId: widget.flatId,
-        expenseType: type,
-        amount: amount,
-      ));
+      context.read<FixedExpensesBloc>().add(
+        FixedExpenseAddRequested(
+          flatId: widget.flatId,
+          expenseType: type,
+          amount: amount,
+        ),
+      );
     }
   }
 
@@ -632,8 +986,11 @@ class _ExpenseFormState extends State<_ExpenseForm> {
           curr is FixedExpensesActionSuccess && curr.isFormAction,
       listener: (context, state) {
         if (state is FixedExpensesActionSuccess && state.isFormAction) {
-          Navigator.of(context).pop();
-          AppSnackbar.success(context, state.message);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            Navigator.of(context).pop();
+            AppSnackbar.success(context, state.message);
+          });
         }
       },
       builder: (context, state) {
@@ -660,8 +1017,9 @@ class _ExpenseFormState extends State<_ExpenseForm> {
                 controller: _amountCtrl,
                 label: AppStrings.amountLabel,
                 hint: AppStrings.amountHint,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 textInputAction: TextInputAction.done,
                 prefixIcon: const Padding(
                   padding: EdgeInsets.all(AppSizing.sm + 4),

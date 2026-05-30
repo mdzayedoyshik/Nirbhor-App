@@ -73,6 +73,23 @@ class ApiClient {
         body: body,
       );
 
+  Future<Map<String, dynamic>> patch(
+    String path,
+    Map<String, dynamic> body, {
+    bool auth = false,
+  }) =>
+      _execute(
+        () => _client.patch(
+          Uri.parse('$_base$path'),
+          headers: auth ? _authHeaders : _baseHeaders,
+          body: jsonEncode(body),
+        ),
+        method: 'PATCH',
+        path: path,
+        auth: auth,
+        body: body,
+      );
+
   Future<Map<String, dynamic>> delete(
     String path, {
     bool auth = false,

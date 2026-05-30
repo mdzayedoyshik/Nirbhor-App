@@ -15,10 +15,12 @@ class RecordExpensePage extends StatefulWidget {
     super.key,
     required this.flatId,
     required this.memberCount,
+    required this.canManage,
   });
 
   final String flatId;
   final int memberCount;
+  final bool canManage;
 
   @override
   State<RecordExpensePage> createState() => _RecordExpensePageState();
@@ -57,9 +59,23 @@ class _RecordExpensePageState extends State<RecordExpensePage> {
   }
 
   String get _categoryHint {
+    if (!widget.canManage) {
+      // Regular member — expense goes to manager for approval
+      switch (_category) {
+        case 'meal':
+          return 'Your expense will be submitted for manager approval. Once approved, it will be deducted from the flat wallet.';
+        case 'household':
+          return 'Your expense will be submitted for manager approval. Once approved, it will be split equally among ${widget.memberCount} active members.';
+        case 'fixed':
+          return 'Your expense will be submitted for manager approval. Once approved, it will be deducted from the flat wallet.';
+        default:
+          return '';
+      }
+    }
+    // Manager / co-manager — auto-approved immediately
     switch (_category) {
       case 'meal':
-        return 'This expense will be deducted from the flat wallet and the meal cost will be calculated per person.';
+        return 'This expense will be immediately deducted from the flat wallet and the meal cost will be calculated per person.';
       case 'household':
         return 'This expense will be split equally among all ${widget.memberCount} active members and deducted from the flat wallet.';
       case 'fixed':
@@ -304,7 +320,9 @@ class _RecordExpensePageState extends State<RecordExpensePage> {
                 const SizedBox(height: AppSizing.xl),
 
                 AppButton(
-                  label: AppStrings.recordExpenseLabel,
+                  label: widget.canManage
+                      ? AppStrings.recordExpenseLabel
+                      : 'Submit for Approval',
                   loading: isLoading,
                   onPressed: isLoading ? null : _submit,
                 ),

@@ -37,30 +37,42 @@ class FlatMembersPage extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Summary strip
+          // ── Gradient hero card ──────────────────────────────────────────
           Container(
             width: double.infinity,
             margin: const EdgeInsets.all(AppSizing.pagePadding),
-            padding: const EdgeInsets.all(AppSizing.md),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizing.lg,
+              vertical: AppSizing.md + 4,
+            ),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.2),
-              ),
+              gradient: AppColors.brandGradient,
+              borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+              boxShadow: AppColors.shadowMd,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _SummaryItem(label: 'Total Members', value: '${active.length}'),
-                Container(width: 1, height: 32, color: AppColors.border),
-                _SummaryItem(
+                _HeroStat(
+                  icon: Icons.people_alt_outlined,
+                  label: 'Total Members',
+                  value: '${active.length}',
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: AppColors.white.withValues(alpha: 0.3),
+                ),
+                _HeroStat(
+                  icon: Icons.receipt_long_outlined,
                   label: AppStrings.totalExpenses,
                   value: '৳${flat.totalFixedExpenses.toStringAsFixed(0)}',
                 ),
               ],
             ),
           ),
+
+          // ── Member list ─────────────────────────────────────────────────
           Expanded(
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(
@@ -71,7 +83,7 @@ class FlatMembersPage extends StatelessWidget {
               ),
               itemCount: active.length,
               separatorBuilder: (_, _) => const SizedBox(height: AppSizing.sm),
-              itemBuilder: (_, i) => MemberTile(member: active[i]),
+              itemBuilder: (_, i) => _StyledMemberCard(member: active[i]),
             ),
           ),
         ],
@@ -80,22 +92,58 @@ class FlatMembersPage extends StatelessWidget {
   }
 }
 
-class _SummaryItem extends StatelessWidget {
+// ── Hero stat item ─────────────────────────────────────────────────────────────
+
+class _HeroStat extends StatelessWidget {
+  final IconData icon;
   final String label;
   final String value;
 
-  const _SummaryItem({required this.label, required this.value});
+  const _HeroStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
+        Icon(icon, color: AppColors.white.withValues(alpha: 0.85), size: 22),
+        const SizedBox(height: 6),
         Text(
           value,
-          style: AppTypography.titleLarge.copyWith(color: AppColors.primary),
+          style: AppTypography.amountL.copyWith(color: AppColors.white),
         ),
-        Text(label, style: AppTypography.labelSmall),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: AppTypography.labelS.copyWith(
+            color: AppColors.white.withValues(alpha: 0.75),
+          ),
+        ),
       ],
+    );
+  }
+}
+
+// ── Styled member card ─────────────────────────────────────────────────────────
+
+class _StyledMemberCard extends StatelessWidget {
+  final dynamic member; // FlatMemberEntity
+
+  const _StyledMemberCard({required this.member});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+        boxShadow: AppColors.shadowSm,
+      ),
+      child: MemberTile(member: member),
     );
   }
 }
