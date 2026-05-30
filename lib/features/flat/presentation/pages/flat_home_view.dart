@@ -18,8 +18,12 @@ import '../../../../core/widgets/section_header.dart';
 import '../../../audit_log/presentation/args/audit_log_page_args.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../complaint/presentation/args/complaint_page_args.dart';
+import '../../../complaint/presentation/bloc/complaint_bloc.dart';
+import '../../../expense/domain/entities/expense_entity.dart';
 import '../../../expense/presentation/bloc/expense_bloc.dart';
 import '../../../expense/presentation/pages/expense_list_page.dart';
+import '../../../task/presentation/bloc/task_bloc.dart';
+import '../../../wallet/presentation/bloc/payments/payments_bloc.dart';
 import '../../../meal/presentation/args/meal_page_args.dart';
 import '../../../meal/presentation/bloc/meal_bloc.dart';
 import '../../../meal/presentation/bloc/meal_pool_bloc.dart';
@@ -29,6 +33,7 @@ import '../../../notification/presentation/args/notification_page_args.dart';
 import '../../../notification/presentation/bloc/notification_bloc.dart';
 import '../../../notification/presentation/bloc/notification_state.dart';
 import '../../../summary/presentation/args/summary_page_args.dart';
+import '../../../summary/presentation/bloc/month_close_checklist_bloc.dart';
 import '../../../task/presentation/args/task_page_args.dart';
 import '../../../wallet/presentation/args/wallet_page_args.dart';
 import '../../../wallet/presentation/bloc/wallet/wallet_bloc.dart';
@@ -96,11 +101,54 @@ class _FlatHomeViewState extends State<FlatHomeView> {
   int _tab = 0;
   // true = tab has been loaded at least once; start only home as loaded
   final List<bool> _loaded = [true, false, false, false, false];
+  // Guard against showing the exit dialog twice if back is pressed rapidly
+  bool _isExiting = false;
 
   FlatMemberEntity? _myMember() {
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return null;
     return widget.flat.memberByUserId(authState.user.id);
+  }
+
+  /// Reloads all home-level pending-action blocs.
+  /// Called on initial mount, pull-to-refresh, and after navigating back from
+  /// screens that may change pending state (tasks, complaints, wallet, expenses).
+  void _reloadPendingActions() {
+    final me = _myMember();
+    if (me == null) return;
+    final flatId = widget.flat.id;
+    final canManage = me.canManage;
+    final myMemberId = me.flatMemberId;
+
+    // Tasks assigned to me — pending status only for accuracy
+    context.read<TaskBloc>().add(
+          TasksLoadRequested(flatId,
+              assignedTo: myMemberId, status: 'pending'),
+        );
+
+    // Complaints — managers see all open, members see their own open
+    context.read<ComplaintBloc>().add(
+          ComplaintsLoadRequested(
+            flatId,
+            status: 'open',
+            raisedBy: canManage ? null : myMemberId,
+          ),
+        );
+
+    if (canManage) {
+      // Payments submitted by members, awaiting manager verification
+      context.read<PaymentsBloc>().add(
+            PaymentsLoadRequested(flatId, status: 'pending'),
+          );
+      // Expenses submitted by members that have not been approved yet
+      context.read<ExpenseBloc>().add(
+            ExpensesLoadRequested(flatId, isApproved: false),
+          );
+      // Month-close checklist (fetches oldest unclosed previous month + blockers)
+      context.read<MonthCloseChecklistBloc>().add(
+            MonthCloseChecklistStatusRequested(flatId),
+          );
+    }
   }
 
   @override
@@ -123,15 +171,21 @@ class _FlatHomeViewState extends State<FlatHomeView> {
             month: now.month,
             year: now.year,
           ));
+      // Load pending-action data for the home dashboard
+      _reloadPendingActions();
     });
   }
 
   void _switchTab(int i) {
     if (i == _tab) return;
+    final returningToHome = i == 0 && _tab != 0;
     setState(() {
       if (i < _loaded.length) _loaded[i] = true;
       _tab = i;
     });
+    // Reload pending-action blocs whenever the user returns to the Home tab
+    // so any changes made in other tabs are reflected immediately.
+    if (returningToHome) _reloadPendingActions();
   }
 
   @override
@@ -143,16 +197,64 @@ class _FlatHomeViewState extends State<FlatHomeView> {
         : _baseNavItems;
     final effectiveTab = canManage ? _tab : (_tab < navItems.length ? _tab : 0);
 
-    return BlocListener<FlatBloc, FlatState>(
-      listener: (context, state) {
-        if (state is FlatError) AppSnackbar.error(context, state.message);
+    return PopScope(
+      // Never let the system pop automatically — we handle it ourselves.
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (didPop) return; // already handled elsewhere
+        // If not on the Home tab, go back to Home instead of exiting.
+        if (_tab != 0) {
+          _switchTab(0);
+          return;
+        }
+        // On Home tab — show exit confirmation.
+        if (_isExiting) return; // guard against rapid double-press
+        _isExiting = true;
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: Text('Exit App', style: AppTypography.titleLarge),
+            content: Text(
+              'Are you sure you want to exit?',
+              style: AppTypography.bodyMedium
+                  .copyWith(color: AppColors.textSecondary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(
+                  'Cancel',
+                  style: AppTypography.labelM
+                      .copyWith(color: AppColors.textSecondary),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(
+                  'Exit',
+                  style: AppTypography.labelM
+                      .copyWith(color: AppColors.error),
+                ),
+              ),
+            ],
+          ),
+        );
+        _isExiting = false;
+        if (shouldExit == true && mounted) {
+          SystemNavigator.pop();
+        }
       },
-      child: Scaffold(
-        backgroundColor: context.bgColor,
-        body: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          behavior: HitTestBehavior.translucent,
-          child: IndexedStack(
+      child: BlocListener<FlatBloc, FlatState>(
+        listener: (context, state) {
+          if (state is FlatError) AppSnackbar.error(context, state.message);
+        },
+        child: Scaffold(
+          backgroundColor: context.bgColor,
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.translucent,
+            child: IndexedStack(
             index: effectiveTab,
             children: [
               // Tab 0 — Home dashboard
@@ -161,6 +263,7 @@ class _FlatHomeViewState extends State<FlatHomeView> {
                 me: me,
                 canManage: canManage,
                 onTabSelect: _switchTab,
+                onReloadPending: _reloadPendingActions,
               ),
               // Tab 1 — Meals (lazy)
               // Share the home-level MealBloc/MealPoolBloc instances (.value)
@@ -219,7 +322,8 @@ class _FlatHomeViewState extends State<FlatHomeView> {
           onTap: _switchTab,
         ),
       ),
-    );
+    ),  // closes BlocListener
+    );  // closes PopScope
   }
 }
 
@@ -398,12 +502,14 @@ class _HomeDashboard extends StatelessWidget {
     required this.me,
     required this.canManage,
     required this.onTabSelect,
+    required this.onReloadPending,
   });
 
   final FlatEntity flat;
   final FlatMemberEntity? me;
   final bool canManage;
   final ValueChanged<int> onTabSelect;
+  final VoidCallback onReloadPending;
 
   String _greeting() {
     final hour = DateTime.now().hour;
@@ -426,6 +532,7 @@ class _HomeDashboard extends StatelessWidget {
         color: AppColors.brand,
         onRefresh: () async {
           context.read<FlatBloc>().add(FlatRefreshRequested(flat.id));
+          onReloadPending();
           await Future.delayed(const Duration(milliseconds: 600));
         },
         child: SingleChildScrollView(
@@ -471,6 +578,7 @@ class _HomeDashboard extends StatelessWidget {
                     me: me,
                     canManage: canManage,
                     onTabSelect: onTabSelect,
+                    onReloadPending: onReloadPending,
                   )
                   .animate()
                   .fadeIn(duration: 400.ms, delay: 140.ms)
@@ -478,13 +586,26 @@ class _HomeDashboard extends StatelessWidget {
 
               const SizedBox(height: AppSizing.sp24),
 
-              // ── 4. PENDING ACTIONS (manager only) ────────────────────────
-              if (canManage) ...[
-                _PendingActionsSection(
+              // ── 4a. MONTH-CLOSE CHECKLIST (manager only) ─────────────
+              // Appears when a previous month is unclosed. Lets the manager
+              // approve/reject blocking expenses inline and then close the month.
+              if (canManage)
+                _MonthCloseChecklistCard(
                   flat: flat,
-                ).animate().fadeIn(duration: 400.ms, delay: 180.ms),
-                const SizedBox(height: AppSizing.sp24),
-              ],
+                  me: me,
+                ).animate().fadeIn(duration: 400.ms, delay: 160.ms),
+              if (canManage) const SizedBox(height: AppSizing.sp16),
+
+              // ── 4b. PENDING ACTIONS ──────────────────────────────────────
+              // Shown for all roles; the section hides itself when empty.
+              _PendingActionsSection(
+                flat: flat,
+                me: me,
+                canManage: canManage,
+                onReloadPending: onReloadPending,
+                onTabSelect: onTabSelect,
+              ).animate().fadeIn(duration: 400.ms, delay: 180.ms),
+              const SizedBox(height: AppSizing.sp24),
 
               // ── 5. MEMBERS GLIMPSE ───────────────────────────────────────
               SectionHeader(
@@ -981,12 +1102,14 @@ class _QuickActionsRow extends StatelessWidget {
     required this.me,
     required this.canManage,
     required this.onTabSelect,
+    required this.onReloadPending,
   });
 
   final FlatEntity flat;
   final FlatMemberEntity? me;
   final bool canManage;
   final ValueChanged<int> onTabSelect;
+  final VoidCallback onReloadPending;
 
   void _showQrSheet(BuildContext context) {
     showModalBottomSheet(
@@ -1087,15 +1210,19 @@ class _QuickActionsRow extends StatelessWidget {
         label: 'Tasks',
         onTap: () {
           if (me == null) return;
-          context.push(
-            AppRoutes.tasks,
-            extra: TaskPageArgs(
-              flatId: flat.id,
-              canManage: canManage,
-              myMemberId: me!.flatMemberId,
-              members: flat.activeMembers,
-            ),
-          );
+          context
+              .push(
+                AppRoutes.tasks,
+                extra: TaskPageArgs(
+                  flatId: flat.id,
+                  canManage: canManage,
+                  myMemberId: me!.flatMemberId,
+                  members: flat.activeMembers,
+                ),
+              )
+              .then((_) {
+            if (context.mounted) onReloadPending();
+          });
         },
       ),
       QuickActionButton(
@@ -1103,14 +1230,18 @@ class _QuickActionsRow extends StatelessWidget {
         label: 'Complaints',
         onTap: () {
           if (me == null) return;
-          context.push(
-            AppRoutes.complaints,
-            extra: ComplaintPageArgs(
-              flatId: flat.id,
-              canManage: canManage,
-              myMemberId: me!.flatMemberId,
-            ),
-          );
+          context
+              .push(
+                AppRoutes.complaints,
+                extra: ComplaintPageArgs(
+                  flatId: flat.id,
+                  canManage: canManage,
+                  myMemberId: me!.flatMemberId,
+                ),
+              )
+              .then((_) {
+            if (context.mounted) onReloadPending();
+          });
         },
       ),
       QuickActionButton(
@@ -1131,10 +1262,14 @@ class _QuickActionsRow extends StatelessWidget {
       QuickActionButton(
         icon: Icons.monetization_on_outlined,
         label: 'Fixed Exp.',
-        onTap: () => context.push(
-          AppRoutes.flatExpenses,
-          extra: {'flatId': flat.id, 'canManage': canManage},
-        ),
+        onTap: () => context
+            .push(
+              AppRoutes.flatExpenses,
+              extra: {'flatId': flat.id, 'canManage': canManage},
+            )
+            .then((_) {
+          if (context.mounted) onReloadPending();
+        }),
       ),
       QuickActionButton(
         icon: Icons.qr_code_rounded,
@@ -1144,10 +1279,14 @@ class _QuickActionsRow extends StatelessWidget {
       QuickActionButton(
         icon: Icons.payments_outlined,
         label: 'Payment',
-        onTap: () => context.push(
-          AppRoutes.walletRequests,
-          extra: WalletPageArgs(flatId: flat.id, canManage: canManage),
-        ),
+        onTap: () => context
+            .push(
+              AppRoutes.walletRequests,
+              extra: WalletPageArgs(flatId: flat.id, canManage: canManage),
+            )
+            .then((_) {
+          if (context.mounted) onReloadPending();
+        }),
       ),
     ];
 
@@ -1240,55 +1379,662 @@ class _QuickActionsRow extends StatelessWidget {
   }
 }
 
-// ── 4. Pending Actions (manager) ──────────────────────────────────────────────
+// ── 4a. Month-Close Checklist ─────────────────────────────────────────────────
 
-class _PendingActionsSection extends StatelessWidget {
-  const _PendingActionsSection({required this.flat});
+class _MonthCloseChecklistCard extends StatelessWidget {
+  const _MonthCloseChecklistCard({required this.flat, required this.me});
 
   final FlatEntity flat;
+  final FlatMemberEntity? me;
+
+  static const List<String> _months = [
+    '', 'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  static String _shortDate(dynamic raw) {
+    if (raw == null) return '';
+    try {
+      final dt = DateTime.parse(raw.toString()).toLocal();
+      return '${_months[dt.month].substring(0, 3)} ${dt.day}';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  static String _categoryLabel(String cat) {
+    switch (cat) {
+      case 'meal':       return 'Meal';
+      case 'household':  return 'Household';
+      case 'fixed':      return 'Fixed';
+      default:           return cat;
+    }
+  }
+
+  static IconData _categoryIcon(String cat) {
+    switch (cat) {
+      case 'meal':      return Icons.restaurant_rounded;
+      case 'household': return Icons.home_work_outlined;
+      case 'fixed':     return Icons.repeat_rounded;
+      default:          return Icons.receipt_long_rounded;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<JoinRequestsBloc, JoinRequestsState>(
-      builder: (context, reqState) {
-        final pendingCount = reqState is JoinRequestsLoaded
-            ? reqState.requests.where((r) => r.isPending).length
-            : 0;
+    return BlocConsumer<MonthCloseChecklistBloc, MonthCloseChecklistState>(
+      listener: (context, state) {
+        if (state is MonthCloseChecklistClosed) {
+          AppSnackbar.success(
+            context,
+            '${state.monthName} ${state.year} closed! Check the summary.',
+          );
+        }
+        if (state is MonthCloseChecklistError) {
+          AppSnackbar.error(context, state.message);
+          // Re-fetch to restore accurate state after error
+          context
+              .read<MonthCloseChecklistBloc>()
+              .add(MonthCloseChecklistStatusRequested(flat.id));
+        }
+      },
+      builder: (context, state) {
+        // Resolve effective display state (error may carry previous state)
+        final display = state is MonthCloseChecklistError
+            ? (state.previous ?? state)
+            : state;
 
-        if (pendingCount == 0) return const SizedBox.shrink();
+        if (display is! MonthCloseChecklistPending &&
+            display is! MonthCloseChecklistClosing) {
+          return const SizedBox.shrink();
+        }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionHeader(eyebrow: 'action needed', title: 'Pending'),
-            const SizedBox(height: AppSizing.sp12),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizing.pagePadding,
+        final pending   = display is MonthCloseChecklistPending ? display : null;
+        final closing   = display is MonthCloseChecklistClosing;
+        final closingState = display is MonthCloseChecklistClosing ? display : null;
+        final month     = pending?.month ?? closingState?.month ?? 0;
+        final year      = pending?.year  ?? closingState?.year  ?? 0;
+        final monthName = pending?.monthName ?? closingState?.monthName ?? '';
+        final expenses  = pending?.expenses ?? [];
+        final canClose  = pending?.canClose ?? false;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+          child: Container(
+            decoration: BoxDecoration(
+              color: context.cardColor,
+              borderRadius: BorderRadius.circular(AppSizing.r16),
+              border: Border.all(
+                color: AppColors.warning.withValues(alpha: 0.4),
+                width: 1.5,
               ),
-              child: _PendingCard(
-                icon: Icons.group_add_outlined,
-                accentColor: AppColors.warning,
-                title:
-                    '$pendingCount join request${pendingCount > 1 ? 's' : ''}',
-                subtitle: 'Awaiting your approval',
-                actionLabel: 'Review',
-                onAction: () => context
-                    .push(AppRoutes.flatRequests, extra: flat.id)
-                    .then((_) {
-                      // JoinRequestsBloc re-fetches internally after approve/decline;
-                      // only refresh the flat to sync member count etc.
-                      if (context.mounted) {
-                        context.read<FlatBloc>().add(
-                          FlatRefreshRequested(flat.id),
-                        );
-                      }
-                    }),
-              ),
+              boxShadow: AppColors.shadowSm,
             ),
-          ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Header ─────────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSizing.sp16, AppSizing.sp16, AppSizing.sp16, AppSizing.sp8,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(AppSizing.r12),
+                        ),
+                        child: const Icon(
+                          Icons.lock_clock_outlined,
+                          size: 18,
+                          color: AppColors.warning,
+                        ),
+                      ),
+                      const SizedBox(width: AppSizing.sp12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Close $monthName $year',
+                              style: AppTypography.labelL.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              expenses.isNotEmpty
+                                  ? 'Resolve ${expenses.length} expense${expenses.length > 1 ? 's' : ''} before closing'
+                                  : 'All clear — ready to close this month',
+                              style: AppTypography.bodyS.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── Expense checklist items ─────────────────────────────────
+                if (expenses.isNotEmpty) ...[
+                  Divider(
+                    height: 1,
+                    color: AppColors.surface200,
+                    indent: AppSizing.sp16,
+                    endIndent: AppSizing.sp16,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSizing.sp16, AppSizing.sp8, AppSizing.sp16, 0,
+                    ),
+                    child: Text(
+                      'RESOLVE BEFORE CLOSING',
+                      style: AppTypography.labelS.copyWith(
+                        color: AppColors.textTertiary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  ...expenses.map((exp) {
+                    final isActioning =
+                        pending?.actioningExpenseId == exp.id;
+                    return _ExpenseChecklistItem(
+                      expense: exp,
+                      isActioning: isActioning,
+                      onApprove: isActioning
+                          ? null
+                          : () => context
+                              .read<MonthCloseChecklistBloc>()
+                              .add(MonthCloseChecklistExpenseApproved(
+                                flatId: flat.id,
+                                expenseId: exp.id,
+                              )),
+                      onReject: isActioning
+                          ? null
+                          : () => context
+                              .read<MonthCloseChecklistBloc>()
+                              .add(MonthCloseChecklistExpenseRejected(
+                                flatId: flat.id,
+                                expenseId: exp.id,
+                              )),
+                      categoryLabel: _categoryLabel(exp.expenseCategory),
+                      categoryIcon: _categoryIcon(exp.expenseCategory),
+                      dateLabel: _shortDate(exp.date),
+                    );
+                  }),
+                ],
+
+                // ── Ready state: all resolved ───────────────────────────────
+                if (expenses.isEmpty) ...[
+                  Divider(
+                    height: 1,
+                    color: AppColors.surface200,
+                    indent: AppSizing.sp16,
+                    endIndent: AppSizing.sp16,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSizing.sp16, AppSizing.sp12, AppSizing.sp16, 0,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 16,
+                          color: AppColors.success,
+                        ),
+                        const SizedBox(width: AppSizing.sp8),
+                        Text(
+                          'No pending expenses — month is ready to close',
+                          style: AppTypography.bodyS.copyWith(
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // ── Close button ────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.all(AppSizing.sp16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: (canClose && !closing)
+                          ? () => context
+                              .read<MonthCloseChecklistBloc>()
+                              .add(MonthCloseChecklistCloseRequested(
+                                flatId: flat.id,
+                                month: month,
+                                year: year,
+                              ))
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.warning,
+                        foregroundColor: AppColors.white,
+                        disabledBackgroundColor:
+                            AppColors.warning.withValues(alpha: 0.3),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppSizing.sp12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppSizing.r12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: closing
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.white,
+                              ),
+                            )
+                          : Text(
+                              canClose
+                                  ? 'Close $monthName $year'
+                                  : 'Resolve expenses to close',
+                              style: AppTypography.labelM.copyWith(
+                                color: canClose
+                                    ? AppColors.white
+                                    : AppColors.white.withValues(alpha: 0.6),
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
+    );
+  }
+}
+
+class _ExpenseChecklistItem extends StatelessWidget {
+  const _ExpenseChecklistItem({
+    required this.expense,
+    required this.isActioning,
+    required this.onApprove,
+    required this.onReject,
+    required this.categoryLabel,
+    required this.categoryIcon,
+    required this.dateLabel,
+  });
+
+  final ExpenseEntity expense;
+  final bool isActioning;
+  final VoidCallback? onApprove;
+  final VoidCallback? onReject;
+  final String categoryLabel;
+  final IconData categoryIcon;
+  final String dateLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(
+          AppSizing.sp16, AppSizing.sp4, AppSizing.sp16, 0),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizing.sp12,
+        vertical: AppSizing.sp8,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppSizing.r12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Category icon
+              Icon(categoryIcon, size: 14, color: AppColors.textSecondary),
+              const SizedBox(width: AppSizing.sp4),
+              Text(
+                categoryLabel,
+                style: AppTypography.labelS.copyWith(
+                    color: AppColors.textSecondary),
+              ),
+              const Spacer(),
+              // Amount
+              Text(
+                '৳${expense.amount.toStringAsFixed(expense.amount % 1 == 0 ? 0 : 2)}',
+                style: AppTypography.labelL.copyWith(
+                    color: AppColors.textPrimary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  [
+                    if (expense.description != null &&
+                        expense.description!.isNotEmpty)
+                      expense.description!,
+                    'by ${expense.paidByName}',
+                    if (dateLabel.isNotEmpty) '· $dateLabel',
+                  ].join(' '),
+                  style: AppTypography.bodyS.copyWith(
+                      color: AppColors.textTertiary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSizing.sp8),
+          // Action buttons or loading indicator
+          if (isActioning)
+            const Center(
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.brand,
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onApprove,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.success,
+                      side: BorderSide(
+                          color: AppColors.success.withValues(alpha: 0.6)),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSizing.sp4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppSizing.r8),
+                      ),
+                    ),
+                    child: Text(
+                      'Approve',
+                      style: AppTypography.labelS.copyWith(
+                          color: AppColors.success),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSizing.sp8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onReject,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: BorderSide(
+                          color: AppColors.error.withValues(alpha: 0.6)),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSizing.sp4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppSizing.r8),
+                      ),
+                    ),
+                    child: Text(
+                      'Reject',
+                      style: AppTypography.labelS.copyWith(
+                          color: AppColors.error),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 4b. Pending Actions ───────────────────────────────────────────────────────
+
+class _PendingActionsSection extends StatelessWidget {
+  const _PendingActionsSection({
+    required this.flat,
+    required this.me,
+    required this.canManage,
+    required this.onReloadPending,
+    required this.onTabSelect,
+  });
+
+  final FlatEntity flat;
+  final FlatMemberEntity? me;
+  final bool canManage;
+  final VoidCallback onReloadPending;
+  final ValueChanged<int> onTabSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    if (me == null) return const SizedBox.shrink();
+    final myMemberId = me!.flatMemberId;
+
+    final cards = <Widget>[];
+
+    if (canManage) {
+      // ── Manager cards ─────────────────────────────────────────────────────
+
+      // 1. Payments submitted by members, awaiting manager verification
+      final paymentsState = context.watch<PaymentsBloc>().state;
+      if (paymentsState is PaymentsLoaded &&
+          paymentsState.payments.isNotEmpty) {
+        final count = paymentsState.payments.length;
+        cards.add(_PendingCard(
+          icon: Icons.verified_rounded,
+          accentColor: AppColors.success,
+          title: '$count payment${count > 1 ? 's' : ''} to verify',
+          subtitle: 'Submitted by members, awaiting your review',
+          actionLabel: 'Verify',
+          onAction: () => context
+              .push(
+                AppRoutes.walletRequests,
+                extra: WalletPageArgs(flatId: flat.id, canManage: true),
+              )
+              .then((_) {
+            if (context.mounted) onReloadPending();
+          }),
+        ));
+      }
+
+      // 2. Unapproved expenses
+      final expenseState = context.watch<ExpenseBloc>().state;
+      if (expenseState is ExpenseListLoaded) {
+        final total = (expenseState.pagination['total'] as int?) ??
+            expenseState.expenses.length;
+        if (total > 0) {
+          cards.add(_PendingCard(
+            icon: Icons.receipt_long_rounded,
+            accentColor: AppColors.info,
+            title: '$total unapproved expense${total > 1 ? 's' : ''}',
+            subtitle: 'Awaiting your approval',
+            actionLabel: 'Review',
+            // Navigate to the Expenses tab (Tab 3) in the IndexedStack
+            onAction: () => onTabSelect(3),
+          ));
+        }
+      }
+
+      // 3. Pending join requests
+      final joinState = context.watch<JoinRequestsBloc>().state;
+      final joinCount = joinState is JoinRequestsLoaded
+          ? joinState.requests.where((r) => r.isPending).length
+          : 0;
+      if (joinCount > 0) {
+        cards.add(_PendingCard(
+          icon: Icons.group_add_outlined,
+          accentColor: AppColors.warning,
+          title: '$joinCount join request${joinCount > 1 ? 's' : ''}',
+          subtitle: 'Awaiting your approval',
+          actionLabel: 'Review',
+          onAction: () => context
+              .push(AppRoutes.flatRequests, extra: flat.id)
+              .then((_) {
+            // JoinRequestsBloc self-refreshes; only sync flat member count.
+            if (context.mounted) {
+              context.read<FlatBloc>().add(FlatRefreshRequested(flat.id));
+            }
+          }),
+        ));
+      }
+
+      // 4. Open complaints across the flat
+      final complaintState = context.watch<ComplaintBloc>().state;
+      if (complaintState is ComplaintListLoaded &&
+          complaintState.complaints.isNotEmpty) {
+        final total = (complaintState.pagination['total'] as int?) ??
+            complaintState.complaints.length;
+        if (total > 0) {
+          cards.add(_PendingCard(
+            icon: Icons.report_problem_outlined,
+            accentColor: AppColors.error,
+            title: '$total open complaint${total > 1 ? 's' : ''}',
+            subtitle: 'Needs your attention',
+            actionLabel: 'View',
+            onAction: () => context
+                .push(
+                  AppRoutes.complaints,
+                  extra: ComplaintPageArgs(
+                    flatId: flat.id,
+                    canManage: true,
+                    myMemberId: myMemberId,
+                  ),
+                )
+                .then((_) {
+              if (context.mounted) onReloadPending();
+            }),
+          ));
+        }
+      }
+    } else {
+      // ── Member cards ──────────────────────────────────────────────────────
+
+      // 1. Payment requests directed at this member (admin asking them to pay)
+      final walletState = context.watch<WalletBloc>().state;
+      final walletSummary = switch (walletState) {
+        WalletSummaryLoaded(summary: final s) => s,
+        WalletActionLoading(summary: final s) => s,
+        WalletPaymentSubmitSuccess(summary: final s) => s,
+        WalletError(summary: final s) when s != null => s,
+        _ => null,
+      };
+      if (walletSummary != null &&
+          walletSummary.pendingPaymentRequests.isNotEmpty) {
+        final count = walletSummary.pendingPaymentRequests.length;
+        cards.add(_PendingCard(
+          icon: Icons.payments_outlined,
+          accentColor: AppColors.warning,
+          title: '$count pending payment request${count > 1 ? 's' : ''}',
+          subtitle: 'You have been requested to pay',
+          actionLabel: 'View',
+          onAction: () => context
+              .push(
+                AppRoutes.walletRequests,
+                extra: WalletPageArgs(flatId: flat.id, canManage: false),
+              )
+              .then((_) {
+            if (context.mounted) onReloadPending();
+          }),
+        ));
+      }
+
+      // 2. This member's open complaints
+      final complaintState = context.watch<ComplaintBloc>().state;
+      if (complaintState is ComplaintListLoaded &&
+          complaintState.complaints.isNotEmpty) {
+        final total = (complaintState.pagination['total'] as int?) ??
+            complaintState.complaints.length;
+        if (total > 0) {
+          cards.add(_PendingCard(
+            icon: Icons.report_problem_outlined,
+            accentColor: AppColors.info,
+            title: '$total open complaint${total > 1 ? 's' : ''}',
+            subtitle:
+                'Your complaint${total > 1 ? 's are' : ' is'} awaiting resolution',
+            actionLabel: 'Track',
+            onAction: () => context
+                .push(
+                  AppRoutes.complaints,
+                  extra: ComplaintPageArgs(
+                    flatId: flat.id,
+                    canManage: false,
+                    myMemberId: myMemberId,
+                  ),
+                )
+                .then((_) {
+              if (context.mounted) onReloadPending();
+            }),
+          ));
+        }
+      }
+    }
+
+    // ── Common card (all roles): tasks assigned to this member ─────────────
+    final taskState = context.watch<TaskBloc>().state;
+    if (taskState is TaskListLoaded && taskState.tasks.isNotEmpty) {
+      final total = (taskState.pagination['total'] as int?) ??
+          taskState.tasks.length;
+      if (total > 0) {
+        cards.add(_PendingCard(
+          icon: Icons.task_alt_rounded,
+          accentColor: AppColors.brand,
+          title: '$total pending task${total > 1 ? 's' : ''} assigned to you',
+          subtitle: 'Task${total > 1 ? 's' : ''} waiting to be completed',
+          actionLabel: 'View',
+          onAction: () => context
+              .push(
+                AppRoutes.tasks,
+                extra: TaskPageArgs(
+                  flatId: flat.id,
+                  canManage: canManage,
+                  myMemberId: myMemberId,
+                  members: flat.activeMembers,
+                ),
+              )
+              .then((_) {
+            if (context.mounted) onReloadPending();
+          }),
+        ));
+      }
+    }
+
+    if (cards.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(eyebrow: 'action needed', title: 'Pending'),
+        const SizedBox(height: AppSizing.sp12),
+        Padding(
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+          child: Column(
+            children: cards
+                .map(
+                  (c) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSizing.sp8),
+                    child: c,
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+      ],
     );
   }
 }

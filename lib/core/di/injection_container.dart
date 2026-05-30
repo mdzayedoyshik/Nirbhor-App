@@ -112,7 +112,9 @@ import '../../features/summary/domain/repositories/summary_repository.dart';
 import '../../features/summary/domain/usecases/close_month_usecase.dart';
 import '../../features/summary/domain/usecases/get_close_preview_usecase.dart';
 import '../../features/summary/domain/usecases/get_closed_months_usecase.dart';
+import '../../features/summary/domain/usecases/get_month_close_status_usecase.dart';
 import '../../features/summary/domain/usecases/get_monthly_summary_usecase.dart';
+import '../../features/summary/presentation/bloc/month_close_checklist_bloc.dart';
 import '../../features/summary/presentation/bloc/summary_bloc.dart';
 import '../../features/complaint/data/datasources/complaint_remote_datasource.dart';
 import '../../features/complaint/data/repositories/complaint_repository_impl.dart';
@@ -420,6 +422,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => GetClosePreviewUseCase(sl()));
   sl.registerLazySingleton(() => CloseMonthUseCase(sl()));
   sl.registerLazySingleton(() => GetClosedMonthsUseCase(sl()));
+  sl.registerLazySingleton(() => GetMonthCloseStatusUseCase(sl()));
 
   // ── Task ──────────────────────────────────────────────
   sl.registerLazySingleton(() => TaskRemoteDataSource(apiClient: sl()));
@@ -478,6 +481,15 @@ Future<void> configureDependencies() async {
       getClosePreview: sl(),
       closeMonth: sl(),
       getClosedMonths: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => MonthCloseChecklistBloc(
+      getStatus: sl(),
+      approveExpense: sl(),
+      deleteExpense: sl(),
+      closeMonth: sl(),
     ),
   );
 

@@ -36,6 +36,11 @@ String _formatDate(String? iso) {
   }
 }
 
+// Shows whole numbers without decimals (e.g. 10), halves with 1 dp (e.g. 3.5).
+// Never rounds — 3.5 stays "3.5", not "4".
+String _formatPts(double pts) =>
+    pts % 1 == 0 ? pts.toStringAsFixed(0) : pts.toStringAsFixed(1);
+
 String _taka(double amount) {
   final abs = amount.abs();
   final str = abs >= 1000
@@ -80,8 +85,9 @@ class _SummaryPageState extends State<SummaryPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     final now = DateTime.now();
-    _month = now.month;
-    _year = now.year;
+    // Use notification-supplied month/year if available (month_closed deep-link)
+    _month = widget.args.initialMonth ?? now.month;
+    _year  = widget.args.initialYear  ?? now.year;
     _load();
   }
 
@@ -640,7 +646,7 @@ class _PoolCard extends StatelessWidget {
               Expanded(
                 child: _StatChip(
                   label: 'Points',
-                  value: summary.totalPoints.toStringAsFixed(0),
+                  value: _formatPts(summary.totalPoints),
                   color: AppColors.warning,
                 ),
               ),
@@ -791,7 +797,7 @@ class _MemberCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '${member.mealPoints.toStringAsFixed(0)} pts · '
+                    '${_formatPts(member.mealPoints)} pts · '
                     'Meal ${_taka(member.mealCost)} · '
                     'Fixed ${_taka(member.fixedContribution)}',
                     style: AppTypography.bodySmall
@@ -1160,7 +1166,7 @@ class _PreviewPoolRow extends StatelessWidget {
               color: AppColors.primary),
           _MiniStat(
               label: 'Points',
-              value: preview.totalPoints.toStringAsFixed(0),
+              value: _formatPts(preview.totalPoints),
               color: AppColors.warning),
           _MiniStat(
               label: 'Per pt.',

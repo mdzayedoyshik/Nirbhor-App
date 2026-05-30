@@ -142,4 +142,6 @@ class ApiEndpoints {
       '/flats/$flatId/monthly-summary/close';
   static String flatMonthlySummaries(String flatId) =>
       '/flats/$flatId/monthly-summaries';
+  static String flatMonthlySummaryCloseStatus(String flatId) =>
+      '/flats/$flatId/monthly-summary/close-status';
 }

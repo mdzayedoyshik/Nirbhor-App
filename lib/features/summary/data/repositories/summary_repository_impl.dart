@@ -1,5 +1,6 @@
 import '../../domain/entities/close_preview_entity.dart';
 import '../../domain/entities/closed_month_entity.dart';
+import '../../domain/entities/month_close_status_entity.dart';
 import '../../domain/entities/month_summary_entity.dart';
 import '../../domain/repositories/summary_repository.dart';
 import '../datasources/summary_remote_datasource.dart';
@@ -26,4 +27,8 @@ class SummaryRepositoryImpl implements SummaryRepository {
   @override
   Future<List<ClosedMonthEntity>> getClosedMonths(String flatId) =>
       _dataSource.getClosedMonths(flatId);
+
+  @override
+  Future<MonthCloseStatusEntity> getMonthCloseStatus(String flatId) =>
+      _dataSource.getMonthCloseStatus(flatId);
 }

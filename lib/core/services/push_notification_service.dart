@@ -254,12 +254,18 @@ class PushNotificationService {
     }
 
     if (type.contains('month_closed') || type.contains('monthly')) {
+      // Extract month + year from FCM data payload so the summary page opens
+      // directly on the closed month rather than the current month.
+      final initialMonth = int.tryParse(data['month'] as String? ?? '');
+      final initialYear  = int.tryParse(data['year']  as String? ?? '');
       router.push(
         AppRoutes.summary,
         extra: SummaryPageArgs(
           flatId: flatId,
           isManager: canManage,
           myMemberId: myMemberId,
+          initialMonth: initialMonth,
+          initialYear: initialYear,
         ),
       );
       return;
