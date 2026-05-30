@@ -11,6 +11,8 @@ import '../../../../features/flat/presentation/bloc/join_requests_bloc.dart';
 import '../../../../features/flat/presentation/pages/flat_home_view.dart';
 import '../../../../features/flat/presentation/pages/flat_landing_view.dart';
 import '../../../../features/flat/presentation/pages/pending_request_view.dart';
+import '../../../../features/meal/presentation/bloc/meal_bloc.dart';
+import '../../../../features/meal/presentation/bloc/meal_pool_bloc.dart';
 import '../../../../features/member/presentation/pages/exit_summary_page.dart';
 import '../../../../features/member/presentation/pages/pending_exit_page.dart';
 import '../../../../features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
@@ -35,6 +37,19 @@ class _HomePageState extends State<HomePage> {
         if (resolved is FlatLoaded) {
           // Refresh wallet summary whenever flat becomes visible
           context.read<WalletBloc>().add(WalletSummaryRequested(resolved.flat.id));
+          // Eagerly load today's meal log + current-month pool for home stat card
+          final now = DateTime.now();
+          final todayStr =
+              '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+          context.read<MealBloc>().add(MealDailyLoadRequested(
+                flatId: resolved.flat.id,
+                date: todayStr,
+              ));
+          context.read<MealPoolBloc>().add(MealPoolLoadRequested(
+                flatId: resolved.flat.id,
+                month: now.month,
+                year: now.year,
+              ));
           // Load join-requests badge only once; bloc self-refreshes after approve/decline
           if (!_joinRequestsLoaded) {
             _joinRequestsLoaded = true;

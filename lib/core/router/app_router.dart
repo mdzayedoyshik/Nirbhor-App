@@ -212,6 +212,11 @@ GoRouter createRouter(AuthBloc authBloc) {
         builder: (_, _) => MultiBlocProvider(
           providers: [
             BlocProvider.value(value: sl<WalletBloc>()),
+            // MealBloc + MealPoolBloc are factory-registered, so we own
+            // one instance here and share it down via .value in the Meals tab
+            // and the home-screen meal stat card.
+            BlocProvider(create: (_) => sl<MealBloc>()),
+            BlocProvider(create: (_) => sl<MealPoolBloc>()),
             BlocProvider.value(
               value: sl<NotificationBloc>()
                 ..add(const NotificationUnreadCountRequested()),

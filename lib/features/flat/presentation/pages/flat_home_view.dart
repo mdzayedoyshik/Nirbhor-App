@@ -106,11 +106,23 @@ class _FlatHomeViewState extends State<FlatHomeView> {
   @override
   void initState() {
     super.initState();
-    // Load wallet summary eagerly so the home balance card shows immediately
+    // Eagerly load all home-screen data after the first frame so the stat
+    // cards populate immediately regardless of FlatBloc listener timing.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<WalletBloc>().add(WalletSummaryRequested(widget.flat.id));
-      }
+      if (!mounted) return;
+      context.read<WalletBloc>().add(WalletSummaryRequested(widget.flat.id));
+      final now = DateTime.now();
+      final todayStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      context.read<MealBloc>().add(MealDailyLoadRequested(
+            flatId: widget.flat.id,
+            date: todayStr,
+          ));
+      context.read<MealPoolBloc>().add(MealPoolLoadRequested(
+            flatId: widget.flat.id,
+            month: now.month,
+            year: now.year,
+          ));
     });
   }
 
@@ -151,11 +163,15 @@ class _FlatHomeViewState extends State<FlatHomeView> {
                 onTabSelect: _switchTab,
               ),
               // Tab 1 — Meals (lazy)
+              // Share the home-level MealBloc/MealPoolBloc instances (.value)
+              // so the stat card and Meals tab stay in sync.
+              // MealPrefsBloc is only needed in the tab, so create it fresh.
               _loaded[1] && me != null
                   ? MultiBlocProvider(
                       providers: [
-                        BlocProvider(create: (_) => sl<MealBloc>()),
-                        BlocProvider(create: (_) => sl<MealPoolBloc>()),
+                        BlocProvider.value(value: context.read<MealBloc>()),
+                        BlocProvider.value(
+                            value: context.read<MealPoolBloc>()),
                         BlocProvider(create: (_) => sl<MealPrefsBloc>()),
                       ],
                       child: MealPage(
@@ -658,14 +674,6 @@ class _StatsRow extends StatelessWidget {
   final bool canManage;
   final ValueChanged<int> onTabSelect;
 
-  String _currentMealLabel() {
-    final h = DateTime.now().hour;
-    if (h < 11) return 'Breakfast time';
-    if (h < 15) return 'Lunch time';
-    if (h < 22) return 'Dinner time';
-    return 'Meals';
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<WalletBloc, WalletState>(
@@ -753,13 +761,7 @@ class _StatsRow extends StatelessWidget {
                 Expanded(
                   child: GestureDetector(
                     onTap: () => onTabSelect(1),
-                    child: _StatCard(
-                      icon: Icons.restaurant_rounded,
-                      iconColor: const Color(0xFF10B981),
-                      label: 'Meals',
-                      value: _currentMealLabel(),
-                      subtitle: 'tap to log',
-                    ),
+                    child: _MealStatCard(myMemberId: me?.flatMemberId),
                   ),
                 ),
               ],
@@ -817,6 +819,155 @@ class _StatCard extends StatelessWidget {
             style: AppTypography.labelS.copyWith(color: AppColors.textTertiary),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Meal stat card ────────────────────────────────────────────────────────────
+
+class _MealStatCard extends StatelessWidget {
+  const _MealStatCard({required this.myMemberId});
+  final String? myMemberId;
+
+  static const _bColor = Color(0xFFF59E0B); // breakfast amber
+  static const _lColor = Color(0xFF10B981); // lunch green
+  static const _dColor = Color(0xFF6C63FF); // dinner purple
+
+  static String _monthAbbr(int m) => const [
+        '',
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+      ][m];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizing.sp16),
+      decoration: BoxDecoration(
+        color: context.cardColor,
+        borderRadius: BorderRadius.circular(AppSizing.r16),
+        boxShadow: AppColors.shadowSm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top row: icon + today's B/L/D chips
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _lColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppSizing.r12),
+                ),
+                child: const Icon(Icons.restaurant_rounded,
+                    size: 18, color: _lColor),
+              ),
+              const Spacer(),
+              BlocBuilder<MealBloc, MealState>(
+                builder: (context, state) {
+                  final logList = switch (state) {
+                    MealDailyLoaded(:final logs) => logs.logs,
+                    MealActionInProgress(:final logs) => logs.logs,
+                    MealActionSuccess(:final logs) => logs.logs,
+                    MealActionError(:final logs) => logs.logs,
+                    _ => null,
+                  };
+                  final my = logList
+                      ?.where((e) => e.flatMemberId == myMemberId)
+                      .firstOrNull;
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ShiftChip(label: 'B', on: my?.breakfast, color: _bColor),
+                      const SizedBox(width: 4),
+                      _ShiftChip(label: 'L', on: my?.lunch, color: _lColor),
+                      const SizedBox(width: 4),
+                      _ShiftChip(label: 'D', on: my?.dinner, color: _dColor),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSizing.sp8),
+          // Monthly points
+          BlocBuilder<MealPoolBloc, MealPoolState>(
+            builder: (context, state) {
+              double? pts;
+              if (state is MealPoolLoaded && myMemberId != null) {
+                pts = state.pool.memberBreakdown
+                    .where((m) => m.flatMemberId == myMemberId)
+                    .map((m) => m.totalPoints)
+                    .firstOrNull;
+              }
+              return Text(
+                pts != null ? '${pts.toStringAsFixed(1)} pts' : '--',
+                style: AppTypography.amountL
+                    .copyWith(color: AppColors.textPrimary),
+              );
+            },
+          ),
+          Text(
+            'Meals · ${_monthAbbr(DateTime.now().month)}',
+            style: AppTypography.labelS.copyWith(color: AppColors.textTertiary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShiftChip extends StatelessWidget {
+  const _ShiftChip({
+    required this.label,
+    required this.on,
+    required this.color,
+  });
+  final String label;
+  final bool? on; // null = not yet loaded
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final isOn = on == true;
+    return Container(
+      width: 22,
+      height: 20,
+      decoration: BoxDecoration(
+        color: on == null
+            ? AppColors.border.withValues(alpha: 0.5)
+            : isOn
+                ? color.withValues(alpha: 0.15)
+                : AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(5),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: on == null
+              ? AppColors.border
+              : isOn
+                  ? color
+                  : AppColors.textHint,
+          height: 1,
+        ),
       ),
     );
   }
