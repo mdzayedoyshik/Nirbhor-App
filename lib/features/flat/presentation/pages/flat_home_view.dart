@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -6,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/push_notification_service.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
@@ -104,6 +107,8 @@ class _FlatHomeViewState extends State<FlatHomeView> {
   // Guard against showing the exit dialog twice if back is pressed rapidly
   bool _isExiting = false;
 
+  StreamSubscription<ForegroundPushEvent>? _pushSub;
+
   FlatMemberEntity? _myMember() {
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return null;
@@ -174,6 +179,31 @@ class _FlatHomeViewState extends State<FlatHomeView> {
       // Load pending-action data for the home dashboard
       _reloadPendingActions();
     });
+
+    // Reload pending-action blocs whenever a relevant foreground push
+    // arrives while the Home tab is visible, so the section stays live
+    // without requiring a manual pull-to-refresh.
+    _pushSub = PushNotificationService.instance.foregroundStream.listen((event) {
+      if (!mounted) return;
+      if (event.flatId != widget.flat.id) return; // different flat — ignore
+      if (_tab != 0) return;                       // Home tab not visible — skip
+      final t = event.type;
+      if (t.contains('task')         ||
+          t.contains('complaint')    ||
+          t.contains('expense')      ||
+          t.contains('payment')      ||
+          t.contains('wallet')       ||
+          t.contains('contribution') ||
+          t.contains('join_request')) {
+        _reloadPendingActions();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pushSub?.cancel();
+    super.dispose();
   }
 
   void _switchTab(int i) {
