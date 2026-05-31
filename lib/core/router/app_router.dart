@@ -6,12 +6,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/enums/auth_enums.dart';
 import '../../core/services/app_config_checker.dart';
+import '../../features/audit_log/presentation/args/audit_log_page_args.dart';
+import '../../features/audit_log/presentation/bloc/audit_log_bloc.dart';
+import '../../features/audit_log/presentation/bloc/audit_log_event.dart';
+import '../../features/audit_log/presentation/pages/audit_log_page.dart';
 import '../../features/auth/presentation/args/complete_setup_page_args.dart';
 import '../../features/auth/presentation/args/otp_page_args.dart';
 import '../../features/auth/presentation/args/reset_password_page_args.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/pages/change_password_page.dart';
-import '../../features/auth/presentation/pages/set_password_page.dart';
 import '../../features/auth/presentation/pages/complete_setup_page.dart';
 import '../../features/auth/presentation/pages/email_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
@@ -20,7 +23,21 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/otp_page.dart';
 import '../../features/auth/presentation/pages/profile_page.dart';
 import '../../features/auth/presentation/pages/reset_password_page.dart';
+import '../../features/auth/presentation/pages/set_password_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
+import '../../features/complaint/presentation/args/complaint_page_args.dart';
+import '../../features/complaint/presentation/bloc/complaint_bloc.dart';
+import '../../features/complaint/presentation/pages/complaint_detail_page.dart';
+import '../../features/complaint/presentation/pages/complaint_page.dart';
+import '../../features/expense/presentation/args/edit_expense_args.dart';
+import '../../features/expense/presentation/args/expense_detail_args.dart';
+import '../../features/expense/presentation/args/expense_list_args.dart';
+import '../../features/expense/presentation/args/record_expense_args.dart';
+import '../../features/expense/presentation/bloc/expense_bloc.dart';
+import '../../features/expense/presentation/pages/edit_expense_page.dart';
+import '../../features/expense/presentation/pages/expense_detail_page.dart';
+import '../../features/expense/presentation/pages/expense_list_page.dart';
+import '../../features/expense/presentation/pages/record_expense_page.dart';
 import '../../features/flat/domain/entities/flat_entity.dart';
 import '../../features/flat/domain/entities/flat_preview_entity.dart';
 import '../../features/flat/presentation/bloc/fixed_expenses_bloc.dart';
@@ -32,10 +49,27 @@ import '../../features/flat/presentation/pages/flat_preview_page.dart';
 import '../../features/flat/presentation/pages/flat_settings_page.dart';
 import '../../features/flat/presentation/pages/join_flat_page.dart';
 import '../../features/flat/presentation/pages/join_requests_page.dart';
+import '../../features/meal/presentation/args/meal_page_args.dart';
+import '../../features/meal/presentation/bloc/meal_bloc.dart';
+import '../../features/meal/presentation/bloc/meal_pool_bloc.dart';
+import '../../features/meal/presentation/bloc/meal_prefs_bloc.dart';
+import '../../features/meal/presentation/pages/meal_page.dart';
 import '../../features/member/presentation/args/settlement_page_args.dart';
 import '../../features/member/presentation/bloc/member_bloc.dart';
 import '../../features/member/presentation/pages/member_list_page.dart';
 import '../../features/member/presentation/pages/settlement_page.dart';
+import '../../features/notification/presentation/args/notification_page_args.dart';
+import '../../features/notification/presentation/bloc/notification_bloc.dart';
+import '../../features/notification/presentation/bloc/notification_event.dart';
+import '../../features/notification/presentation/pages/notification_page.dart';
+import '../../features/summary/presentation/args/summary_page_args.dart';
+import '../../features/summary/presentation/bloc/summary_bloc.dart';
+import '../../features/summary/presentation/pages/summary_page.dart';
+import '../../features/task/presentation/args/task_page_args.dart';
+import '../../features/task/presentation/bloc/task_bloc.dart';
+import '../../features/task/presentation/pages/create_task_page.dart';
+import '../../features/task/presentation/pages/task_detail_page.dart';
+import '../../features/task/presentation/pages/task_page.dart';
 import '../../features/wallet/presentation/args/submit_payment_args.dart';
 import '../../features/wallet/presentation/args/wallet_page_args.dart';
 import '../../features/wallet/presentation/bloc/all_wallets/all_wallets_bloc.dart';
@@ -50,41 +84,9 @@ import '../../features/wallet/presentation/pages/payments_hub_page.dart';
 import '../../features/wallet/presentation/pages/submit_payment_page.dart';
 import '../../features/wallet/presentation/pages/transaction_history_page.dart';
 import '../../features/wallet/presentation/pages/wallet_home_page.dart';
-import '../../features/expense/presentation/args/edit_expense_args.dart';
-import '../../features/expense/presentation/args/expense_detail_args.dart';
-import '../../features/expense/presentation/args/expense_list_args.dart';
-import '../../features/expense/presentation/args/record_expense_args.dart';
-import '../../features/expense/presentation/bloc/expense_bloc.dart';
-import '../../features/expense/presentation/pages/edit_expense_page.dart';
-import '../../features/expense/presentation/pages/expense_detail_page.dart';
-import '../../features/expense/presentation/pages/expense_list_page.dart';
-import '../../features/expense/presentation/pages/record_expense_page.dart';
-import '../../features/meal/presentation/args/meal_page_args.dart';
-import '../../features/meal/presentation/bloc/meal_bloc.dart';
-import '../../features/meal/presentation/bloc/meal_pool_bloc.dart';
-import '../../features/meal/presentation/bloc/meal_prefs_bloc.dart';
-import '../../features/meal/presentation/pages/meal_page.dart';
-import '../../features/summary/presentation/args/summary_page_args.dart';
-import '../../features/summary/presentation/bloc/summary_bloc.dart';
-import '../../features/summary/presentation/pages/summary_page.dart';
-import '../../features/task/presentation/args/task_page_args.dart';
-import '../../features/task/presentation/bloc/task_bloc.dart';
-import '../../features/task/presentation/pages/create_task_page.dart';
-import '../../features/task/presentation/pages/task_detail_page.dart';
-import '../../features/task/presentation/pages/task_page.dart';
-import '../../features/complaint/presentation/args/complaint_page_args.dart';
-import '../../features/complaint/presentation/bloc/complaint_bloc.dart';
-import '../../features/complaint/presentation/pages/complaint_detail_page.dart';
-import '../../features/complaint/presentation/pages/complaint_page.dart';
-import '../../features/notification/presentation/args/notification_page_args.dart';
-import '../../features/notification/presentation/bloc/notification_bloc.dart';
-import '../../features/notification/presentation/bloc/notification_event.dart';
-import '../../features/notification/presentation/pages/notification_page.dart';
-import '../../features/audit_log/presentation/args/audit_log_page_args.dart';
-import '../../features/audit_log/presentation/bloc/audit_log_bloc.dart';
-import '../../features/audit_log/presentation/bloc/audit_log_event.dart';
-import '../../features/audit_log/presentation/pages/audit_log_page.dart';
 import '../di/injection_container.dart';
+import '../services/analytics_route_observer.dart';
+import '../services/analytics_service.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -154,10 +156,14 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 GoRouter createRouter(AuthBloc authBloc) {
   final notifier = _AuthNotifier(authBloc.stream);
+  final analyticsService = sl<AnalyticsService>();
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    observers: [_ConfigCheckObserver()],
+    observers: [
+      _ConfigCheckObserver(),
+      AnalyticsRouteObserver(analyticsService),
+    ],
     initialLocation: AppRoutes.splash,
     refreshListenable: notifier,
     redirect: (context, state) {
