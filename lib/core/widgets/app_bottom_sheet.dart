@@ -12,11 +12,13 @@ class AppBottomSheet {
     String? title,
     bool isDismissible = true,
     bool isScrollControlled = true,
+    bool? enableDrag,
   }) {
     return showModalBottomSheet<T>(
       context: context,
       isDismissible: isDismissible,
       isScrollControlled: isScrollControlled,
+      enableDrag: enableDrag ?? isDismissible,
       backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
