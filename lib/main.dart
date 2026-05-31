@@ -1,6 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,8 @@ import 'package:nirbhor/features/summary/presentation/bloc/summary_bloc.dart';
 import 'core/di/injection_container.dart';
 import 'core/env/app_env.dart';
 import 'core/router/app_router.dart';
+import 'core/services/analytics_service.dart';
+import 'core/services/bloc_crashlytics_observer.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/services/remote_config_service.dart';
 import 'core/theme/app_theme.dart';
@@ -32,14 +35,21 @@ Future<void> main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Initialize Firebase Analytics and Crashlytics
-  final analytics = FirebaseAnalytics.instance;
-  await analytics.logAppOpen();
+  // Disable both Crashlytics and Analytics in debug builds to avoid
+  // polluting production datasets with local dev data.
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
+  await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(!kDebugMode);
 
-  // Initialize Crashlytics for crash reporting
-  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
-  FlutterError.onError = (errorDetails) {
-    FirebaseCrashlytics.instance.recordFlutterError(errorDetails);
+  // Catch Flutter framework errors (widget build, layout, painting).
+  // Use recordFlutterFatalError so crashes appear in the Crashes dashboard,
+  // not just the Non-fatal section.
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+
+  // Catch async Dart errors outside the Flutter framework (e.g. native
+  // callbacks, background futures, isolate errors).
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
   };
 
   // Fetch remote config concurrently with the rest of startup so it is ready
@@ -49,6 +59,8 @@ Future<void> main() async {
   await GoogleSignIn.instance.initialize(serverClientId: AppEnv.googleClientId);
 
   await configureDependencies();
+
+  Bloc.observer = BlocCrashlyticsObserver(sl<AnalyticsService>());
 
   sl<AuthBloc>().add(const AuthSessionCheckRequested());
 
@@ -106,7 +118,7 @@ class _AppViewState extends State<_AppView> {
         // FlatBloc check is triggered here; navigation is handled by the
         // router's redirect + refreshListenable (via _AuthNotifier).
         if (state is AuthAuthenticated) {
-          context.read<FlatBloc>().add(const FlatCheckRequested());
+          context.read<FlatBloc>().add(FlatCheckRequested(userId: state.user.id));
         }
       },
       child: BlocBuilder<ThemeCubit, ThemeState>(

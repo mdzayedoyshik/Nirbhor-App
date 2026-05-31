@@ -7,6 +7,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../core/enums/auth_enums.dart';
 import '../../../../core/errors/exceptions.dart';
+import '../../../../core/services/analytics_properties_manager.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/device_token_service.dart';
 import '../../../../core/services/token_service.dart';
 import '../../domain/entities/user_entity.dart';
@@ -37,6 +39,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final SendDeviceTokenUseCase _sendDeviceToken;
   final DeviceTokenService _deviceTokenService;
   final TokenService _tokenService;
+  final AnalyticsService _analytics;
+  final AnalyticsPropertiesManager _propertiesManager;
 
   AuthBloc({
     required CheckEmailUseCase checkEmail,
@@ -51,6 +55,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required SendDeviceTokenUseCase sendDeviceToken,
     required DeviceTokenService deviceTokenService,
     required TokenService tokenService,
+    required AnalyticsService analytics,
+    required AnalyticsPropertiesManager propertiesManager,
   })  : _checkEmail = checkEmail,
         _verifyOtp = verifyOtp,
         _login = login,
@@ -63,6 +69,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         _sendDeviceToken = sendDeviceToken,
         _deviceTokenService = deviceTokenService,
         _tokenService = tokenService,
+        _analytics = analytics,
+        _propertiesManager = propertiesManager,
         super(const AuthInitial()) {
     on<AuthSessionCheckRequested>(_onSessionCheck);
     on<AuthEmailCheckRequested>(_onEmailCheck);
@@ -95,7 +103,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final user = await _getProfile();
       emit(AuthAuthenticated(user));
       await _syncDeviceToken();
-    } catch (_) {
+      // Re-identify the user on every session restore so Analytics always
+      // has a userId and correct properties, not just on explicit login.
+      try {
+        await _analytics.setUserId(user.id);
+        final createdAt = DateTime.tryParse(user.createdAt);
+        final daysOld = createdAt == null ? 0 : DateTime.now().difference(createdAt).inDays;
+        await _propertiesManager.setAuthProperties(
+          userType: 'member',
+          isNewUser: daysOld <= 1,
+          apartmentCount: 0,
+          isManager: false,
+          isPremium: false,
+        );
+      } catch (_) {}
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onSessionCheck');
       await _tokenService.clearTokens();
       emit(const AuthUnauthenticated());
     }
@@ -111,13 +134,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (result.status == AuthCheckStatus.passwordRequired) {
         emit(AuthPasswordRequired(event.email));
       } else {
+        // New user entering the registration funnel
+        if (result.hint == AuthHint.newUser) {
+          try { await _analytics.logSignupStarted(); } catch (_) {}
+        }
         emit(AuthOtpSent(
           email: event.email,
           hint: result.hint,
           otpVerificationToken: result.otpVerificationToken!,
         ));
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onEmailCheck');
       emit(AuthFailure(_message(e)));
     }
   }
@@ -143,7 +171,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       } else {
         emit(AuthSetPasswordReady(result.setupToken));
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onOtpSubmitted');
       emit(AuthFailure(_message(e)));
     }
   }
@@ -157,7 +186,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final result = await _login(email: event.email, password: event.password);
       emit(AuthAuthenticated(result.user));
       await _syncDeviceToken();
-    } catch (e) {
+      // Analytics: log login and set user id/properties
+      try {
+        await _analytics.logLoginCompleted(loginMethod: 'email');
+        await _analytics.setUserId(result.user.id);
+        final createdAt = DateTime.tryParse(result.user.createdAt);
+        final daysOld = createdAt == null ? 0 : DateTime.now().difference(createdAt).inDays;
+        await _propertiesManager.setAuthProperties(
+          userType: 'member',
+          isNewUser: daysOld <= 1,
+          apartmentCount: 0,
+          isManager: false,
+          isPremium: false,
+        );
+      } catch (_) {}
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onLogin');
+      try { await _analytics.logLoginFailed(errorCode: e.runtimeType.toString()); } catch (_) {}
       emit(AuthFailure(_message(e)));
     }
   }
@@ -175,7 +220,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
       emit(AuthAuthenticated(result.user));
       await _syncDeviceToken();
-    } catch (e) {
+      // Analytics: signup completed
+      try {
+        await _analytics.logSignupCompleted(signupMethod: 'email');
+        await _analytics.setUserId(result.user.id);
+        final createdAt = DateTime.tryParse(result.user.createdAt);
+        final daysOld = createdAt == null ? 0 : DateTime.now().difference(createdAt).inDays;
+        await _propertiesManager.setAuthProperties(
+          userType: 'member',
+          isNewUser: daysOld <= 1,
+          apartmentCount: 0,
+          isManager: false,
+          isPremium: false,
+        );
+      } catch (_) {}
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onCompleteSetup');
+      try { await _analytics.logSignupFailed(errorCode: e.runtimeType.toString(), step: 'setup'); } catch (_) {}
       emit(AuthFailure(_message(e)));
     }
   }
@@ -191,7 +252,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         otpVerificationToken: otpToken,
       ));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onForgotPassword');
       emit(AuthFailure(_message(e)));
     }
   }
@@ -210,10 +272,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final user = await _getProfile();
         emit(AuthAuthenticated(user));
         await _syncDeviceToken();
+        try { await _analytics.setUserId(user.id); } catch (_) {}
       } else {
         emit(const AuthPasswordResetSuccess());
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onResetPassword');
       emit(AuthFailure(_message(e)));
     }
   }
@@ -236,11 +300,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       log('Backend authentication successful: ${result.user.email}');
       emit(AuthAuthenticated(result.user));
       await _syncDeviceToken();
+      // Analytics: google login
+      try {
+        await _analytics.logLoginCompleted(loginMethod: 'google');
+        await _analytics.setUserId(result.user.id);
+        final createdAt = DateTime.tryParse(result.user.createdAt);
+        final daysOld = createdAt == null ? 0 : DateTime.now().difference(createdAt).inDays;
+        await _propertiesManager.setAuthProperties(
+          userType: 'member',
+          isNewUser: daysOld <= 1,
+          apartmentCount: 0,
+          isManager: false,
+          isPremium: false,
+        );
+      } catch (_) {}
     } on GoogleSignInException catch (e, stackTrace) {
       log('Google Sign-In failed: $e', stackTrace: stackTrace);
       if (e.code == GoogleSignInExceptionCode.canceled) {
         emit(const AuthInitial());
       } else {
+        _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onGoogleSignIn: GoogleSignInException');
+        try { await _analytics.logLoginFailed(errorCode: e.code.toString()); } catch (_) {}
         emit(AuthFailure(e.description ?? 'Google Sign-In failed. Please try again.'));
       }
     } on PlatformException catch (e, stackTrace) {
@@ -248,10 +328,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (e.code == 'sign_in_canceled') {
         emit(const AuthInitial());
       } else {
+        _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onGoogleSignIn: PlatformException');
         emit(AuthFailure(_message(e)));
       }
     } catch (e, stackTrace) {
       log('Unexpected error occurred: $e', stackTrace: stackTrace);
+      _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onGoogleSignIn: unexpected error');
+      try { await _analytics.logLoginFailed(errorCode: e.runtimeType.toString()); } catch (_) {}
       emit(AuthFailure(_message(e)));
     }
   }
@@ -267,6 +350,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (_) {
       await _tokenService.clearTokens();
     }
+    // Analytics: clear user id and properties
+    try {
+      await _analytics.logEvent(eventName: 'auth_logout');
+      await _analytics.clearUserId();
+      await _propertiesManager.clearUserProperties();
+    } catch (_) {}
     emit(const AuthUnauthenticated());
   }
 

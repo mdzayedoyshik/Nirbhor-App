@@ -38,16 +38,11 @@ class AnalyticsService {
   }
 
   /// Set user ID for analytics (call after authentication).
-  /// 
+  ///
   /// Important: Only set after user is authenticated (GDPR compliance).
   Future<void> setUserId(String userId) async {
     try {
-      // Firebase Analytics v12+ uses logEvent for user identification
-      // Set as a custom parameter or property
-      await _firebaseAnalytics.setUserProperty(
-        name: 'user_id',
-        value: userId,
-      );
+      await _firebaseAnalytics.setUserId(id: userId);
     } catch (e) {
       _recordError('Failed to set user ID', e);
     }
@@ -56,10 +51,7 @@ class AnalyticsService {
   /// Clear user ID (call on logout).
   Future<void> clearUserId() async {
     try {
-      await _firebaseAnalytics.setUserProperty(
-        name: 'user_id',
-        value: '',
-      );
+      await _firebaseAnalytics.setUserId(id: null);
     } catch (e) {
       _recordError('Failed to clear user ID', e);
     }

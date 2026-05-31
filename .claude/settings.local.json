@@ -17,7 +17,10 @@
       "Bash(grep -n \"AppColors\\\\.border\\\\|AppColors\\\\.textSecondary\\\\|AppColors\\\\.surface[^C]\\\\|AppColors\\\\.surface$\" /mnt/Project/Nirbhor-App/lib/core/widgets/app_image_picker.dart)",
       "Bash(ls -la /mnt/Project/ | head -20)",
       "Read(//mnt/Project/**)",
-      "Bash(flutter analyze *)"
+      "Bash(flutter analyze *)",
+      "Bash(find /root -path \"*firebase_analytics*\" -name \"firebase_analytics.dart\" 2>/dev/null | head -3; find /home -path \"*firebase_analytics*\" -name \"firebase_analytics.dart\" 2>/dev/null | head -3; find /mnt/Project/Nirbhor-App -name \"pubspec.lock\" | xargs grep -A2 \"firebase_analytics:\" 2>/dev/null | head -10)",
+      "Read(//root/**)",
+      "Read(//home/**)"
     ]
   }
 }

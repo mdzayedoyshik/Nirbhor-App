@@ -2,6 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/exceptions.dart';
+import '../../../../core/services/analytics_properties_manager.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../member/domain/entities/settlement_entity.dart';
 import '../../../member/domain/usecases/get_exit_status_usecase.dart';
 import '../../domain/entities/flat_entity.dart';
@@ -26,6 +28,8 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
   final GetMyRequestsUseCase _getMyRequests;
   final CancelJoinRequestUseCase _cancelJoinRequest;
   final GetExitStatusUseCase _getExitStatus;
+  final AnalyticsService _analytics;
+  final AnalyticsPropertiesManager _propertiesManager;
 
   FlatBloc({
     required GetMyFlatUseCase getMyFlat,
@@ -36,6 +40,8 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
     required GetMyRequestsUseCase getMyRequests,
     required CancelJoinRequestUseCase cancelJoinRequest,
     required GetExitStatusUseCase getExitStatus,
+    required AnalyticsService analytics,
+    required AnalyticsPropertiesManager propertiesManager,
   }) : _getMyFlat = getMyFlat,
        _createFlat = createFlat,
        _updateFlat = updateFlat,
@@ -44,6 +50,8 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
        _getMyRequests = getMyRequests,
        _cancelJoinRequest = cancelJoinRequest,
        _getExitStatus = getExitStatus,
+       _analytics = analytics,
+       _propertiesManager = propertiesManager,
        super(const FlatInitial()) {
     on<FlatCheckRequested>(_onCheck);
     on<FlatRefreshRequested>(_onRefresh);
@@ -72,7 +80,17 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
         // If exit status check fails, fall through to FlatLoaded
       }
       emit(FlatLoaded(flat));
-    } on ServerException catch (e) {
+      if (event.userId != null) {
+        final member = flat.memberByUserId(event.userId!);
+        try {
+          await _propertiesManager.updateApartmentProperties(
+            apartmentCount: 1,
+            isManager: member?.canManage ?? false,
+            currentApartmentId: flat.id,
+          );
+        } catch (_) {}
+      }
+    } on ServerException catch (e, stackTrace) {
       if (e.statusCode == 404) {
         // No active flat — check for awaiting acknowledgment first
         try {
@@ -102,9 +120,11 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
           emit(const FlatNone());
         }
       } else {
+        _analytics.recordException(e, stackTrace, reason: 'FlatBloc._onCheck: server error ${e.statusCode}');
         emit(FlatError(e.message, const FlatNone()));
       }
-    } catch (_) {
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'FlatBloc._onCheck');
       emit(const FlatError('Failed to load flat data.', FlatNone()));
     }
   }
@@ -119,7 +139,8 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
       final flat = await _getMyFlat();
       // Also refresh fixed expenses to get latest contributions
       emit(FlatLoaded(flat));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'FlatBloc._onRefresh');
       emit(FlatError(_message(e), base));
     }
   }
@@ -136,7 +157,17 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
         photoUrl: event.photoUrl,
       );
       emit(FlatLoaded(flat));
-    } catch (e) {
+      try {
+        await _analytics.logFlatCreated(flatId: flat.id, numberOfMembers: flat.members.length.toString());
+        await _analytics.logFirstFlatCreated(flatId: flat.id);
+        await _propertiesManager.updateApartmentProperties(
+          apartmentCount: 1,
+          isManager: true,
+          currentApartmentId: flat.id,
+        );
+      } catch (_) {}
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'FlatBloc._onCreate');
       emit(FlatError(_message(e), const FlatNone()));
     }
   }
@@ -155,7 +186,11 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
         photoUrl: event.photoUrl,
       );
       emit(FlatLoaded(flat));
-    } catch (e) {
+      try {
+        await _analytics.logEvent(eventName: 'flat_updated', parameters: {'flat_id': flat.id});
+      } catch (_) {}
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'FlatBloc._onUpdate');
       emit(FlatError(_message(e), base));
     }
   }
@@ -169,7 +204,11 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
     try {
       await _deleteFlat(event.flatId);
       emit(const FlatNone());
-    } catch (e) {
+      try {
+        await _analytics.logEvent(eventName: 'flat_deleted', parameters: {'flat_id': event.flatId});
+      } catch (_) {}
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'FlatBloc._onDelete');
       emit(FlatError(_message(e), base));
     }
   }
@@ -179,7 +218,15 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
     try {
       final request = await _sendJoinRequest(event.joinCode);
       emit(FlatPendingRequest(request));
-    } catch (e) {
+      try {
+        await _analytics.logFlatJoined(flatId: request.flatId, userRole: 'member');
+        await _analytics.logFirstFlatJoined(flatId: request.flatId, userRole: 'member');
+        // Note: updateApartmentProperties is NOT called here because the
+        // request is pending — the user isn't a member yet. Properties update
+        // in _onCheck once the flat actually loads after approval.
+      } catch (_) {}
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'FlatBloc._onJoin');
       emit(FlatError(_message(e), const FlatNone()));
     }
   }
@@ -193,7 +240,8 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
     try {
       await _cancelJoinRequest(event.requestId);
       emit(const FlatNone());
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'FlatBloc._onCancelRequest');
       emit(FlatError(_message(e), base));
     }
   }

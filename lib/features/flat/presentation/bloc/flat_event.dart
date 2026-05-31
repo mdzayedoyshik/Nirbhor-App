@@ -7,7 +7,10 @@ abstract class FlatEvent extends Equatable {
 }
 
 class FlatCheckRequested extends FlatEvent {
-  const FlatCheckRequested();
+  final String? userId;
+  const FlatCheckRequested({this.userId});
+  @override
+  List<Object?> get props => [userId];
 }
 
 class FlatRefreshRequested extends FlatEvent {

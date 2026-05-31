@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/exceptions.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/expense_entity.dart';
 import '../../domain/entities/expense_summary_entity.dart';
 import '../../domain/usecases/approve_expense_usecase.dart';
@@ -25,6 +26,7 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
     required ApproveExpenseUseCase approveExpense,
     required UpdateExpenseUseCase updateExpense,
     required DeleteExpenseUseCase deleteExpense,
+    required AnalyticsService analytics,
   })  : _getExpenses = getExpenses,
         _getExpenseSummary = getExpenseSummary,
         _getExpenseDetail = getExpenseDetail,
@@ -32,6 +34,7 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
         _approveExpense = approveExpense,
         _updateExpense = updateExpense,
         _deleteExpense = deleteExpense,
+        _analytics = analytics,
         super(const ExpenseInitial()) {
     on<ExpensesLoadRequested>(_onLoad);
     on<ExpensesLoadMoreRequested>(_onLoadMore);
@@ -50,6 +53,7 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
   final ApproveExpenseUseCase _approveExpense;
   final UpdateExpenseUseCase _updateExpense;
   final DeleteExpenseUseCase _deleteExpense;
+  final AnalyticsService _analytics;
 
   // Caches the last fully loaded list state to avoid loading spinner on revisit
   ExpenseListLoaded? _cachedList;
@@ -129,7 +133,8 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
         _cachedList = loaded;
         _cacheInvalidated = false;
         emit(loaded);
-      } catch (e) {
+      } catch (e, stackTrace) {
+        _analytics.recordException(e, stackTrace, reason: 'ExpenseBloc._onLoad');
         emit(ExpenseError(_msg(e)));
       }
     }
@@ -157,7 +162,8 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
         pagination: result['pagination'] as Map<String, dynamic>,
         isLoadingMore: false,
       ));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'ExpenseBloc._onLoadMore');
       emit(current.copyWith(isLoadingMore: false));
     }
   }
@@ -185,7 +191,8 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
       final expense =
           await _getExpenseDetail(event.flatId, event.expenseId);
       emit(ExpenseDetailLoaded(expense));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'ExpenseBloc._onDetail');
       emit(ExpenseError(_msg(e)));
     }
   }
@@ -208,7 +215,22 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
         message: 'Expense recorded successfully.',
         updatedExpense: expense,
       ));
-    } catch (e) {
+      try {
+        await _analytics.logExpenseAdded(
+          flatId: event.flatId,
+          category: event.category,
+          amount: event.amount,
+          splitType: 'equal',
+          memberCount: 1,
+        );
+        await _analytics.logFirstExpenseAdded(
+          flatId: event.flatId,
+          category: event.category,
+          amount: event.amount,
+        );
+      } catch (_) {}
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'ExpenseBloc._onRecord');
       emit(ExpenseError(_msg(e)));
     }
   }
@@ -226,7 +248,14 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
         updatedExpense: result['expense'] as ExpenseEntity,
         approveResult: result['deduction_result'] as Map<String, dynamic>?,
       ));
-    } catch (e) {
+      try {
+        await _analytics.logEvent(eventName: 'expense_approved', parameters: {
+          'flat_id': event.flatId,
+          'expense_id': event.expenseId,
+        });
+      } catch (_) {}
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'ExpenseBloc._onApprove');
       emit(ExpenseError(_msg(e)));
     }
   }
@@ -249,7 +278,11 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
         message: 'Expense updated successfully.',
         updatedExpense: expense,
       ));
-    } catch (e) {
+      try {
+        await _analytics.logExpenseEdited(flatId: event.flatId, expenseId: event.expenseId);
+      } catch (_) {}
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'ExpenseBloc._onUpdate');
       emit(ExpenseError(_msg(e)));
     }
   }
@@ -263,7 +296,11 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
     try {
       await _deleteExpense(event.flatId, event.expenseId);
       emit(const ExpenseActionSuccess(message: 'Expense deleted.'));
-    } catch (e) {
+      try {
+        await _analytics.logExpenseDeleted(flatId: event.flatId, expenseId: event.expenseId);
+      } catch (_) {}
+    } catch (e, stackTrace) {
+      _analytics.recordException(e, stackTrace, reason: 'ExpenseBloc._onDelete');
       emit(ExpenseError(_msg(e)));
     }
   }

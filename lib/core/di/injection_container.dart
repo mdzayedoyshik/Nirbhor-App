@@ -211,6 +211,8 @@ Future<void> configureDependencies() async {
       sendDeviceToken: sl(),
       deviceTokenService: sl(),
       tokenService: sl(),
+      analytics: sl(),
+      propertiesManager: sl(),
     ),
   );
   sl.registerLazySingleton(
@@ -255,6 +257,8 @@ Future<void> configureDependencies() async {
       getMyRequests: sl(),
       cancelJoinRequest: sl(),
       getExitStatus: sl(),
+      analytics: sl(),
+      propertiesManager: sl(),
     ),
   );
 
@@ -304,6 +308,7 @@ Future<void> configureDependencies() async {
       getWalletSummary: sl(),
       getFlatWallet: sl(),
       submitPayment: sl(),
+      analytics: sl(),
     ),
   );
 
@@ -355,6 +360,7 @@ Future<void> configureDependencies() async {
       approveExpense: sl(),
       updateExpense: sl(),
       deleteExpense: sl(),
+      analytics: sl(),
     ),
   );
 
