@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/enums/auth_enums.dart';
+import '../../core/services/app_config_checker.dart';
 import '../../features/auth/presentation/args/complete_setup_page_args.dart';
 import '../../features/auth/presentation/args/otp_page_args.dart';
 import '../../features/auth/presentation/args/reset_password_page_args.dart';
@@ -147,10 +148,16 @@ class AppRoutes {
   static const editExpense = '/expenses/edit';
 }
 
+/// Root navigator key — use this to push dialogs/sheets from outside the
+/// widget tree (e.g. AppConfigChecker, push notification service).
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 GoRouter createRouter(AuthBloc authBloc) {
   final notifier = _AuthNotifier(authBloc.stream);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
+    observers: [_ConfigCheckObserver()],
     initialLocation: AppRoutes.splash,
     refreshListenable: notifier,
     redirect: (context, state) {
@@ -577,6 +584,24 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
     ],
   );
+}
+
+/// Fires [AppConfigChecker.check] exactly once, after the first navigation
+/// away from the splash screen completes — ensuring the sheet/dialog appears
+/// on top of the real destination page, not during the transition.
+class _ConfigCheckObserver extends NavigatorObserver {
+  bool _triggered = false;
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    if (_triggered || previousRoute == null) return;
+    _triggered = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = rootNavigatorKey.currentContext;
+      if (ctx != null) AppConfigChecker.check(ctx);
+    });
+  }
 }
 
 /// Wraps an auth bloc stream as a [ChangeNotifier] so GoRouter's

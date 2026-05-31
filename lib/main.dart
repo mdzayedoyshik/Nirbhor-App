@@ -10,6 +10,7 @@ import 'core/di/injection_container.dart';
 import 'core/env/app_env.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
+import 'core/services/remote_config_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_cubit.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
@@ -28,6 +29,10 @@ Future<void> main() async {
   );
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Fetch remote config concurrently with the rest of startup so it is ready
+  // by the time the splash screen finishes.
+  await RemoteConfigService.instance.initialize();
 
   await GoogleSignIn.instance.initialize(serverClientId: AppEnv.googleClientId);
 
@@ -73,10 +78,15 @@ class NirbhorApp extends StatelessWidget {
 }
 
 // Separated so BlocListener has MultiBlocProvider in its ancestor tree.
-class _AppView extends StatelessWidget {
+class _AppView extends StatefulWidget {
   final GoRouter router;
   const _AppView({required this.router});
 
+  @override
+  State<_AppView> createState() => _AppViewState();
+}
+
+class _AppViewState extends State<_AppView> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
@@ -92,7 +102,7 @@ class _AppView extends StatelessWidget {
           return MaterialApp.router(
             title: 'Nirbhor',
             debugShowCheckedModeBanner: false,
-            routerConfig: router,
+            routerConfig: widget.router,
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),
             themeMode: themeState.mode,
