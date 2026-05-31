@@ -54,19 +54,18 @@ class _PaymentHintsPageState extends State<PaymentHintsPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<PaymentHintsBloc, PaymentHintsState>(
       listener: (context, state) {
+        if (!mounted) return;
         if (state is PaymentHintsUpdateSuccess) {
           AppSnackbar.success(context, AppStrings.paymentHintsUpdatedMsg);
-        }
-        if (state is PaymentHintsError) {
-          AppSnackbar.error(context, state.message);
-        }
-        if (state is PaymentHintsLoaded) {
           _mealController.text =
               state.hints.suggestedMealAmount.toStringAsFixed(0);
           _householdController.text =
               state.hints.suggestedHouseholdAmount.toStringAsFixed(0);
         }
-        if (state is PaymentHintsUpdateSuccess) {
+        if (state is PaymentHintsError) {
+          AppSnackbar.error(context, state.message);
+        }
+        if (state is PaymentHintsLoaded) {
           _mealController.text =
               state.hints.suggestedMealAmount.toStringAsFixed(0);
           _householdController.text =
@@ -78,9 +77,9 @@ class _PaymentHintsPageState extends State<PaymentHintsPage> {
         final isActionLoading = state is PaymentHintsActionLoading;
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bgColor,
             elevation: 0,
             title: Text(AppStrings.paymentHintsTitle,
                 style: AppTypography.headlineMedium),
@@ -112,21 +111,21 @@ class _PaymentHintsPageState extends State<PaymentHintsPage> {
                       Container(
                         padding: const EdgeInsets.all(AppSizing.md),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant,
+                          color: context.surfaceColor,
                           borderRadius:
                               BorderRadius.circular(AppSizing.radiusMd),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.info_outline,
-                                size: 16, color: AppColors.textSecondary),
+                            Icon(Icons.info_outline,
+                                size: 16, color: context.textSecColor),
                             const SizedBox(width: AppSizing.xs),
                             Expanded(
                               child: Text(
                                 AppStrings.paymentHintsHelperNote,
                                 style: AppTypography.bodySmall.copyWith(
-                                    color: AppColors.textSecondary),
+                                    color: context.textSecColor),
                               ),
                             ),
                           ],

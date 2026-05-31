@@ -50,6 +50,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
       destructive: true,
     ).then((confirmed) {
       if (confirmed == true && mounted) {
+        // ignore: use_build_context_synchronously
         context.read<ComplaintBloc>().add(
           ComplaintDeleteRequested(widget.args.flatId, c.id),
         );
@@ -60,9 +61,9 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.bgColor,
         elevation: 0,
         title: Text('Complaint', style: AppTypography.headlineMedium),
         actions: [
@@ -153,7 +154,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
   ) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizing.radiusLg),
@@ -168,16 +169,16 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
               width: AppSizing.bottomSheetHandleWidth,
               height: AppSizing.bottomSheetHandleHeight,
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: sheetCtx.borderColor,
                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),
               ),
             ),
             const SizedBox(height: AppSizing.sm),
             if (canEdit)
               ListTile(
-                leading: const Icon(
+                leading: Icon(
                   Icons.edit_outlined,
-                  color: AppColors.textPrimary,
+                  color: sheetCtx.textPrimColor,
                 ),
                 title: Text('Edit Complaint', style: AppTypography.bodyMedium),
                 onTap: () {
@@ -213,7 +214,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizing.radiusLg),
@@ -242,9 +243,9 @@ class _HeaderCard extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(AppSizing.md),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.cardColor,
             borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.borderColor),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,8 +274,8 @@ class _HeaderCard extends StatelessWidget {
                       ? TextDecoration.lineThrough
                       : null,
                   color: complaint.isResolved
-                      ? AppColors.textSecondary
-                      : AppColors.textPrimary,
+                      ? context.textSecColor
+                      : context.textPrimColor,
                 ),
               ),
             ],
@@ -297,9 +298,9 @@ class _InfoCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,11 +310,11 @@ class _InfoCard extends StatelessWidget {
             Text(
               complaint.description!,
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: context.textSecColor,
               ),
             ),
             const SizedBox(height: AppSizing.md),
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: context.borderColor),
             const SizedBox(height: AppSizing.md),
           ],
           _InfoRow(
@@ -368,12 +369,12 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.textSecondary),
+        Icon(icon, size: 16, color: context.textSecColor),
         const SizedBox(width: AppSizing.sm),
         Text(
           '$label: ',
           style: AppTypography.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+            color: context.textSecColor,
           ),
         ),
         Expanded(
@@ -381,7 +382,7 @@ class _InfoRow extends StatelessWidget {
             value,
             style: AppTypography.bodySmall.copyWith(
               fontWeight: FontWeight.w600,
-              color: valueColor ?? AppColors.textPrimary,
+              color: valueColor ?? context.textPrimColor,
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -424,9 +425,9 @@ class _StatusActions extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(AppSizing.md),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.cardColor,
             borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.borderColor),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,7 +435,7 @@ class _StatusActions extends StatelessWidget {
               Text(
                 'Update Status',
                 style: AppTypography.titleMedium.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.textSecColor,
                 ),
               ),
               const SizedBox(height: AppSizing.sm),
@@ -559,7 +560,7 @@ class _EditComplaintSheetState extends State<_EditComplaintSheet> {
                   width: AppSizing.bottomSheetHandleWidth,
                   height: AppSizing.bottomSheetHandleHeight,
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: context.borderColor,
                     borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                   ),
                 ),

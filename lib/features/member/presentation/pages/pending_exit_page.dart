@@ -34,15 +34,15 @@ class _PendingExitPageState extends State<PendingExitPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
         title: Text('Exit in Progress', style: AppTypography.titleLarge),
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.cardColor,
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_outline, color: AppColors.textPrimary),
+            icon: Icon(Icons.person_outline, color: context.textPrimColor),
             tooltip: 'Profile',
             onPressed: () => context.push(AppRoutes.profile),
           ),
@@ -144,9 +144,9 @@ class _BreakdownCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,7 +157,7 @@ class _BreakdownCard extends StatelessWidget {
             label: 'Meal Points',
             value: settlement.mealPoints.toStringAsFixed(1),
           ),
-          const Divider(height: AppSizing.md, color: AppColors.border),
+          Divider(height: AppSizing.md, color: context.borderColor),
           _Row(
             label: 'Meal Cost',
             value: '৳${settlement.mealCost.toStringAsFixed(2)}',
@@ -175,7 +175,7 @@ class _BreakdownCard extends StatelessWidget {
             value: '৳${settlement.fixedRefund.toStringAsFixed(2)}',
             valueColor: AppColors.success,
           ),
-          const Divider(height: AppSizing.md, color: AppColors.border),
+          Divider(height: AppSizing.md, color: context.borderColor),
           _Row(
             label: 'Net Amount',
             value: '৳${settlement.finalAmount.toStringAsFixed(2)}',
@@ -249,15 +249,15 @@ class _InfoNote extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.info_outline_rounded,
-            color: AppColors.textSecondary,
+            color: context.textSecColor,
             size: AppSizing.iconMd,
           ),
           const SizedBox(width: AppSizing.sm),

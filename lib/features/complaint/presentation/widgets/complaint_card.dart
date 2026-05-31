@@ -23,9 +23,9 @@ class ComplaintCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSizing.md),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           children: [
@@ -36,7 +36,7 @@ class ComplaintCard extends StatelessWidget {
               margin: const EdgeInsets.only(right: AppSizing.sm, top: 2),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _dotColor(complaint.status),
+                color: _dotColor(complaint.status, context),
               ),
             ),
             // Content
@@ -52,8 +52,8 @@ class ComplaintCard extends StatelessWidget {
                           ? TextDecoration.lineThrough
                           : null,
                       color: complaint.isResolved
-                          ? AppColors.textSecondary
-                          : AppColors.textPrimary,
+                          ? context.textSecColor
+                          : context.textPrimColor,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -67,7 +67,7 @@ class ComplaintCard extends StatelessWidget {
                         child: Text(
                           'by ${complaint.raisedByName}',
                           style: AppTypography.labelSmall.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.textSecColor,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -86,10 +86,10 @@ class ComplaintCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               size: 18,
-              color: AppColors.textSecondary,
+              color: context.textSecColor,
             ),
           ],
         ),
@@ -97,11 +97,11 @@ class ComplaintCard extends StatelessWidget {
     );
   }
 
-  Color _dotColor(String status) => switch (status) {
+  Color _dotColor(String status, BuildContext context) => switch (status) {
         'open' => AppColors.warning,
         'in_progress' => const Color(0xFF3B82F6),
         'resolved' => AppColors.success,
-        _ => AppColors.textSecondary,
+        _ => context.textSecColor,
       };
 
   String _relativeDate(String iso) {

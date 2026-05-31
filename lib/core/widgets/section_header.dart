@@ -41,14 +41,14 @@ class SectionHeader extends StatelessWidget {
                     child: Text(
                       eyebrow!.toUpperCase(),
                       style: AppTypography.overline.copyWith(
-                        color: AppColors.textTertiary,
+                        color: context.textTerColor,
                       ),
                     ),
                   ),
                 Text(
                   title,
                   style: AppTypography.h3.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.textPrimColor,
                   ),
                 ),
               ],

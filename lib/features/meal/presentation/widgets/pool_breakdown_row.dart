@@ -24,12 +24,12 @@ class PoolBreakdownRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: isMe
             ? AppColors.primary.withValues(alpha: 0.04)
-            : AppColors.surface,
+            : context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
         border: Border.all(
           color: isMe
               ? AppColors.primary.withValues(alpha: 0.25)
-              : AppColors.border,
+              : context.borderColor,
         ),
       ),
       child: Row(
@@ -39,8 +39,8 @@ class PoolBreakdownRow extends StatelessWidget {
             radius: 18,
             backgroundColor: isMe
                 ? AppColors.primary.withValues(alpha: 0.15)
-                : AppColors.surfaceVariant,
-            textColor: isMe ? AppColors.primary : AppColors.textSecondary,
+                : context.surfaceColor,
+            textColor: isMe ? AppColors.primary : context.textSecColor,
           ),
           const SizedBox(width: AppSizing.sm),
           Expanded(
@@ -55,7 +55,7 @@ class PoolBreakdownRow extends StatelessWidget {
                         style: AppTypography.titleMedium.copyWith(
                           color: isMe
                               ? AppColors.primary
-                              : AppColors.textPrimary,
+                              : context.textPrimColor,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -82,7 +82,7 @@ class PoolBreakdownRow extends StatelessWidget {
                 Text(
                   '${member.totalPoints.toStringAsFixed(1)} pts',
                   style: AppTypography.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                      .copyWith(color: context.textSecColor),
                 ),
               ],
             ),
@@ -90,7 +90,7 @@ class PoolBreakdownRow extends StatelessWidget {
           Text(
             '৳${member.estimatedMealCost.toStringAsFixed(0)}',
             style: AppTypography.titleMedium.copyWith(
-              color: isMe ? AppColors.primary : AppColors.textPrimary,
+              color: isMe ? AppColors.primary : context.textPrimColor,
               fontWeight: FontWeight.w600,
             ),
           ),

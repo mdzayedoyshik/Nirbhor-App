@@ -22,7 +22,7 @@ class WalletMemberTile extends StatelessWidget {
     final balanceColor = isNeg ? AppColors.error : AppColors.success;
 
     return Material(
-      color: AppColors.surface,
+      color: context.cardColor,
       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       child: InkWell(
         onLongPress: onSendRequest,
@@ -31,7 +31,7 @@ class WalletMemberTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(
               horizontal: AppSizing.md, vertical: AppSizing.sm + 2),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.borderColor),
             borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           ),
           child: Row(
@@ -46,7 +46,7 @@ class WalletMemberTile extends StatelessWidget {
                     Text(
                       _roleLabel(member.role),
                       style: AppTypography.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.textSecColor),
                     ),
                   ],
                 ),
@@ -83,7 +83,7 @@ class WalletMemberTile extends StatelessWidget {
               if (onSendRequest != null) ...[
                 const SizedBox(width: AppSizing.xs),
                 Icon(Icons.chevron_right,
-                    size: 18, color: AppColors.textSecondary),
+                    size: 18, color: context.textSecColor),
               ],
             ],
           ),

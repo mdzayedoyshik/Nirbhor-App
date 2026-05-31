@@ -41,12 +41,12 @@ class MemberCard extends StatelessWidget {
         vertical: AppSizing.sm + 2,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
         border: Border.all(
           color: hasExitInProgress
               ? AppColors.warning.withValues(alpha: 0.5)
-              : AppColors.border,
+              : context.borderColor,
         ),
       ),
       child: Row(
@@ -205,7 +205,7 @@ class _RoleBadge extends StatelessWidget {
         break;
       default:
         label = 'Member';
-        color = AppColors.textSecondary;
+        color = context.textSecColor;
     }
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -249,15 +249,15 @@ class _ActionMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: const Icon(
+      icon: Icon(
         Icons.more_vert,
-        color: AppColors.textSecondary,
+        color: context.textSecColor,
         size: AppSizing.iconMd,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       ),
-      color: AppColors.surface,
+      color: context.cardColor,
       onSelected: (value) {
         switch (value) {
           case 'make_member':
@@ -277,7 +277,7 @@ class _ActionMenu extends StatelessWidget {
             break;
         }
       },
-      itemBuilder: (_) {
+      itemBuilder: (menuContext) {
         final items = <PopupMenuEntry<String>>[];
 
         if (!hasExitInProgress) {
@@ -285,6 +285,7 @@ class _ActionMenu extends StatelessWidget {
           if (member.role != 'manager') {
             if (member.role != 'co-manager') {
               items.add(_menuItem(
+                context: menuContext,
                 value: 'make_co_manager',
                 icon: Icons.star_outline_rounded,
                 label: 'Make Co-Manager',
@@ -294,12 +295,14 @@ class _ActionMenu extends StatelessWidget {
             }
             if (member.role != 'member') {
               items.add(_menuItem(
+                context: menuContext,
                 value: 'make_member',
                 icon: Icons.person_outline_rounded,
                 label: 'Make Member',
               ));
             }
             items.add(_menuItem(
+              context: menuContext,
               value: 'transfer_manager',
               icon: Icons.swap_horiz_rounded,
               label: 'Transfer Manager',
@@ -307,6 +310,7 @@ class _ActionMenu extends StatelessWidget {
             ));
             if (items.isNotEmpty) items.add(const PopupMenuDivider());
             items.add(_menuItem(
+              context: menuContext,
               value: 'initiate_exit',
               icon: Icons.exit_to_app_rounded,
               label: 'Initiate Exit',
@@ -315,6 +319,7 @@ class _ActionMenu extends StatelessWidget {
           }
         } else {
           items.add(_menuItem(
+            context: menuContext,
             value: 'view_settlement',
             icon: Icons.receipt_long_outlined,
             label: 'View Settlement',
@@ -327,6 +332,7 @@ class _ActionMenu extends StatelessWidget {
   }
 
   PopupMenuItem<String> _menuItem({
+    required BuildContext context,
     required String value,
     required IconData icon,
     required String label,
@@ -335,10 +341,10 @@ class _ActionMenu extends StatelessWidget {
     String? disabledHint,
   }) {
     final color = !enabled
-        ? AppColors.textHint
+        ? context.textTerColor
         : isDestructive
         ? AppColors.error
-        : AppColors.textPrimary;
+        : context.textPrimColor;
 
     return PopupMenuItem<String>(
       value: enabled ? value : null,

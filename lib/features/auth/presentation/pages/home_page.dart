@@ -74,8 +74,8 @@ class _HomePageState extends State<HomePage> {
         final displayState = _resolveDisplay(state);
 
         if (displayState is FlatChecking || displayState is FlatInitial) {
-          return const Scaffold(
-            backgroundColor: AppColors.background,
+          return Scaffold(
+            backgroundColor: context.bgColor,
             body: Center(
               child: CircularProgressIndicator(color: AppColors.primary),
             ),
@@ -98,7 +98,7 @@ class _HomePageState extends State<HomePage> {
               BlocProvider(create: (_) => sl<MonthCloseChecklistBloc>()),
             ],
             child: Scaffold(
-              backgroundColor: AppColors.background,
+              backgroundColor: context.bgColor,
               body: FlatHomeView(flat: displayState.flat),
             ),
           );
@@ -106,7 +106,7 @@ class _HomePageState extends State<HomePage> {
 
         if (displayState is FlatPendingRequest) {
           return Scaffold(
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bgColor,
             appBar: _profileAppBar(context),
             body: const PendingRequestView(),
           );
@@ -127,7 +127,7 @@ class _HomePageState extends State<HomePage> {
         }
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: _profileAppBar(context),
           body: const FlatLandingView(),
         );
@@ -137,11 +137,11 @@ class _HomePageState extends State<HomePage> {
 
   PreferredSizeWidget _profileAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.bgColor,
       elevation: 0,
       actions: [
         IconButton(
-          icon: const Icon(Icons.person_outline, color: AppColors.textPrimary),
+          icon: Icon(Icons.person_outline, color: context.textPrimColor),
           onPressed: () => context.push(AppRoutes.profile),
         ),
       ],

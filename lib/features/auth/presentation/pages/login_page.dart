@@ -124,7 +124,7 @@ class _LoginPageState extends State<LoginPage> {
                         hintStyle: AppTypography.bodyM
                             .copyWith(color: context.textTerColor),
                         filled: true,
-                        fillColor: AppColors.surface100,
+                        fillColor: context.surfaceColor,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: AppSizing.md,
                           vertical: AppSizing.md,
@@ -133,13 +133,13 @@ class _LoginPageState extends State<LoginPage> {
                           borderRadius:
                               BorderRadius.circular(AppSizing.radiusLg),
                           borderSide:
-                              const BorderSide(color: AppColors.border),
+                              BorderSide(color: context.borderColor),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius:
                               BorderRadius.circular(AppSizing.radiusLg),
                           borderSide:
-                              const BorderSide(color: AppColors.border),
+                              BorderSide(color: context.borderColor),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius:

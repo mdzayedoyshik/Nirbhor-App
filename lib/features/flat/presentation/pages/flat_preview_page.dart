@@ -35,15 +35,15 @@ class FlatPreviewPage extends StatelessWidget {
             state.source == FlatLoadingSource.join;
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
             title: Text('Flat Preview', style: AppTypography.titleLarge),
-            backgroundColor: AppColors.surface,
+            backgroundColor: context.cardColor,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary,
+                color: context.textPrimColor,
               ),
               onPressed: () => context.pop(),
             ),
@@ -74,17 +74,17 @@ class FlatPreviewPage extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.location_on_outlined,
                           size: AppSizing.iconSm,
-                          color: AppColors.textSecondary,
+                          color: context.textSecColor,
                         ),
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
                             preview.address!,
                             style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.textSecColor,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -97,9 +97,9 @@ class FlatPreviewPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(AppSizing.md),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: context.cardColor,
                       borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: context.borderColor),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,

@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../flat/domain/entities/flat_member_entity.dart';
 import '../../domain/entities/audit_log_entity.dart';
 import '../args/audit_log_page_args.dart';
 import '../bloc/audit_log_bloc.dart';
@@ -392,6 +393,7 @@ class _AuditLogPageState extends State<AuditLogPage> {
                           logs: logs,
                           isLoadingMore: isLoadingMore,
                           scrollController: _scrollController,
+                          members: widget.args.members,
                         ),
                       ),
               ),
@@ -474,7 +476,7 @@ class _PillChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isActive
               ? AppColors.brand
-              : AppColors.surface200,
+              : context.surfaceColor,
           borderRadius: BorderRadius.circular(AppSizing.rFull),
         ),
         child: Text(
@@ -535,11 +537,13 @@ class _TimelineList extends StatelessWidget {
     required this.logs,
     required this.isLoadingMore,
     required this.scrollController,
+    required this.members,
   });
 
   final List<AuditLogEntity> logs;
   final bool isLoadingMore;
   final ScrollController scrollController;
+  final List<FlatMemberEntity> members;
 
   @override
   Widget build(BuildContext context) {
@@ -588,6 +592,7 @@ class _TimelineList extends StatelessWidget {
         return _TimelineTile(
           log: item.log!,
           isLast: isLast,
+          members: members,
         );
       },
     );
@@ -624,13 +629,13 @@ class _DateHeader extends StatelessWidget {
           Text(
             label,
             style: AppTypography.overline.copyWith(
-              color: AppColors.textTertiary,
+              color: context.textTerColor,
             ),
           ),
           const SizedBox(width: AppSizing.sm),
           Expanded(
             child: Divider(
-              color: AppColors.surface300,
+              color: context.dividerColor,
               thickness: 1,
               height: 1,
             ),
@@ -644,10 +649,11 @@ class _DateHeader extends StatelessWidget {
 // ── Timeline Tile ─────────────────────────────────────────────────────────────
 
 class _TimelineTile extends StatelessWidget {
-  const _TimelineTile({required this.log, required this.isLast});
+  const _TimelineTile({required this.log, required this.isLast, required this.members});
 
   final AuditLogEntity log;
   final bool isLast;
+  final List<FlatMemberEntity> members;
 
   @override
   Widget build(BuildContext context) {
@@ -684,7 +690,7 @@ class _TimelineTile extends StatelessWidget {
                   Expanded(
                     child: Container(
                       width: 2,
-                      color: AppColors.surface300,
+                      color: context.dividerColor,
                     ),
                   ),
               ],
@@ -697,7 +703,7 @@ class _TimelineTile extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: AppSizing.sm),
-              child: _LogCard(log: log, color: color, icon: icon),
+              child: _LogCard(log: log, color: color, icon: icon, members: members),
             ),
           ),
         ],
@@ -713,11 +719,13 @@ class _LogCard extends StatelessWidget {
     required this.log,
     required this.color,
     required this.icon,
+    required this.members,
   });
 
   final AuditLogEntity log;
   final Color color;
   final IconData icon;
+  final List<FlatMemberEntity> members;
 
   @override
   Widget build(BuildContext context) {
@@ -764,7 +772,7 @@ class _LogCard extends StatelessWidget {
                 ),
               ),
               subtitle: _LogSubtitle(log: log),
-              children: [_ExpandedContent(log: log)],
+              children: [_ExpandedContent(log: log, members: members)],
             )
           : Padding(
               padding: const EdgeInsets.symmetric(
@@ -828,14 +836,14 @@ class _LogSubtitle extends StatelessWidget {
           Text(
             _timeOnly(log.createdAt),
             style: AppTypography.labelS.copyWith(
-              color: AppColors.textTertiary,
+              color: context.textTerColor,
             ),
           ),
           const SizedBox(width: AppSizing.xs),
           Text(
             _timeAgo(log.createdAt),
             style: AppTypography.labelS.copyWith(
-              color: AppColors.textTertiary,
+              color: context.textTerColor,
             ),
           ),
         ],
@@ -847,9 +855,10 @@ class _LogSubtitle extends StatelessWidget {
 // ── Expanded Content ──────────────────────────────────────────────────────────
 
 class _ExpandedContent extends StatelessWidget {
-  const _ExpandedContent({required this.log});
+  const _ExpandedContent({required this.log, required this.members});
 
   final AuditLogEntity log;
+  final List<FlatMemberEntity> members;
 
   @override
   Widget build(BuildContext context) {
@@ -869,7 +878,7 @@ class _ExpandedContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Divider(color: AppColors.border, height: 1),
+        Divider(color: context.borderColor, height: 1),
         const SizedBox(height: AppSizing.sm),
         if (hasOld) ...[
           Text(
@@ -880,7 +889,7 @@ class _ExpandedContent extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSizing.xs),
-          _JsonTable(data: log.oldValue!),
+          _JsonTable(data: log.oldValue!, members: members),
           const SizedBox(height: AppSizing.sm),
         ],
         if (hasNew) ...[
@@ -892,17 +901,42 @@ class _ExpandedContent extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSizing.xs),
-          _JsonTable(data: log.newValue!),
+          _JsonTable(data: log.newValue!, members: members),
         ],
       ],
     );
   }
 }
 
+// Keys whose values are flat_member IDs (single or list)
+const _kMemberIdKeys = {
+  'assigned_to_ids',
+  'assignees',
+  'manager_id',
+};
+
 class _JsonTable extends StatelessWidget {
-  const _JsonTable({required this.data});
+  const _JsonTable({required this.data, required this.members});
 
   final Map<String, dynamic> data;
+  final List<FlatMemberEntity> members;
+
+  String _resolveValue(String key, dynamic value) {
+    if (!_kMemberIdKeys.contains(key)) return '$value';
+
+    final lookup = {for (final m in members) m.flatMemberId: m.name};
+
+    if (value is List) {
+      final names = value
+          .map((id) => lookup[id?.toString()] ?? id?.toString() ?? '')
+          .where((n) => n.isNotEmpty)
+          .toList();
+      return names.isEmpty ? '$value' : names.join(', ');
+    }
+
+    final id = value?.toString() ?? '';
+    return lookup[id] ?? id;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -910,7 +944,7 @@ class _JsonTable extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSizing.sm),
       decoration: BoxDecoration(
-        color: AppColors.surface100,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       ),
       child: Column(
@@ -930,7 +964,7 @@ class _JsonTable extends StatelessWidget {
                 ),
                 Expanded(
                   child: Text(
-                    '${entry.value}',
+                    _resolveValue(entry.key, entry.value),
                     style: AppTypography.bodyS,
                   ),
                 ),
@@ -989,7 +1023,7 @@ class _FilterSheetState extends State<_FilterSheet> {
               height: 4,
               margin: const EdgeInsets.only(bottom: AppSizing.md),
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1003,16 +1037,16 @@ class _FilterSheetState extends State<_FilterSheet> {
 
           // Action filter
           DropdownButtonFormField<String?>(
-            value: _selectedAction,
+            initialValue: _selectedAction,
             decoration: InputDecoration(
               labelText: 'Action',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                borderSide: BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: context.borderColor),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                borderSide: BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: context.borderColor),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: AppSizing.md,
@@ -1037,16 +1071,16 @@ class _FilterSheetState extends State<_FilterSheet> {
 
           // Entity type filter
           DropdownButtonFormField<String?>(
-            value: _selectedEntityType,
+            initialValue: _selectedEntityType,
             decoration: InputDecoration(
               labelText: 'Entity Type',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                borderSide: BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: context.borderColor),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                borderSide: BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: context.borderColor),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: AppSizing.md,
@@ -1084,7 +1118,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                     Navigator.of(context).pop();
                   },
                   style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: AppColors.border),
+                    side: BorderSide(color: context.borderColor),
                     padding: const EdgeInsets.symmetric(
                         vertical: AppSizing.sm + 2),
                     shape: RoundedRectangleBorder(

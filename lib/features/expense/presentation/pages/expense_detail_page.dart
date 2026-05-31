@@ -207,9 +207,9 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
             state is ExpenseDetailLoading || state is ExpenseActionLoading;
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bgColor,
             elevation: 0,
             title: Text(AppStrings.expenseDetailTitle,
                 style: AppTypography.headlineMedium),
@@ -218,8 +218,8 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
                   !expense.isApproved &&
                   widget.canManage)
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined,
-                      color: AppColors.textPrimary),
+                  icon: Icon(Icons.edit_outlined,
+                      color: context.textPrimColor),
                   onPressed: () {
                     final bloc = context.read<ExpenseBloc>();
                     context
@@ -248,7 +248,7 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
                       child: Text(
                         'Expense not found.',
                         style: AppTypography.bodyMedium
-                            .copyWith(color: AppColors.textSecondary),
+                            .copyWith(color: context.textSecColor),
                       ),
                     )
                   : _buildContent(context, expense),
@@ -300,9 +300,9 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(AppSizing.lg),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.cardColor,
               borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: context.borderColor),
             ),
             child: Column(
               children: [
@@ -353,9 +353,9 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
           // Details
           Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.cardColor,
               borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: context.borderColor),
             ),
             child: Column(
               children: [
@@ -364,21 +364,21 @@ class _ExpenseDetailPageState extends State<ExpenseDetailPage> {
                   label: 'Paid by',
                   value: expense.paidByName,
                 ),
-                const Divider(height: 1, color: AppColors.divider),
+                Divider(height: 1, color: context.dividerColor),
                 _DetailRow(
                   icon: Icons.calendar_today_outlined,
                   label: 'Date',
                   value: _formatDate(expense.date),
                 ),
                 if (expense.description?.isNotEmpty == true) ...[
-                  const Divider(height: 1, color: AppColors.divider),
+                  Divider(height: 1, color: context.dividerColor),
                   _DetailRow(
                     icon: Icons.description_outlined,
                     label: 'Description',
                     value: expense.description!,
                   ),
                 ],
-                const Divider(height: 1, color: AppColors.divider),
+                Divider(height: 1, color: context.dividerColor),
                 _DetailRow(
                   icon: Icons.access_time_outlined,
                   label: 'Recorded',
@@ -429,12 +429,12 @@ class _DetailRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: AppSizing.iconSm + 4, color: AppColors.textSecondary),
+          Icon(icon, size: AppSizing.iconSm + 4, color: context.textSecColor),
           const SizedBox(width: AppSizing.sm),
           Text(
             label,
             style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textSecondary),
+                .copyWith(color: context.textSecColor),
           ),
           const Spacer(),
           Flexible(

@@ -25,12 +25,12 @@ class PaymentRequestCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
         border: Border.all(
           color: request.isPending
               ? AppColors.primary.withValues(alpha: 0.4)
-              : AppColors.border,
+              : context.borderColor,
         ),
       ),
       child: Column(
@@ -52,7 +52,7 @@ class PaymentRequestCard extends StatelessWidget {
                       Text(
                         request.note!,
                         style: AppTypography.bodySmall
-                            .copyWith(color: AppColors.textSecondary),
+                            .copyWith(color: context.textSecColor),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),

@@ -63,18 +63,18 @@ class _CreateFlatPageState extends State<CreateFlatPage> {
             state.source == FlatLoadingSource.create;
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
             title: Text(
               AppStrings.createFlatTitle,
               style: AppTypography.titleLarge,
             ),
-            backgroundColor: AppColors.surface,
+            backgroundColor: context.cardColor,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary,
+                color: context.textPrimColor,
               ),
               onPressed: () => context.pop(),
             ),
@@ -130,9 +130,9 @@ class _CreateFlatPageState extends State<CreateFlatPage> {
                       controller: _nameCtrl,
                       label: AppStrings.flatNameLabel,
                       hint: AppStrings.flatNameHint,
-                      prefixIcon: const Icon(
+                      prefixIcon: Icon(
                         Icons.apartment_outlined,
-                        color: AppColors.textSecondary,
+                        color: context.textSecColor,
                       ),
                       textInputAction: TextInputAction.next,
                       validator: (v) => (v == null || v.trim().isEmpty)
@@ -144,9 +144,9 @@ class _CreateFlatPageState extends State<CreateFlatPage> {
                       controller: _addressCtrl,
                       label: AppStrings.flatAddressLabel,
                       hint: AppStrings.flatAddressHint,
-                      prefixIcon: const Icon(
+                      prefixIcon: Icon(
                         Icons.location_on_outlined,
-                        color: AppColors.textSecondary,
+                        color: context.textSecColor,
                       ),
                       textInputAction: TextInputAction.next,
                       maxLines: 2,

@@ -61,105 +61,31 @@ class _MealPageState extends State<MealPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          // Custom gradient header
-          _MealPageHeader(
-            selectedTab: _selectedTab,
-            onTabChanged: (index) => setState(() => _selectedTab = index),
-          ),
-
-          // Tab body
-          Expanded(
-            child: IndexedStack(
-              index: _selectedTab,
-              children: [
-                _DailyTab(args: widget.args),
-                _PoolTab(args: widget.args),
-                _HistoryTab(args: widget.args),
-                _PrefsTab(args: widget.args),
-              ],
+      appBar: AppBar(
+        title: Text('Meals', style: AppTypography.headlineMedium),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizing.pagePadding, 0, AppSizing.pagePadding, AppSizing.md),
+            child: _PillTabBar(
+              selectedIndex: _selectedTab,
+              onChanged: (index) => setState(() => _selectedTab = index),
+              labels: const ['Meals', 'Pool', 'History', 'Prefs'],
             ),
           ),
+        ),
+      ),
+      body: IndexedStack(
+        index: _selectedTab,
+        children: [
+          _DailyTab(args: widget.args),
+          _PoolTab(args: widget.args),
+          _HistoryTab(args: widget.args),
+          _PrefsTab(args: widget.args),
         ],
       ),
     );
-  }
-}
-
-// ── Custom header with gradient + pill tabs ───────────────────────────────────
-
-class _MealPageHeader extends StatelessWidget {
-  final int selectedTab;
-  final ValueChanged<int> onTabChanged;
-
-  const _MealPageHeader({
-    required this.selectedTab,
-    required this.onTabChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final topPad = MediaQuery.of(context).padding.top;
-
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: AppColors.brandGradient,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(AppSizing.r24),
-          bottomRight: Radius.circular(AppSizing.r24),
-        ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          AppSizing.pagePadding,
-          topPad + AppSizing.md,
-          AppSizing.pagePadding,
-          AppSizing.lg,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Back button + title row
-            Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Meals',
-                      style: AppTypography.h2.copyWith(
-                        color: AppColors.white,
-                      ),
-                    ),
-                    Text(
-                      _currentMonthLabel(),
-                      style: AppTypography.bodyS.copyWith(
-                        color: AppColors.white.withValues(alpha: 0.75),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: AppSizing.lg),
-
-            // Pill toggle tabs
-            _PillTabBar(
-              selectedIndex: selectedTab,
-              onChanged: onTabChanged,
-              labels: const ['Meals', 'Pool', 'History', 'Prefs'],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _currentMonthLabel() {
-    final now = DateTime.now();
-    return '${_months[now.month - 1]} ${now.year}';
   }
 }
 
@@ -181,8 +107,10 @@ class _PillTabBar extends StatelessWidget {
     return Container(
       height: 44,
       decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.15),
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.rFull),
+        border: Border.all(color: context.borderColor),
+        boxShadow: AppColors.shadowSm,
       ),
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -195,18 +123,18 @@ class _PillTabBar extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
                 decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.white
-                      : AppColors.transparent,
+                  gradient: selected ? AppColors.brandGradient : null,
+                  color: selected ? null : AppColors.transparent,
                   borderRadius: BorderRadius.circular(AppSizing.rFull),
+                  boxShadow: selected ? AppColors.shadowSm : null,
                 ),
                 alignment: Alignment.center,
                 child: AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 200),
                   style: AppTypography.labelM.copyWith(
                     color: selected
-                        ? AppColors.brand
-                        : AppColors.white.withValues(alpha: 0.85),
+                        ? AppColors.white
+                        : context.textSecColor,
                   ),
                   child: Text(labels[i]),
                 ),
@@ -272,6 +200,7 @@ class _DailyTabState extends State<_DailyTab>
         '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
     if (newDate == _selectedDate) return;
     setState(() => _selectedDate = newDate);
+    // ignore: use_build_context_synchronously
     context.read<MealBloc>().add(
           MealDailyDateChanged(flatId: widget.args.flatId, date: newDate),
         );
@@ -359,7 +288,7 @@ class _DailyTabState extends State<_DailyTab>
                     decoration: BoxDecoration(
                       color: context.cardColor,
                       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: context.borderColor),
                       boxShadow: AppColors.shadowSm,
                     ),
                     child: Row(
@@ -374,7 +303,7 @@ class _DailyTabState extends State<_DailyTab>
                             child: Text(
                               _formatDate(_selectedDate),
                               style: AppTypography.labelL.copyWith(
-                                color: AppColors.textPrimary,
+                                color: context.textPrimColor,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -484,7 +413,7 @@ class _DailyTabState extends State<_DailyTab>
                       child: Text(
                         'Member Logs',
                         style: AppTypography.labelL.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.textSecColor,
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -615,7 +544,7 @@ class _PoolTabState extends State<_PoolTab>
                     decoration: BoxDecoration(
                       color: context.cardColor,
                       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: context.borderColor),
                       boxShadow: AppColors.shadowSm,
                     ),
                     child: Row(
@@ -628,7 +557,7 @@ class _PoolTabState extends State<_PoolTab>
                           child: Text(
                             '${_months[_month - 1]} $_year',
                             style: AppTypography.labelL.copyWith(
-                              color: AppColors.textPrimary,
+                              color: context.textPrimColor,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -733,7 +662,7 @@ class _PoolTabState extends State<_PoolTab>
                     child: Text(
                       'Member Breakdown',
                       style: AppTypography.labelL.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.textSecColor,
                         letterSpacing: 0.3,
                       ),
                     ),
@@ -839,14 +768,14 @@ class _PrefsTabState extends State<_PrefsTab>
                   Text(
                     'Weekly Meal Preferences',
                     style: AppTypography.h3.copyWith(
-                      color: AppColors.textPrimary,
+                      color: context.textPrimColor,
                     ),
                   ),
                   const SizedBox(height: AppSizing.xs),
                   Text(
                     'Set your default meals for each day. Used when you haven\'t toggled a specific day.',
                     style: AppTypography.bodyS
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.textSecColor),
                   ),
                   const SizedBox(height: AppSizing.lg),
 
@@ -924,7 +853,7 @@ class _PrefsTabState extends State<_PrefsTab>
                             color: context.cardColor,
                             borderRadius:
                                 BorderRadius.circular(AppSizing.radiusMd),
-                            border: Border.all(color: AppColors.border),
+                            border: Border.all(color: context.borderColor),
                             boxShadow: AppColors.shadowSm,
                           ),
                           child: Row(
@@ -934,7 +863,7 @@ class _PrefsTabState extends State<_PrefsTab>
                                 child: Text(
                                   shortDay,
                                   style: AppTypography.labelL.copyWith(
-                                    color: AppColors.textPrimary,
+                                    color: context.textPrimColor,
                                   ),
                                 ),
                               ),
@@ -966,7 +895,7 @@ class _PrefsTabState extends State<_PrefsTab>
                                         decoration: BoxDecoration(
                                           color: value
                                               ? color
-                                              : AppColors.surface100,
+                                              : context.surfaceColor,
                                           shape: BoxShape.circle,
                                           boxShadow: value
                                               ? [
@@ -1123,12 +1052,12 @@ class _ShiftSummaryCardState extends State<_ShiftSummaryCard>
           decoration: BoxDecoration(
             color: widget.enabled
                 ? widget.color.withValues(alpha: 0.08)
-                : AppColors.surface100,
+                : context.surfaceColor,
             borderRadius: BorderRadius.circular(AppSizing.radiusMd),
             border: Border.all(
               color: widget.enabled
                   ? widget.color.withValues(alpha: 0.3)
-                  : AppColors.border,
+                  : context.borderColor,
             ),
             boxShadow: widget.enabled ? AppColors.shadowSm : null,
           ),
@@ -1215,7 +1144,7 @@ class _FlatToggleCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.borderColor),
           boxShadow: AppColors.shadowSm,
         ),
         child: Row(
@@ -1238,13 +1167,13 @@ class _FlatToggleCard extends StatelessWidget {
                   Text(
                     'Flat Shifts',
                     style: AppTypography.labelL.copyWith(
-                      color: AppColors.textPrimary,
+                      color: context.textPrimColor,
                     ),
                   ),
                   Text(
                     'Manage which shifts are active today',
                     style: AppTypography.labelS
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.textSecColor),
                   ),
                 ],
               ),
@@ -1260,7 +1189,7 @@ class _FlatToggleCard extends StatelessWidget {
                     width: 10,
                     height: 10,
                     decoration: BoxDecoration(
-                      color: active ? color : AppColors.border,
+                      color: active ? color : context.borderColor,
                       shape: BoxShape.circle,
                       boxShadow: active
                           ? [
@@ -1308,7 +1237,7 @@ class _PoolStatCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.borderColor),
           boxShadow: AppColors.shadowSm,
         ),
         child: Column(
@@ -1335,7 +1264,7 @@ class _PoolStatCard extends StatelessWidget {
             Text(
               value,
               style: AppTypography.h4.copyWith(
-                color: AppColors.textPrimary,
+                color: context.textPrimColor,
                 fontWeight: FontWeight.w700,
               ),
               overflow: TextOverflow.ellipsis,
@@ -1343,7 +1272,7 @@ class _PoolStatCard extends StatelessWidget {
             Text(
               label,
               style: AppTypography.labelS
-                  .copyWith(color: AppColors.textSecondary, fontSize: 10),
+                  .copyWith(color: context.textSecColor, fontSize: 10),
             ),
           ],
         ),
@@ -1371,14 +1300,14 @@ class _EmptyMealState extends StatelessWidget {
             Text(
               'No meal logs yet',
               style: AppTypography.h3.copyWith(
-                color: AppColors.textPrimary,
+                color: context.textPrimColor,
               ),
             ),
             const SizedBox(height: AppSizing.xs),
             Text(
               'Logs will appear here once members start tracking meals.',
               style: AppTypography.bodyS
-                  .copyWith(color: AppColors.textSecondary),
+                  .copyWith(color: context.textSecColor),
               textAlign: TextAlign.center,
             ),
           ],
@@ -1401,8 +1330,8 @@ class _NavIconButton extends StatelessWidget {
     return IconButton(
       icon: Icon(icon,
           color: onPressed == null
-              ? AppColors.textDisabled
-              : AppColors.textPrimary),
+              ? context.textTerColor
+              : context.textPrimColor),
       onPressed: onPressed,
       iconSize: 22,
       padding: const EdgeInsets.all(AppSizing.xs),
@@ -1441,7 +1370,7 @@ class _ErrorView extends StatelessWidget {
             Text(
               message,
               style: AppTypography.bodyM
-                  .copyWith(color: AppColors.textSecondary),
+                  .copyWith(color: context.textSecColor),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSizing.md),
@@ -1566,7 +1495,7 @@ class _HistoryTabState extends State<_HistoryTab>
                     IconButton(
                       onPressed: _prevMonth,
                       icon: const Icon(Icons.chevron_left_rounded),
-                      color: AppColors.textSecondary,
+                      color: context.textSecColor,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -1581,8 +1510,8 @@ class _HistoryTabState extends State<_HistoryTab>
                       onPressed: isCurrentMonth ? null : _nextMonth,
                       icon: const Icon(Icons.chevron_right_rounded),
                       color: isCurrentMonth
-                          ? AppColors.textHint
-                          : AppColors.textSecondary,
+                          ? context.textTerColor
+                          : context.textSecColor,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -1649,14 +1578,14 @@ class _MemberDropdown extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: selectedId,
           isExpanded: true,
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textPrimary,
+            color: context.textPrimColor,
           ),
           dropdownColor: context.cardColor,
           items: members.map((m) => DropdownMenuItem(
@@ -1791,7 +1720,7 @@ class _CalendarCell extends StatelessWidget {
             '$day',
             style: AppTypography.labelSmall.copyWith(
               fontWeight: FontWeight.w700,
-              color: isToday ? AppColors.brand : AppColors.textPrimary,
+              color: isToday ? AppColors.brand : context.textPrimColor,
             ),
           ),
           const SizedBox(height: 3),
@@ -1834,7 +1763,7 @@ class _MealDot extends StatelessWidget {
       height: 5,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: active ? color : AppColors.border,
+        color: active ? color : context.borderColor,
       ),
     );
   }
@@ -1878,7 +1807,7 @@ class _LegendItem extends StatelessWidget {
         Text(
           label,
           style: AppTypography.labelSmall.copyWith(
-            color: AppColors.textSecondary,
+            color: context.textSecColor,
           ),
         ),
       ],
@@ -1903,7 +1832,7 @@ class _SummaryRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Row(
         children: [
@@ -1928,7 +1857,7 @@ class _SummaryRow extends StatelessWidget {
           _SummaryItem(
             label: 'Total',
             value: total.toString(),
-            color: AppColors.textPrimary,
+            color: context.textPrimColor,
             bold: true,
           ),
         ],
@@ -1965,7 +1894,7 @@ class _SummaryItem extends StatelessWidget {
           Text(
             label,
             style: AppTypography.labelSmall.copyWith(
-              color: AppColors.textSecondary,
+              color: context.textSecColor,
             ),
           ),
         ],
@@ -1982,7 +1911,7 @@ class _Divider extends StatelessWidget {
     return Container(
       width: 1,
       height: 32,
-      color: AppColors.border,
+      color: context.borderColor,
     );
   }
 }

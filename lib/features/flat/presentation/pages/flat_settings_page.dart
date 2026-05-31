@@ -106,14 +106,12 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
             state.source == FlatLoadingSource.delete;
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
             title: Text(
               AppStrings.flatSettingsTitle,
-              style: AppTypography.titleLarge,
+              style: AppTypography.headlineMedium,
             ),
-            backgroundColor: AppColors.surface,
-            elevation: 0,
           ),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -198,7 +196,7 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                     Text(
                       AppStrings.flatPhotoUrlLabel,
                       style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.textSecColor,
                       ),
                     ),
                     const SizedBox(height: AppSizing.sm),
@@ -228,7 +226,7 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                           child: InkWell(
                             onTap: () => context.push(
                               AppRoutes.auditLog,
-                              extra: AuditLogPageArgs(flatId: widget.flat.id),
+                              extra: AuditLogPageArgs(flatId: widget.flat.id, members: widget.flat.members),
                             ),
                             borderRadius: BorderRadius.circular(
                               AppSizing.radiusLg,
@@ -244,7 +242,7 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                                     width: 36,
                                     height: 36,
                                     decoration: BoxDecoration(
-                                      color: AppColors.surface100,
+                                      color: context.surfaceColor,
                                       borderRadius: BorderRadius.circular(
                                         AppSizing.radiusSm,
                                       ),
@@ -269,7 +267,7 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                                         Text(
                                           'View all changes in this flat',
                                           style: AppTypography.bodyS.copyWith(
-                                            color: AppColors.textSecondary,
+                                            color: context.textSecColor,
                                           ),
                                         ),
                                       ],
@@ -464,7 +462,7 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(left: AppSizing.xs),
       child: Text(
         label.toUpperCase(),
-        style: AppTypography.overline.copyWith(color: AppColors.textTertiary),
+        style: AppTypography.overline.copyWith(color: context.textTerColor),
       ),
     );
   }
@@ -480,10 +478,10 @@ class _SettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         boxShadow: AppColors.shadowSm,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(children: children),
     );

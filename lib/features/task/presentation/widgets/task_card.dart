@@ -26,12 +26,12 @@ class TaskCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSizing.md),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           border: Border.all(
             color: isOverdue
                 ? AppColors.error.withValues(alpha: 0.3)
-                : AppColors.border,
+                : context.borderColor,
           ),
         ),
         child: Column(
@@ -49,8 +49,8 @@ class TaskCard extends StatelessWidget {
                           ? TextDecoration.lineThrough
                           : null,
                       color: isCompleted
-                          ? AppColors.textSecondary
-                          : AppColors.textPrimary,
+                          ? context.textSecColor
+                          : context.textPrimColor,
                     ),
                   ),
                 ),
@@ -147,7 +147,7 @@ class _AssigneeChip extends StatelessWidget {
         Text(
           name,
           style: AppTypography.labelSmall.copyWith(
-            color: muted ? AppColors.textHint : AppColors.textSecondary,
+            color: muted ? context.textTerColor : context.textSecColor,
           ),
         ),
       ],
@@ -165,7 +165,7 @@ class _AssigneeChips extends StatelessWidget {
       return _AssigneeChip(name: assignees.first.name ?? 'Assignee');
     }
     // Show stacked avatars + count
-    const maxVisible = 3;
+    const maxVisible = 10;
     final visible = assignees.take(maxVisible).toList();
     final extra = assignees.length - maxVisible;
     return Row(
@@ -187,15 +187,15 @@ class _AssigneeChips extends StatelessWidget {
                   width: 20,
                   height: 20,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.15),
+                    color: AppColors.primary,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.white, width: 1.5),
+                    border: Border.all(color: context.cardColor, width: 1.5),
                   ),
                   child: Center(
                     child: Text(
                       initials,
                       style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.primary,
+                        color: AppColors.white,
                         fontSize: 8,
                         fontWeight: FontWeight.w700,
                       ),
@@ -208,9 +208,9 @@ class _AssigneeChips extends StatelessWidget {
         ),
         const SizedBox(width: 4),
         Text(
-          extra > 0 ? '${assignees.length} members' : '${assignees.length}',
+          extra > 0 ? '+$extra member${extra > 1 ? 's' : ''}' : '',
           style: AppTypography.labelSmall
-              .copyWith(color: AppColors.textSecondary),
+              .copyWith(color: context.textSecColor),
         ),
       ],
     );
@@ -237,7 +237,7 @@ class _SubTaskProgress extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppSizing.radiusFull),
             child: LinearProgressIndicator(
               value: fraction,
-              backgroundColor: AppColors.border,
+              backgroundColor: context.borderColor,
               valueColor: AlwaysStoppedAnimation(color),
             ),
           ),
@@ -246,7 +246,7 @@ class _SubTaskProgress extends StatelessWidget {
         Text(
           '$done/$total',
           style: AppTypography.labelSmall.copyWith(
-            color: AppColors.textSecondary,
+            color: context.textSecColor,
             fontSize: 10,
           ),
         ),
@@ -272,7 +272,7 @@ class _DueChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isOverdue ? AppColors.error : AppColors.textSecondary;
+    final color = isOverdue ? AppColors.error : context.textSecColor;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

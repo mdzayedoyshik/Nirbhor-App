@@ -53,9 +53,9 @@ class _CompleteSetupPageState extends State<CompleteSetupPage> {
       builder: (context, state) {
         final loading = state is AuthLoading;
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bgColor,
             elevation: 0,
             automaticallyImplyLeading: false,
           ),
@@ -73,7 +73,7 @@ class _CompleteSetupPageState extends State<CompleteSetupPage> {
                     Text(
                       widget.args.email,
                       style: AppTypography.bodyMedium
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.textSecColor),
                     ),
                     const SizedBox(height: AppSizing.xl),
                     AppTextField(

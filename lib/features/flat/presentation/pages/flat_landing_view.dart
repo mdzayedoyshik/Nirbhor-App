@@ -43,7 +43,7 @@ class FlatLandingView extends StatelessWidget {
             Text(
               AppStrings.noFlatSubtitle,
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: context.textSecColor,
               ),
               textAlign: TextAlign.center,
             ),

@@ -12,7 +12,11 @@
       "WebFetch(domain:isaacadariku.medium.com)",
       "WebFetch(domain:dev.to)",
       "Bash(Get-ChildItem -Path \"g:\\\\nirbhor_app\\\\nirbhor\" -Recurse -Directory)",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(dart analyze *)",
+      "Bash(grep -n \"AppColors\\\\.border\\\\|AppColors\\\\.textSecondary\\\\|AppColors\\\\.surface[^C]\\\\|AppColors\\\\.surface$\" /mnt/Project/Nirbhor-App/lib/core/widgets/app_image_picker.dart)",
+      "Bash(ls -la /mnt/Project/ | head -20)",
+      "Read(//mnt/Project/**)"
     ]
   }
 }

@@ -81,7 +81,7 @@ class _AppInputDialogState extends State<AppInputDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
       ),
@@ -104,21 +104,11 @@ class _AppInputDialogState extends State<AppInputDialog> {
               decoration: InputDecoration(
                 hintText: widget.hint,
                 hintStyle: AppTypography.bodyLarge.copyWith(
-                  color: AppColors.textHint,
+                  color: context.textTerColor,
                 ),
-                filled: true,
-                fillColor: AppColors.surfaceVariant,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: AppSizing.md,
                   vertical: AppSizing.sm,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                  borderSide: const BorderSide(color: AppColors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppSizing.radiusMd),

@@ -102,3 +102,9 @@ class _AppView extends StatelessWidget {
     );
   }
 }
+/*
+1. Create expense date picker is still in light colors, 
+2. make all tabs appbar the same (Meals, wallet, expense, settings). Simple, minimal
+3. Due date datepicker in task creating is still in light colors. but perfect in edit bottom sheet
+4. Sub task text field is too small in task create, but perfect in task details subtask add
+*/

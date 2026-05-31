@@ -46,7 +46,6 @@ class _WalletHomePageState extends State<WalletHomePage> {
       builder: (context, state) {
         return Scaffold(
           appBar: AppBar(
-            elevation: 0,
             title: Text(AppStrings.walletTitle,
                 style: AppTypography.headlineMedium),
             actions: [
@@ -256,7 +255,7 @@ class _BalanceSection extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.r16),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -313,7 +312,7 @@ class _BalanceSection extends StatelessWidget {
                 width: 1,
                 height: 44,
                 margin: const EdgeInsets.symmetric(horizontal: AppSizing.md),
-                color: AppColors.border,
+                color: context.borderColor,
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -666,7 +665,7 @@ class _TransactionsList extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.r16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       padding: const EdgeInsets.symmetric(
           horizontal: AppSizing.md, vertical: AppSizing.xs),
@@ -690,7 +689,7 @@ class _EmptyTransactionsState extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.r16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

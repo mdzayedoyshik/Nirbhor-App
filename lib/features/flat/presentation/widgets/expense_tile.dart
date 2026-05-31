@@ -27,9 +27,9 @@ class ExpenseTile extends StatelessWidget {
         vertical: AppSizing.sm + 2,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Row(
         children: [
@@ -65,10 +65,10 @@ class ExpenseTile extends StatelessWidget {
           if (canManage) ...[
             const SizedBox(width: AppSizing.xs),
             PopupMenuButton<String>(
-              icon: const Icon(
+              icon: Icon(
                 Icons.more_vert,
                 size: AppSizing.iconMd,
-                color: AppColors.textSecondary,
+                color: context.textSecColor,
               ),
               onSelected: (value) {
                 if (value == 'edit') onEdit?.call();

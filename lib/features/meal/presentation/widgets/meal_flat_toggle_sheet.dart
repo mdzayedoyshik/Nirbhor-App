@@ -20,7 +20,7 @@ void showFlatToggleSheet({
 }) {
   showModalBottomSheet(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: context.sheetBg,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
@@ -103,7 +103,7 @@ class _FlatToggleSheetState extends State<_FlatToggleSheet> {
             decoration: BoxDecoration(
               color: value
                   ? color.withValues(alpha: 0.12)
-                  : AppColors.surfaceVariant,
+                  : context.surfaceColor,
               borderRadius: BorderRadius.circular(AppSizing.radiusMd),
             ),
             child: Icon(
@@ -145,7 +145,7 @@ class _FlatToggleSheetState extends State<_FlatToggleSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),
               ),
             ),
@@ -155,10 +155,10 @@ class _FlatToggleSheetState extends State<_FlatToggleSheet> {
           Text(
             'Toggle shifts for all members on ${widget.currentDate}',
             style: AppTypography.bodySmall
-                .copyWith(color: AppColors.textSecondary),
+                .copyWith(color: context.textSecColor),
           ),
           const SizedBox(height: AppSizing.md),
-          Divider(color: AppColors.border, height: 1),
+          Divider(color: context.borderColor, height: 1),
           const SizedBox(height: AppSizing.md),
           _row('Breakfast', 'breakfast', _breakfast,
               (v) => setState(() => _breakfast = v)),
@@ -210,7 +210,7 @@ class _FlatToggleSheetState extends State<_FlatToggleSheet> {
           // Lock times section — managers only
           if (widget.canManage) ...[
             const SizedBox(height: AppSizing.lg),
-            Divider(color: AppColors.border, height: 1),
+            Divider(color: context.borderColor, height: 1),
             const SizedBox(height: AppSizing.md),
             _LockTimesSection(flatId: widget.flatId),
           ],
@@ -383,12 +383,12 @@ class _LockTimesSectionState extends State<_LockTimesSection> {
                   Text(
                     'Meal Lock Times',
                     style: AppTypography.labelL
-                        .copyWith(color: AppColors.textPrimary),
+                        .copyWith(color: context.textPrimColor),
                   ),
                   Text(
                     'UTC cut-off times for each shift',
                     style: AppTypography.labelS
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.textSecColor),
                   ),
                 ],
               ),
@@ -531,7 +531,7 @@ class _LockTimeRow extends StatelessWidget {
               child: Text(
                 label,
                 style: AppTypography.labelM
-                    .copyWith(color: AppColors.textPrimary),
+                    .copyWith(color: context.textPrimColor),
               ),
             ),
             Container(
@@ -540,7 +540,7 @@ class _LockTimeRow extends StatelessWidget {
               decoration: BoxDecoration(
                 color: context.cardColor,
                 borderRadius: BorderRadius.circular(AppSizing.r8),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: context.borderColor),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -550,7 +550,7 @@ class _LockTimeRow extends StatelessWidget {
                     style: AppTypography.labelM.copyWith(
                       color: time.isEmpty
                           ? AppColors.textDisabled
-                          : AppColors.textPrimary,
+                          : context.textPrimColor,
                     ),
                   ),
                   const SizedBox(width: AppSizing.xs),
@@ -558,7 +558,7 @@ class _LockTimeRow extends StatelessWidget {
                     Icons.edit_rounded,
                     size: 12,
                     color: enabled
-                        ? AppColors.textSecondary
+                        ? context.textSecColor
                         : AppColors.textDisabled,
                   ),
                 ],

@@ -68,9 +68,9 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       },
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bgColor,
             elevation: 0,
             title: Text(AppStrings.transactionHistoryTitle,
                 style: AppTypography.headlineMedium),
@@ -105,7 +105,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
           children: [
             Text(state.message,
                 style: AppTypography.bodyMedium
-                    .copyWith(color: AppColors.textSecondary)),
+                    .copyWith(color: context.textSecColor)),
             const SizedBox(height: AppSizing.md),
             TextButton(onPressed: _load, child: Text(AppStrings.retry)),
           ],
@@ -118,7 +118,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       return Center(
         child: Text('No transactions found.',
             style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textSecondary)),
+                .copyWith(color: context.textSecColor)),
       );
     }
 
@@ -146,7 +146,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
             children: [
               TransactionRow(transaction: state.transactions[index]),
               if (index < state.transactions.length - 1)
-                const Divider(height: 1, color: AppColors.divider),
+                Divider(height: 1, color: context.dividerColor),
             ],
           );
         },
@@ -169,7 +169,7 @@ class _FilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.background,
+      color: context.bgColor,
       padding: const EdgeInsets.symmetric(
           horizontal: AppSizing.pagePadding, vertical: AppSizing.sm),
       child: SingleChildScrollView(
@@ -185,12 +185,12 @@ class _FilterBar extends StatelessWidget {
                 onSelected: (_) => onSelect(f.value),
                 selectedColor: AppColors.primary.withValues(alpha: 0.15),
                 labelStyle: AppTypography.labelLarge.copyWith(
-                  color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                  color: isSelected ? AppColors.primary : context.textPrimColor,
                 ),
                 side: BorderSide(
-                  color: isSelected ? AppColors.primary : AppColors.border,
+                  color: isSelected ? AppColors.primary : context.borderColor,
                 ),
-                backgroundColor: AppColors.surface,
+                backgroundColor: context.cardColor,
                 showCheckmark: false,
               ),
             );

@@ -98,16 +98,16 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
       },
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bgColor,
             elevation: 0,
             title: Text(AppStrings.paymentRequestsTitle,
                 style: AppTypography.headlineMedium),
             bottom: TabBar(
               controller: _tabController,
               labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.textSecondary,
+              unselectedLabelColor: context.textSecColor,
               indicatorColor: AppColors.primary,
               tabs: widget.args.canManage
                   ? const [
@@ -159,7 +159,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
       return Center(
         child: Text(state.message,
             style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textSecondary)),
+                .copyWith(color: context.textSecColor)),
       );
     }
     if (requests == null || requests.isEmpty) {
@@ -167,7 +167,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
         child: Text(
           'No payment requests.',
           style: AppTypography.bodyMedium
-              .copyWith(color: AppColors.textSecondary),
+              .copyWith(color: context.textSecColor),
         ),
       );
     }
@@ -264,7 +264,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
@@ -292,7 +292,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
                           height: 4,
                           margin: const EdgeInsets.only(bottom: AppSizing.md),
                           decoration: BoxDecoration(
-                            color: AppColors.border,
+                            color: context.borderColor,
                             borderRadius: BorderRadius.circular(
                                 AppSizing.radiusFull),
                           ),
@@ -303,7 +303,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
                       const SizedBox(height: AppSizing.xs),
                       Text('Select one or more members',
                           style: AppTypography.bodySmall
-                              .copyWith(color: AppColors.textSecondary)),
+                              .copyWith(color: context.textSecColor)),
                     ],
                   ),
                 ),

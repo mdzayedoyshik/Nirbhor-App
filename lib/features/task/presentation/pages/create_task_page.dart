@@ -74,7 +74,9 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.brand),
+          colorScheme: AppColors.isDark(ctx)
+              ? const ColorScheme.dark(primary: AppColors.brand)
+              : const ColorScheme.light(primary: AppColors.brand),
         ),
         child: child!,
       ),
@@ -202,10 +204,10 @@ class _SubTasksInput extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: AppSizing.xs),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.check_box_outline_blank_rounded,
                   size: 18,
-                  color: AppColors.textHint,
+                  color: context.textTerColor,
                 ),
                 const SizedBox(width: AppSizing.xs),
                 Expanded(
@@ -213,8 +215,8 @@ class _SubTasksInput extends StatelessWidget {
                 ),
                 GestureDetector(
                   onTap: () => onRemove(e.key),
-                  child: const Icon(Icons.close_rounded,
-                      size: 16, color: AppColors.textHint),
+                  child: Icon(Icons.close_rounded,
+                      size: 16, color: context.textTerColor),
                 ),
               ],
             ),
@@ -230,11 +232,27 @@ class _SubTasksInput extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: 'Add a sub-task…',
                   hintStyle: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textHint,
+                    color: context.textTerColor,
                   ),
-                  border: InputBorder.none,
+                  filled: true,
+                  fillColor: context.surfaceColor,
                   isDense: true,
-                  contentPadding: EdgeInsets.zero,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSizing.sm,
+                    vertical: AppSizing.xs + 2,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                    borderSide: BorderSide(color: context.borderColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                    borderSide: BorderSide(color: context.borderColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                    borderSide: const BorderSide(color: AppColors.brand),
+                  ),
                 ),
                 onSubmitted: (_) => onAdd(),
                 textInputAction: TextInputAction.done,
@@ -252,7 +270,6 @@ class _SubTasksInput extends StatelessWidget {
             ),
           ],
         ),
-        const Divider(height: 1, color: AppColors.border),
       ],
     );
   }

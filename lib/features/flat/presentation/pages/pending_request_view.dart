@@ -66,7 +66,7 @@ class PendingRequestView extends StatelessWidget {
                 Text(
                   AppStrings.pendingRequestSubtitle,
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.textSecColor,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -78,16 +78,16 @@ class PendingRequestView extends StatelessWidget {
                       vertical: AppSizing.sm,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
+                      color: context.surfaceColor,
                       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.apartment_rounded,
                           size: AppSizing.iconSm,
-                          color: AppColors.textSecondary,
+                          color: context.textSecColor,
                         ),
                         const SizedBox(width: AppSizing.xs),
                         Text(

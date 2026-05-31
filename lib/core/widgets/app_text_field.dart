@@ -75,7 +75,7 @@ class _AppTextFieldState extends State<AppTextField> {
           decoration: InputDecoration(
             hintText: widget.hint,
             hintStyle: AppTypography.bodyLarge.copyWith(
-              color: AppColors.textHint,
+              color: context.textTerColor,
             ),
             prefixIcon: widget.prefixIcon,
             suffixIcon: widget.obscure
@@ -84,25 +84,15 @@ class _AppTextFieldState extends State<AppTextField> {
                       _obscure
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: AppColors.textSecondary,
+                      color: context.textSecColor,
                       size: AppSizing.iconMd,
                     ),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   )
                 : null,
-            filled: true,
-            fillColor: AppColors.surfaceVariant,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppSizing.md,
               vertical: AppSizing.md,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-              borderSide: const BorderSide(color: AppColors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSizing.radiusMd),

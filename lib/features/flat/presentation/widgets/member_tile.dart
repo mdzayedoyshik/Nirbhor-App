@@ -25,9 +25,9 @@ class MemberTile extends StatelessWidget {
         vertical: AppSizing.sm + 2,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Row(
         children: [

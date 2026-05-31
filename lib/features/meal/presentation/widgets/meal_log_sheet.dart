@@ -41,7 +41,7 @@ void showMealLogSheet({
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: context.sheetBg,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
     ),
@@ -203,7 +203,7 @@ class _MealLogSheetState extends State<_MealLogSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),
               ),
             ),
@@ -226,7 +226,7 @@ class _MealLogSheetState extends State<_MealLogSheet> {
                     Text(
                       widget.currentDate,
                       style: AppTypography.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.textSecColor),
                     ),
                   ],
                 ),
@@ -236,22 +236,22 @@ class _MealLogSheetState extends State<_MealLogSheet> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: AppSizing.sm, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.textSecondary.withValues(alpha: 0.08),
+                    color: context.textSecColor.withValues(alpha: 0.08),
                     borderRadius:
                         BorderRadius.circular(AppSizing.radiusFull),
                     border: Border.all(
-                        color: AppColors.textSecondary.withValues(alpha: 0.3)),
+                        color: context.textSecColor.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     'Expected',
                     style: AppTypography.labelSmall
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.textSecColor),
                   ),
                 ),
             ],
           ),
           const SizedBox(height: AppSizing.md),
-          Divider(color: AppColors.border, height: 1),
+          Divider(color: context.borderColor, height: 1),
           const SizedBox(height: AppSizing.md),
 
           // shift rows
@@ -276,7 +276,7 @@ class _MealLogSheetState extends State<_MealLogSheet> {
                         decoration: BoxDecoration(
                           color: (editable && isOn)
                               ? color.withValues(alpha: 0.12)
-                              : AppColors.surfaceVariant,
+                              : context.surfaceColor,
                           borderRadius:
                               BorderRadius.circular(AppSizing.radiusMd),
                         ),
@@ -298,7 +298,7 @@ class _MealLogSheetState extends State<_MealLogSheet> {
                             if (hint != null)
                               Text(hint,
                                   style: AppTypography.labelSmall.copyWith(
-                                      color: AppColors.textSecondary)),
+                                      color: context.textSecColor)),
                           ],
                         ),
                       ),
@@ -309,7 +309,7 @@ class _MealLogSheetState extends State<_MealLogSheet> {
                           activeThumbColor: color,
                           activeTrackColor: color.withValues(alpha: 0.35),
                           inactiveThumbColor: AppColors.textHint,
-                          inactiveTrackColor: AppColors.border,
+                          inactiveTrackColor: context.borderColor,
                           materialTapTargetSize:
                               MaterialTapTargetSize.shrinkWrap,
                         )
@@ -328,7 +328,7 @@ class _MealLogSheetState extends State<_MealLogSheet> {
                           Text(
                             'Guests',
                             style: AppTypography.bodySmall
-                                .copyWith(color: AppColors.textSecondary),
+                                .copyWith(color: context.textSecColor),
                           ),
                           const Spacer(),
                           _GuestCounter(
@@ -443,12 +443,12 @@ class _CounterBtn extends StatelessWidget {
         decoration: BoxDecoration(
           color: onTap != null
               ? color.withValues(alpha: 0.1)
-              : AppColors.surfaceVariant,
+              : context.surfaceColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusSm),
           border: Border.all(
             color: onTap != null
                 ? color.withValues(alpha: 0.3)
-                : AppColors.border,
+                : context.borderColor,
           ),
         ),
         child: Icon(icon,

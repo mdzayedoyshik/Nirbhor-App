@@ -112,14 +112,14 @@ class MainShell extends StatelessWidget {
               width: AppSizing.bottomSheetHandleWidth,
               height: AppSizing.bottomSheetHandleHeight,
               decoration: BoxDecoration(
-                color: AppColors.surface300,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(AppSizing.rFull),
               ),
             ),
             const SizedBox(height: AppSizing.sp16),
             Text('More', style: AppTypography.h3),
             const SizedBox(height: AppSizing.sp16),
-            const Divider(height: 1, color: AppColors.surface200),
+            Divider(height: 1, color: context.dividerColor),
             const SizedBox(height: AppSizing.sp16),
             _MoreItem(
               icon: Icons.bar_chart_rounded,
@@ -166,7 +166,7 @@ class MainShell extends StatelessWidget {
           color: context.bottomNavBg,
           border: Border(
             top: BorderSide(
-              color: AppColors.surface200,
+              color: context.borderColor,
               width: AppSizing.borderWidth,
             ),
           ),
@@ -346,7 +346,7 @@ class _MoreItem extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: AppColors.surface100,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(AppSizing.r12),
         ),
         child: Icon(icon, size: AppSizing.iconMd, color: AppColors.brand),

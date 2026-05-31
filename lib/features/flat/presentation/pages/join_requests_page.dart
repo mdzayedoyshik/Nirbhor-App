@@ -65,18 +65,18 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
         title: Text(
           AppStrings.joinRequestsTitle,
           style: AppTypography.titleLarge,
         ),
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.cardColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: AppColors.textPrimary,
+            color: context.textPrimColor,
           ),
           onPressed: () => context.pop(),
         ),
@@ -156,14 +156,14 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
                     Text(
                       'All Caught Up',
                       style: AppTypography.titleMedium.copyWith(
-                        color: AppColors.textPrimary,
+                        color: context.textPrimColor,
                       ),
                     ),
                     const SizedBox(height: AppSizing.xs),
                     Text(
                       'When someone requests to join your flat, they\'ll appear here.',
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.textSecColor,
                       ),
                       textAlign: TextAlign.center,
                     ),

@@ -21,10 +21,10 @@ class TaskRemoteDataSource {
     final params = <String, String>{
       'page': '$page',
       'limit': '$limit',
-      if (status != null) 'status': status,
-      if (assignedTo != null) 'assigned_to': assignedTo,
-      if (dueBefore != null) 'due_before': dueBefore,
-      if (dueAfter != null) 'due_after': dueAfter,
+      'status': ?status,
+      'assigned_to': ?assignedTo,
+      'due_before': ?dueBefore,
+      'due_after': ?dueAfter,
     };
     final query = params.entries.map((e) => '${e.key}=${e.value}').join('&');
     final endpoint = '${ApiEndpoints.flatTasks(flatId)}?$query';
@@ -63,9 +63,9 @@ class TaskRemoteDataSource {
             : null;
     final body = <String, dynamic>{
       'title': title,
-      if (description != null) 'description': description,
-      if (effectiveIds != null) 'assigned_to_ids': effectiveIds,
-      if (dueDate != null) 'due_date': dueDate,
+      'description': ?description,
+      'assigned_to_ids': ?effectiveIds,
+      'due_date': ?dueDate,
       if (subTaskTitles != null && subTaskTitles.isNotEmpty)
         'sub_tasks': subTaskTitles.map((t) => {'title': t}).toList(),
     };
@@ -91,8 +91,8 @@ class TaskRemoteDataSource {
     String? status,
   }) async {
     final body = <String, dynamic>{
-      if (title != null) 'title': title,
-      if (description != null) 'description': description,
+      'title': ?title,
+      'description': ?description,
       if (clearAssignee)
         'assigned_to_ids': <String>[]
       else if (assignedToIds != null)
@@ -100,8 +100,8 @@ class TaskRemoteDataSource {
       else if (assignedTo != null)
         'assigned_to_ids': [assignedTo],
       if (clearDueDate) 'due_date': null
-      else if (dueDate != null) 'due_date': dueDate,
-      if (status != null) 'status': status,
+      else 'due_date': ?dueDate,
+      'status': ?status,
     };
     final response = await _apiClient.put(
       ApiEndpoints.flatTask(flatId, taskId),
@@ -137,8 +137,8 @@ class TaskRemoteDataSource {
     bool? isCompleted,
   }) async {
     final body = <String, dynamic>{
-      if (title != null) 'title': title,
-      if (isCompleted != null) 'is_completed': isCompleted,
+      'title': ?title,
+      'is_completed': ?isCompleted,
     };
     final response = await _apiClient.patch(
       ApiEndpoints.flatSubTask(flatId, taskId, subTaskId),

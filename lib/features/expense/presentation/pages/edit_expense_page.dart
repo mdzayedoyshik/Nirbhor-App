@@ -155,9 +155,9 @@ class _EditExpensePageState extends State<EditExpensePage> {
       builder: (context, state) {
         final isLoading = state is ExpenseActionLoading;
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bgColor,
             elevation: 0,
             title: Text(AppStrings.editExpenseTitle,
                 style: AppTypography.headlineMedium),
@@ -194,7 +194,7 @@ class _EditExpensePageState extends State<EditExpensePage> {
                       ),
                       const Spacer(),
                       Icon(Icons.lock_outline,
-                          size: 14, color: AppColors.textSecondary),
+                          size: 14, color: context.textSecColor),
                     ],
                   ),
                 ),
@@ -268,23 +268,23 @@ class _EditExpensePageState extends State<EditExpensePage> {
                       vertical: AppSizing.md,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: context.cardColor,
                       borderRadius:
                           BorderRadius.circular(AppSizing.radiusMd),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: context.borderColor),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.calendar_today_outlined,
-                            color: AppColors.textSecondary, size: 20),
+                        Icon(Icons.calendar_today_outlined,
+                            color: context.textSecColor, size: 20),
                         const SizedBox(width: AppSizing.sm),
                         Text(
                           _formatDate(_selectedDate),
                           style: AppTypography.bodyMedium,
                         ),
                         const Spacer(),
-                        const Icon(Icons.edit_outlined,
-                            color: AppColors.textSecondary, size: 16),
+                        Icon(Icons.edit_outlined,
+                            color: context.textSecColor, size: 16),
                       ],
                     ),
                   ),

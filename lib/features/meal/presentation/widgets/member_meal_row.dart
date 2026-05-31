@@ -69,7 +69,7 @@ class MemberMealRow extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           children: [
@@ -90,7 +90,7 @@ class MemberMealRow extends StatelessWidget {
                   Text(
                     entry.memberName,
                     style: AppTypography.titleMedium.copyWith(
-                      color: AppColors.textPrimary,
+                      color: context.textPrimColor,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -99,7 +99,7 @@ class MemberMealRow extends StatelessWidget {
                     Text(
                       '$_totalGuests guest${_totalGuests > 1 ? 's' : ''}',
                       style: AppTypography.labelSmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.textSecColor),
                     ),
                 ],
               ),
@@ -132,13 +132,13 @@ class MemberMealRow extends StatelessWidget {
                 Text(
                   entry.totalPoints.toStringAsFixed(1),
                   style: AppTypography.titleMedium.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.textPrimColor,
                   ),
                 ),
                 Text(
                   'pts',
                   style: AppTypography.labelSmall
-                      .copyWith(color: AppColors.textSecondary, fontSize: 10),
+                      .copyWith(color: context.textSecColor, fontSize: 10),
                 ),
               ],
             ),
@@ -178,7 +178,7 @@ class _ShiftDot extends StatelessWidget {
       width: 26,
       height: 26,
       decoration: BoxDecoration(
-        color: active ? color.withValues(alpha: 0.12) : AppColors.surfaceVariant,
+        color: active ? color.withValues(alpha: 0.12) : context.surfaceColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusSm),
       ),
       child: Icon(

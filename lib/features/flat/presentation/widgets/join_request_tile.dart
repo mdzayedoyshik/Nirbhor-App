@@ -27,9 +27,9 @@ class JoinRequestTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

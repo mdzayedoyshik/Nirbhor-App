@@ -283,7 +283,7 @@ class _PaymentsHubPageState extends State<PaymentsHubPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
       ),
@@ -309,7 +309,7 @@ class _PaymentsHubPageState extends State<PaymentsHubPage> {
                           height: 4,
                           margin: const EdgeInsets.only(bottom: AppSizing.md),
                           decoration: BoxDecoration(
-                            color: AppColors.border,
+                            color: context.borderColor,
                             borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                           ),
                         ),
@@ -319,7 +319,7 @@ class _PaymentsHubPageState extends State<PaymentsHubPage> {
                       const SizedBox(height: AppSizing.xs),
                       Text('Select one or more members',
                           style: AppTypography.bodySmall
-                              .copyWith(color: AppColors.textSecondary)),
+                              .copyWith(color: context.textSecColor)),
                     ],
                   ),
                 ),
@@ -422,7 +422,7 @@ class _PillTabBar extends StatelessWidget {
           AppSizing.pagePadding, AppSizing.md, AppSizing.pagePadding, 0),
       height: 44,
       decoration: BoxDecoration(
-        color: AppColors.surface200,
+        color: context.dividerColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusFull),
       ),
       padding: const EdgeInsets.all(4),
@@ -445,7 +445,7 @@ class _PillTabBar extends StatelessWidget {
                   style: AppTypography.labelSmall.copyWith(
                     color: selected
                         ? AppColors.white
-                        : AppColors.textSecondary,
+                        : context.textSecColor,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   ),
                   child: Text(labels[i]),
@@ -657,7 +657,7 @@ class _AwaitingVerificationTab extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
@@ -679,7 +679,7 @@ class _AwaitingVerificationTab extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: AppSizing.md),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),
               ),
             ),
@@ -866,7 +866,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             message,
             style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textSecondary),
+                .copyWith(color: context.textSecColor),
             textAlign: TextAlign.center,
           ),
         ],
@@ -884,7 +884,7 @@ class _ErrorState extends StatelessWidget {
     return Center(
       child: Text(
         message,
-        style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+        style: AppTypography.bodyMedium.copyWith(color: context.textSecColor),
         textAlign: TextAlign.center,
       ),
     );

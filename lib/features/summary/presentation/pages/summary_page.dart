@@ -197,7 +197,7 @@ class _SummaryPageState extends State<SummaryPage>
       },
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
             backgroundColor: AppColors.primary,
             foregroundColor: AppColors.white,
@@ -320,16 +320,16 @@ class _SummaryTab extends StatelessWidget {
                     child: Column(
                       children: [
                         const SizedBox(height: 40),
-                        const Icon(
+                        Icon(
                           Icons.error_outline,
                           size: 48,
-                          color: AppColors.textHint,
+                          color: context.textTerColor,
                         ),
                         const SizedBox(height: AppSizing.sm),
                         Text(
                           (state as SummaryError).message,
                           style: AppTypography.bodyMedium
-                              .copyWith(color: AppColors.textSecondary),
+                              .copyWith(color: context.textSecColor),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: AppSizing.lg),
@@ -400,7 +400,7 @@ class _MonthNavigator extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.chevron_left_rounded, size: 28),
-            color: AppColors.textPrimary,
+            color: context.textPrimColor,
             onPressed: onPrev,
           ),
           Column(
@@ -417,8 +417,8 @@ class _MonthNavigator extends StatelessWidget {
               Icons.chevron_right_rounded,
               size: 28,
               color: isCurrentMonth
-                  ? AppColors.textHint
-                  : AppColors.textPrimary,
+                  ? context.textTerColor
+                  : context.textPrimColor,
             ),
             onPressed: isCurrentMonth ? null : onNext,
           ),
@@ -494,7 +494,7 @@ class _SummaryContent extends StatelessWidget {
               child: Text(
                 'No members found for this month.',
                 style: AppTypography.bodyMedium
-                    .copyWith(color: AppColors.textSecondary),
+                    .copyWith(color: context.textSecColor),
               ),
             ),
           )
@@ -570,7 +570,7 @@ class _StatusBadge extends StatelessWidget {
                   Text(
                     '· ${_formatDate(closedAt)}',
                     style: AppTypography.labelSmall
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.textSecColor),
                   ),
                 ],
               ],
@@ -620,9 +620,9 @@ class _PoolCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -630,7 +630,7 @@ class _PoolCard extends StatelessWidget {
           Text(
             'Meal Pool',
             style: AppTypography.titleMedium
-                .copyWith(color: AppColors.textSecondary),
+                .copyWith(color: context.textSecColor),
           ),
           const SizedBox(height: AppSizing.md),
           Row(
@@ -703,7 +703,7 @@ class _StatChip extends StatelessWidget {
           Text(
             label,
             style: AppTypography.labelSmall
-                .copyWith(color: AppColors.textSecondary),
+                .copyWith(color: context.textSecColor),
           ),
         ],
       ),
@@ -724,27 +724,15 @@ class _MemberCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         border: Border.all(
-          color: isMe ? AppColors.primary.withValues(alpha: 0.4) : AppColors.border,
+          color: isMe ? AppColors.primary.withValues(alpha: 0.4) : context.borderColor,
           width: isMe ? 1.5 : 1,
         ),
       ),
       child: Row(
         children: [
-          // Colored side bar
-          Container(
-            width: 4,
-            height: 80,
-            decoration: BoxDecoration(
-              color: isBalance ? AppColors.success : AppColors.error,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(AppSizing.radiusLg),
-                bottomLeft: Radius.circular(AppSizing.radiusLg),
-              ),
-            ),
-          ),
           const SizedBox(width: AppSizing.sm),
 
           // Avatar
@@ -801,7 +789,7 @@ class _MemberCard extends StatelessWidget {
                     'Meal ${_taka(member.mealCost)} · '
                     'Fixed ${_taka(member.fixedContribution)}',
                     style: AppTypography.bodySmall
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.textSecColor),
                   ),
                 ],
               ),
@@ -873,18 +861,18 @@ class _HistoryTab extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.history_rounded, size: 56, color: AppColors.textHint),
+            Icon(Icons.history_rounded, size: 56, color: context.textTerColor),
             const SizedBox(height: AppSizing.md),
             Text(
               'No closed months yet',
               style: AppTypography.headlineSmall
-                  .copyWith(color: AppColors.textSecondary),
+                  .copyWith(color: context.textSecColor),
             ),
             const SizedBox(height: AppSizing.xs),
             Text(
               'Closed months will appear here.',
               style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.textHint),
+                  .copyWith(color: context.textTerColor),
             ),
           ],
         ),
@@ -915,7 +903,7 @@ class _ClosedMonthTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: context.cardColor,
       borderRadius: BorderRadius.circular(AppSizing.radiusLg),
       child: InkWell(
         onTap: onTap,
@@ -923,7 +911,7 @@ class _ClosedMonthTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSizing.md),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.borderColor),
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
           ),
           child: Row(
@@ -955,7 +943,7 @@ class _ClosedMonthTile extends StatelessWidget {
                     Text(
                       '${month.totalMembers} members · Closed ${_formatDate(month.closedAt)}',
                       style: AppTypography.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.textSecColor),
                     ),
                   ],
                 ),
@@ -973,13 +961,13 @@ class _ClosedMonthTile extends StatelessWidget {
                   Text(
                     'Meal exp.',
                     style: AppTypography.labelSmall
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.textSecColor),
                   ),
                 ],
               ),
               const SizedBox(width: AppSizing.xs),
-              const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.textHint, size: 20),
+              Icon(Icons.chevron_right_rounded,
+                  color: context.textTerColor, size: 20),
             ],
           ),
         ),
@@ -1132,7 +1120,7 @@ class _CloseMonthSheetState extends State<_CloseMonthSheet> {
                   child: Text(
                     'Unable to load preview. Please try again.',
                     style: AppTypography.bodyMedium
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.textSecColor),
                   ),
                 ),
               ],
@@ -1154,7 +1142,7 @@ class _PreviewPoolRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizing.sm),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       ),
       child: Row(
@@ -1203,7 +1191,7 @@ class _MiniStat extends StatelessWidget {
         Text(
           label,
           style:
-              AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
+              AppTypography.labelSmall.copyWith(color: context.textSecColor),
         ),
       ],
     );
@@ -1252,7 +1240,7 @@ class _WarningBox extends StatelessWidget {
               child: Text(
                 '• $w',
                 style: AppTypography.bodySmall
-                    .copyWith(color: AppColors.textPrimary),
+                    .copyWith(color: context.textPrimColor),
               ),
             ),
           ),
@@ -1294,9 +1282,9 @@ class _PreviewMemberRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: AppSizing.sm, vertical: AppSizing.sm),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Row(
         children: [
@@ -1315,7 +1303,7 @@ class _PreviewMemberRow extends StatelessWidget {
                 Text(
                   'Meal deduction: -${_taka(member.mealCost)}',
                   style: AppTypography.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                      .copyWith(color: context.textSecColor),
                 ),
               ],
             ),

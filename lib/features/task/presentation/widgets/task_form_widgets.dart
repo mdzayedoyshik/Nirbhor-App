@@ -26,16 +26,16 @@ class TaskAssigneePicker extends StatelessWidget {
         height: AppSizing.inputHeight,
         padding: const EdgeInsets.symmetric(horizontal: AppSizing.md),
         decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.person_outline,
               size: 18,
-              color: AppColors.textSecondary,
+              color: context.textSecColor,
             ),
             const SizedBox(width: AppSizing.xs),
             Expanded(
@@ -43,8 +43,8 @@ class TaskAssigneePicker extends StatelessWidget {
                 selected?.name ?? 'Assignee',
                 style: AppTypography.bodyMedium.copyWith(
                   color: selected != null
-                      ? AppColors.textPrimary
-                      : AppColors.textHint,
+                      ? context.textPrimColor
+                      : context.textTerColor,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -52,17 +52,17 @@ class TaskAssigneePicker extends StatelessWidget {
             if (selected != null)
               GestureDetector(
                 onTap: () => onChanged(null),
-                child: const Icon(
+                child: Icon(
                   Icons.close,
                   size: 16,
-                  color: AppColors.textSecondary,
+                  color: context.textSecColor,
                 ),
               )
             else
-              const Icon(
+              Icon(
                 Icons.expand_more,
                 size: 18,
-                color: AppColors.textSecondary,
+                color: context.textSecColor,
               ),
           ],
         ),
@@ -73,7 +73,7 @@ class TaskAssigneePicker extends StatelessWidget {
   void _show(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizing.radiusLg),
@@ -109,7 +109,7 @@ class TaskMemberPickerSheet extends StatelessWidget {
               height: AppSizing.bottomSheetHandleHeight,
               margin: const EdgeInsets.only(bottom: AppSizing.md),
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),
               ),
             ),
@@ -118,19 +118,19 @@ class TaskMemberPickerSheet extends StatelessWidget {
           const SizedBox(height: AppSizing.md),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const CircleAvatar(
+            leading: CircleAvatar(
               radius: 18,
-              backgroundColor: AppColors.surfaceVariant,
+              backgroundColor: context.surfaceColor,
               child: Icon(
                 Icons.person_off_outlined,
                 size: 18,
-                color: AppColors.textSecondary,
+                color: context.textSecColor,
               ),
             ),
             title: Text(
               'Unassigned',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: context.textSecColor,
               ),
             ),
             onTap: () {
@@ -138,7 +138,7 @@ class TaskMemberPickerSheet extends StatelessWidget {
               Navigator.pop(context);
             },
           ),
-          const Divider(height: 1, color: AppColors.divider),
+          Divider(height: 1, color: context.dividerColor),
           ...members.map(
             (m) => ListTile(
               contentPadding: EdgeInsets.zero,
@@ -209,16 +209,16 @@ class TaskMultiAssigneePicker extends StatelessWidget {
           vertical: AppSizing.sm,
         ),
         decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.group_outlined,
               size: 18,
-              color: AppColors.textSecondary,
+              color: context.textSecColor,
             ),
             const SizedBox(width: AppSizing.xs),
             Expanded(
@@ -226,8 +226,8 @@ class TaskMultiAssigneePicker extends StatelessWidget {
                 names.isEmpty ? 'Assignees' : names.join(', '),
                 style: AppTypography.bodyMedium.copyWith(
                   color: names.isNotEmpty
-                      ? AppColors.textPrimary
-                      : AppColors.textHint,
+                      ? context.textPrimColor
+                      : context.textTerColor,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -235,17 +235,17 @@ class TaskMultiAssigneePicker extends StatelessWidget {
             if (selectedIds.isNotEmpty)
               GestureDetector(
                 onTap: () => onChanged([]),
-                child: const Icon(
+                child: Icon(
                   Icons.close,
                   size: 16,
-                  color: AppColors.textSecondary,
+                  color: context.textSecColor,
                 ),
               )
             else
-              const Icon(
+              Icon(
                 Icons.expand_more,
                 size: 18,
-                color: AppColors.textSecondary,
+                color: context.textSecColor,
               ),
           ],
         ),
@@ -257,7 +257,7 @@ class TaskMultiAssigneePicker extends StatelessWidget {
     final current = List<String>.from(selectedIds);
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -313,7 +313,7 @@ class _MultiPickerSheetState extends State<_MultiPickerSheet> {
               height: AppSizing.bottomSheetHandleHeight,
               margin: const EdgeInsets.only(bottom: AppSizing.md),
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),
               ),
             ),
@@ -323,7 +323,7 @@ class _MultiPickerSheetState extends State<_MultiPickerSheet> {
           Text(
             'Select one or more members',
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary,
+              color: context.textSecColor,
             ),
           ),
           const SizedBox(height: AppSizing.md),
@@ -342,7 +342,7 @@ class _MultiPickerSheetState extends State<_MultiPickerSheet> {
               subtitle: Text(
                 _roleLabel(m.role),
                 style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.textSecColor,
                 ),
               ),
               activeColor: AppColors.primary,
@@ -398,18 +398,8 @@ class TaskDueDatePicker extends StatelessWidget {
 
   String _format(DateTime dt) {
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${months[dt.month - 1]} ${dt.day}';
   }
@@ -422,16 +412,16 @@ class TaskDueDatePicker extends StatelessWidget {
         height: AppSizing.inputHeight,
         padding: const EdgeInsets.symmetric(horizontal: AppSizing.md),
         decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.calendar_today_outlined,
               size: 18,
-              color: AppColors.textSecondary,
+              color: context.textSecColor,
             ),
             const SizedBox(width: AppSizing.xs),
             Expanded(
@@ -439,8 +429,8 @@ class TaskDueDatePicker extends StatelessWidget {
                 dueDate != null ? _format(dueDate!) : 'Due date',
                 style: AppTypography.bodyMedium.copyWith(
                   color: dueDate != null
-                      ? AppColors.textPrimary
-                      : AppColors.textHint,
+                      ? context.textPrimColor
+                      : context.textTerColor,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -448,10 +438,10 @@ class TaskDueDatePicker extends StatelessWidget {
             if (dueDate != null)
               GestureDetector(
                 onTap: onClear,
-                child: const Icon(
+                child: Icon(
                   Icons.close,
                   size: 16,
-                  color: AppColors.textSecondary,
+                  color: context.textSecColor,
                 ),
               ),
           ],

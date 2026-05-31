@@ -71,14 +71,14 @@ class TransactionRow extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant,
+                          color: context.surfaceColor,
                           borderRadius:
                               BorderRadius.circular(AppSizing.radiusFull),
                         ),
                         child: Text(
                           categoryLabel,
                           style: AppTypography.labelSmall.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.textSecColor,
                           ),
                         ),
                       ),
@@ -87,7 +87,7 @@ class TransactionRow extends StatelessWidget {
                     Text(
                       _formatDate(transaction.createdAt),
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.textSecColor,
                       ),
                     ),
                   ],

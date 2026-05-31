@@ -18,18 +18,18 @@ class FlatMembersPage extends StatelessWidget {
     final active = flat.activeMembers;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
         title: Text(
           AppStrings.flatMembersTitle,
           style: AppTypography.titleLarge,
         ),
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.cardColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: AppColors.textPrimary,
+            color: context.textPrimColor,
           ),
           onPressed: () => context.pop(),
         ),
@@ -139,7 +139,7 @@ class _StyledMemberCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
         boxShadow: AppColors.shadowSm,
       ),

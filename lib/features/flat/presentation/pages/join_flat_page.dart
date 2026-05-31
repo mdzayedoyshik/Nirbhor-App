@@ -99,18 +99,18 @@ class _JoinFlatPageState extends State<JoinFlatPage>
         final isLoading = state is FlatPreviewLoading;
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
             title: Text(
               AppStrings.joinFlatTitle,
               style: AppTypography.titleLarge,
             ),
-            backgroundColor: AppColors.surface,
+            backgroundColor: context.cardColor,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary,
+                color: context.textPrimColor,
               ),
               onPressed: () => context.pop(),
             ),
@@ -169,7 +169,7 @@ class _JoinFlatPageState extends State<JoinFlatPage>
                       Text(
                         'Ask the flat manager for the code.',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.textSecColor,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -178,9 +178,9 @@ class _JoinFlatPageState extends State<JoinFlatPage>
                         controller: _codeCtrl,
                         label: AppStrings.joinCodeLabel,
                         hint: AppStrings.joinCodeHint,
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.tag,
-                          color: AppColors.textSecondary,
+                          color: context.textSecColor,
                         ),
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _submitCode(context),

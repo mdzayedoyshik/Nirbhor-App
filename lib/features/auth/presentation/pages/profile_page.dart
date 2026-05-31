@@ -7,6 +7,7 @@ import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/theme/theme_cubit.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/app_image_picker.dart';
@@ -90,11 +91,11 @@ class _ProfilePageState extends State<ProfilePage> {
         };
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: context.cardColor,
             elevation: 0,
-            leading: BackButton(color: AppColors.textPrimary),
+            leading: BackButton(color: context.textPrimColor),
             title: Text(
               AppStrings.profileTitle,
               style: AppTypography.titleLarge,
@@ -102,9 +103,9 @@ class _ProfilePageState extends State<ProfilePage> {
             actions: [
               if (user != null && !_editing)
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.edit_outlined,
-                    color: AppColors.textPrimary,
+                    color: context.textPrimColor,
                   ),
                   onPressed: () => _startEdit(user.name),
                 ),
@@ -169,7 +170,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             Text(
                               user.email,
                               style: AppTypography.bodyM
-                                  .copyWith(color: AppColors.textSecondary),
+                                  .copyWith(color: context.textSecColor),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -242,6 +243,48 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: AppSizing.lg),
+                        // ── Preferences Section ────────────────────────────
+                        _SectionLabel(label: 'Preferences'),
+                        const SizedBox(height: AppSizing.sm),
+                        _SettingsCard(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSizing.md,
+                                vertical: AppSizing.sp12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Builder(
+                                    builder: (ctx) => Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: ctx.surfaceColor,
+                                        borderRadius: BorderRadius.circular(
+                                            AppSizing.radiusSm),
+                                      ),
+                                      child: const Icon(
+                                        Icons.palette_outlined,
+                                        color: AppColors.brand,
+                                        size: AppSizing.iconMd,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSizing.md),
+                                  Expanded(
+                                    child: Text(
+                                      'Theme',
+                                      style: AppTypography.labelM,
+                                    ),
+                                  ),
+                                  const _ThemeToggle(),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: AppSizing.xl),
                         // ── Logout ─────────────────────────────────────────
                         AppButton(
@@ -286,7 +329,7 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: AppTypography.overline.copyWith(
-          color: AppColors.textTertiary,
+          color: context.textTerColor,
         ),
       ),
     );
@@ -303,10 +346,10 @@ class _SettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         boxShadow: AppColors.shadowSm,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(children: children),
     );
@@ -348,7 +391,7 @@ class _SettingsRow extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppColors.surface100,
+                  color: context.surfaceColor,
                   borderRadius: BorderRadius.circular(AppSizing.radiusSm),
                 ),
                 child: Icon(
@@ -368,7 +411,7 @@ class _SettingsRow extends StatelessWidget {
                       Text(
                         value!,
                         style: AppTypography.bodyS.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.textSecColor,
                         ),
                       ),
                     ],
@@ -396,11 +439,109 @@ class _SettingsDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Divider(
+    return Divider(
       height: 1,
       thickness: 1,
-      color: AppColors.border,
+      color: context.borderColor,
       indent: AppSizing.md + 36 + AppSizing.md,
+    );
+  }
+}
+
+// ── Theme Toggle (3-way pill segmented) ───────────────────────────────────────
+
+class _ThemeToggle extends StatelessWidget {
+  const _ThemeToggle();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ThemeCubit, ThemeState>(
+      builder: (context, themeState) {
+        final current = themeState.mode;
+        return Container(
+          height: 34,
+          decoration: BoxDecoration(
+            color: context.surfaceColor,
+            borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ThemePill(
+                icon: Icons.light_mode_rounded,
+                label: 'Light',
+                selected: current == ThemeMode.light,
+                onTap: () =>
+                    context.read<ThemeCubit>().setTheme(ThemeMode.light),
+              ),
+              _ThemePill(
+                icon: Icons.dark_mode_rounded,
+                label: 'Dark',
+                selected: current == ThemeMode.dark,
+                onTap: () =>
+                    context.read<ThemeCubit>().setTheme(ThemeMode.dark),
+              ),
+              _ThemePill(
+                icon: Icons.settings_brightness_rounded,
+                label: 'Auto',
+                selected: current == ThemeMode.system,
+                onTap: () =>
+                    context.read<ThemeCubit>().setTheme(ThemeMode.system),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ThemePill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ThemePill({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizing.sp8,
+          vertical: AppSizing.sp4,
+        ),
+        decoration: BoxDecoration(
+          gradient: selected ? AppColors.brandGradient : null,
+          borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+          boxShadow: selected ? AppColors.shadowSm : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: selected ? AppColors.white : context.textSecColor,
+            ),
+            const SizedBox(width: AppSizing.sp4),
+            Text(
+              label,
+              style: AppTypography.labelS.copyWith(
+                color: selected ? AppColors.white : context.textSecColor,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

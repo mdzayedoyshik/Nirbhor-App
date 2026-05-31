@@ -95,7 +95,7 @@ class _AppImagePickerState extends State<AppImagePicker> {
   void _showOptions() {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizing.radiusLg),
@@ -111,7 +111,7 @@ class _AppImagePickerState extends State<AppImagePicker> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -189,7 +189,7 @@ class _AppImagePickerState extends State<AppImagePicker> {
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.surface, width: 2),
+                border: Border.all(color: context.bgColor, width: 2),
               ),
               child: const Icon(
                 Icons.camera_alt,
@@ -215,22 +215,22 @@ class _AppImagePickerState extends State<AppImagePicker> {
         decoration: BoxDecoration(
           color: AppColors.primary.withValues(alpha: 0.04),
           border: Border.all(
-            color: _uploading ? AppColors.primary : AppColors.border,
+            color: _uploading ? AppColors.primary : context.borderColor,
           ),
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
         ),
         clipBehavior: Clip.antiAlias,
         child: _uploading
-            ? const Center(
+            ? Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: AppColors.primary),
-                    SizedBox(height: AppSizing.sm),
+                    const CircularProgressIndicator(color: AppColors.primary),
+                    const SizedBox(height: AppSizing.sm),
                     Text(
                       'Uploading…',
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: context.textSecColor,
                         fontSize: 12,
                       ),
                     ),
@@ -331,14 +331,14 @@ class _SquareEmpty extends StatelessWidget {
         Text(
           'Add Photo',
           style: AppTypography.labelSmall.copyWith(
-            color: AppColors.textSecondary,
+            color: context.textSecColor,
           ),
         ),
         const SizedBox(height: AppSizing.xs),
         Text(
           'Tap to select from gallery or camera',
           style: AppTypography.labelSmall.copyWith(
-            color: AppColors.textHint,
+            color: context.textTerColor,
             fontSize: 11,
           ),
         ),

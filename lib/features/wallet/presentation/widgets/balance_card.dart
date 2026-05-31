@@ -73,7 +73,7 @@ class BalanceCard extends StatelessWidget {
           Text(
             subtitle,
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
+              color: context.textSecColor,
             ),
             textAlign: TextAlign.center,
           ),

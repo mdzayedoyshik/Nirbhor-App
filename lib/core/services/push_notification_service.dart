@@ -182,8 +182,11 @@ class PushNotificationService {
     // ── Route by type (mirrors notification_page._handleTap) ────────────────
 
     if (type.contains('join_request')) {
-      if (canManage) router.push(AppRoutes.flatRequests, extra: flatId);
-      else           router.go(AppRoutes.home);
+      if (canManage) {
+        router.push(AppRoutes.flatRequests, extra: flatId);
+      } else {
+        router.go(AppRoutes.home);
+      }
       return;
     }
 

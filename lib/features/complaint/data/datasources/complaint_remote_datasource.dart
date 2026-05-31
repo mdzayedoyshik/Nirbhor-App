@@ -18,8 +18,8 @@ class ComplaintRemoteDataSource {
     final params = <String, String>{
       'page': '$page',
       'limit': '$limit',
-      if (status != null) 'status': status,
-      if (raisedBy != null) 'raised_by': raisedBy,
+      'status': ?status,
+      'raised_by': ?raisedBy,
     };
     final query = params.entries.map((e) => '${e.key}=${e.value}').join('&');
     final endpoint = '${ApiEndpoints.flatComplaints(flatId)}?$query';
@@ -50,7 +50,7 @@ class ComplaintRemoteDataSource {
   }) async {
     final body = <String, dynamic>{
       'subject': subject,
-      if (description != null) 'description': description,
+      'description': ?description,
     };
     final response = await _apiClient.post(
       ApiEndpoints.flatComplaints(flatId),
@@ -82,8 +82,8 @@ class ComplaintRemoteDataSource {
     String? description,
   }) async {
     final body = <String, dynamic>{
-      if (subject != null) 'subject': subject,
-      if (description != null) 'description': description,
+      'subject': ?subject,
+      'description': ?description,
     };
     final response = await _apiClient.put(
       ApiEndpoints.flatComplaint(flatId, complaintId),

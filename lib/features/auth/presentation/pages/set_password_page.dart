@@ -52,11 +52,11 @@ class _SetPasswordPageState extends State<SetPasswordPage> {
         final loading =
             state is ProfileLoading || state is ProfileActionLoading;
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: context.cardColor,
             elevation: 0,
-            leading: BackButton(color: AppColors.textPrimary),
+            leading: BackButton(color: context.textPrimColor),
             title: Text(
               'Set Password',
               style: AppTypography.titleLarge,

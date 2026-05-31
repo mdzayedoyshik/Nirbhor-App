@@ -91,9 +91,11 @@ class _RecordExpensePageState extends State<RecordExpensePage> {
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: AppColors.isDark(ctx)
+              ? const ColorScheme.dark(primary: AppColors.primary)
+              : const ColorScheme.light(primary: AppColors.primary),
         ),
         child: child!,
       ),
@@ -147,9 +149,9 @@ class _RecordExpensePageState extends State<RecordExpensePage> {
       builder: (context, state) {
         final isLoading = state is ExpenseActionLoading;
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bgColor,
             elevation: 0,
             title: Text(AppStrings.recordExpenseTitle,
                 style: AppTypography.headlineMedium),
@@ -165,9 +167,9 @@ class _RecordExpensePageState extends State<RecordExpensePage> {
                 const SizedBox(height: AppSizing.sm),
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: context.cardColor,
                     borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: context.borderColor),
                   ),
                   child: Row(
                     children: [
@@ -295,23 +297,23 @@ class _RecordExpensePageState extends State<RecordExpensePage> {
                       vertical: AppSizing.md,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: context.cardColor,
                       borderRadius:
                           BorderRadius.circular(AppSizing.radiusMd),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: context.borderColor),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.calendar_today_outlined,
-                            color: AppColors.textSecondary, size: 20),
+                        Icon(Icons.calendar_today_outlined,
+                            color: context.textSecColor, size: 20),
                         const SizedBox(width: AppSizing.sm),
                         Text(
                           _formatDate(_selectedDate),
                           style: AppTypography.bodyMedium,
                         ),
                         const Spacer(),
-                        const Icon(Icons.edit_outlined,
-                            color: AppColors.textSecondary, size: 16),
+                        Icon(Icons.edit_outlined,
+                            color: context.textSecColor, size: 16),
                       ],
                     ),
                   ),
@@ -370,14 +372,14 @@ class _CategoryTab extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: isSelected ? color : AppColors.textSecondary,
+                color: isSelected ? color : context.textSecColor,
                 size: 20,
               ),
               const SizedBox(height: 2),
               Text(
                 label,
                 style: AppTypography.labelSmall.copyWith(
-                  color: isSelected ? color : AppColors.textSecondary,
+                  color: isSelected ? color : context.textSecColor,
                   fontWeight:
                       isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),

@@ -471,7 +471,7 @@ class _Chip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? c.withValues(alpha: 0.1) : context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-          border: Border.all(color: selected ? c : AppColors.border),
+          border: Border.all(color: selected ? c : context.borderColor),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -603,7 +603,7 @@ class _RaiseComplaintSheetState extends State<_RaiseComplaintSheet> {
                   width: AppSizing.bottomSheetHandleWidth,
                   height: AppSizing.bottomSheetHandleHeight,
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: context.borderColor,
                     borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                   ),
                 ),

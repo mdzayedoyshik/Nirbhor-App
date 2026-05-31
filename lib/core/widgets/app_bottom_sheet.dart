@@ -17,7 +17,7 @@ class AppBottomSheet {
       context: context,
       isDismissible: isDismissible,
       isScrollControlled: isScrollControlled,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizing.radiusXl),
@@ -37,7 +37,7 @@ class AppBottomSheet {
                 width: AppSizing.bottomSheetHandleWidth,
                 height: AppSizing.bottomSheetHandleHeight,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.borderColor,
                   borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                 ),
               ),

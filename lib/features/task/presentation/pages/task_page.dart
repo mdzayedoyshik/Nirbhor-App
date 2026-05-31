@@ -65,8 +65,9 @@ class _TaskPageState extends State<TaskPage> {
   }
 
   void _onScroll() {
-    if (_scroll.position.pixels < _scroll.position.maxScrollExtent - 200)
+    if (_scroll.position.pixels < _scroll.position.maxScrollExtent - 200) {
       return;
+    }
     final s = context.read<TaskBloc>().state;
     if (s is! TaskListLoaded || !s.hasMore || s.isLoadingMore) return;
     final page = (s.pagination['page'] as int?) ?? 1;
@@ -93,10 +94,14 @@ class _TaskPageState extends State<TaskPage> {
           ),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Text(
-          'Tasks',
-          style: AppTypography.headlineMedium.copyWith(
-            color: context.textPrimColor,
+        title: ShaderMask(
+          shaderCallback: (bounds) =>
+              AppColors.brandGradient.createShader(bounds),
+          child: Text(
+            'Tasks',
+            style: AppTypography.headlineMedium.copyWith(
+              color: AppColors.white,
+            ),
           ),
         ),
       ),
@@ -269,7 +274,7 @@ class _GradientFab extends StatelessWidget {
   }
 }
 
-// ── Stats Header Card ─────────────────────────────────────────────────────────
+// ── Stats Header (3 adaptive stat tiles) ─────────────────────────────────────
 
 class _StatsHeader extends StatelessWidget {
   const _StatsHeader({required this.state});
@@ -291,83 +296,95 @@ class _StatsHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSizing.pagePadding,
-        AppSizing.md,
-        AppSizing.pagePadding,
         AppSizing.sm,
+        AppSizing.pagePadding,
+        0,
       ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSizing.lg,
-          vertical: AppSizing.md,
-        ),
-        decoration: BoxDecoration(
-          gradient: AppColors.brandGradient,
-          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          boxShadow: AppColors.shadowMd,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _StatPill(
-              label: 'Total',
-              count: total,
-              color: AppColors.white.withValues(alpha: 0.25),
-            ),
-            _StatPill(
-              label: 'Pending',
-              count: pending,
-              color: AppColors.warning.withValues(alpha: 0.35),
-            ),
-            _StatPill(
-              label: 'Done',
-              count: done,
-              color: AppColors.success.withValues(alpha: 0.35),
-            ),
-          ],
-        ),
+      child: Row(
+        children: [
+          _StatTile(
+            label: 'Total',
+            count: total,
+            icon: Icons.checklist_rounded,
+            accentColor: AppColors.brand,
+          ),
+          const SizedBox(width: AppSizing.sm),
+          _StatTile(
+            label: 'Active',
+            count: pending,
+            icon: Icons.pending_outlined,
+            accentColor: AppColors.warning,
+          ),
+          const SizedBox(width: AppSizing.sm),
+          _StatTile(
+            label: 'Done',
+            count: done,
+            icon: Icons.check_circle_outline_rounded,
+            accentColor: AppColors.success,
+          ),
+        ],
       ),
     );
   }
 }
 
-class _StatPill extends StatelessWidget {
-  const _StatPill({
+class _StatTile extends StatelessWidget {
+  const _StatTile({
     required this.label,
     required this.count,
-    required this.color,
+    required this.icon,
+    required this.accentColor,
   });
 
   final String label;
   final int count;
-  final Color color;
+  final IconData icon;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSizing.md,
-        vertical: AppSizing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-      ),
-      child: Column(
-        children: [
-          Text(
-            '$count',
-            style: AppTypography.h3.copyWith(
-              color: AppColors.white,
-              fontWeight: FontWeight.w700,
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizing.sm,
+          vertical: AppSizing.md,
+        ),
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          border: Border.all(color: context.borderColor),
+          boxShadow: AppColors.shadowSm,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(AppSizing.r8),
+              ),
+              child: Icon(icon, size: 16, color: accentColor),
             ),
-          ),
-          Text(
-            label,
-            style: AppTypography.labelS.copyWith(
-              color: AppColors.white.withValues(alpha: 0.85),
+            const SizedBox(height: AppSizing.xs),
+            Text(
+              '$count',
+              style: AppTypography.h3.copyWith(
+                color: context.textPrimColor,
+                fontWeight: FontWeight.w700,
+                height: 1.1,
+              ),
             ),
-          ),
-        ],
+            Text(
+              label,
+              style: AppTypography.labelS.copyWith(
+                color: context.textSecColor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -381,12 +398,6 @@ class _TaskCardDecorated extends StatelessWidget {
   final dynamic task;
   final VoidCallback onTap;
 
-  Color _borderColor() {
-    if (task.isCompleted) return AppColors.success;
-    if (task.isOverdue) return AppColors.error;
-    return AppColors.brand;
-  }
-
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
@@ -397,27 +408,7 @@ class _TaskCardDecorated extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           boxShadow: AppColors.shadowSm,
         ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Left accent border
-              Container(
-                width: 4,
-                decoration: BoxDecoration(
-                  color: _borderColor(),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(AppSizing.radiusMd),
-                    bottomLeft: Radius.circular(AppSizing.radiusMd),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: TaskCard(task: task, onTap: onTap),
-              ),
-            ],
-          ),
-        ),
+        child: TaskCard(task: task, onTap: onTap),
       ),
     );
   }
@@ -518,7 +509,7 @@ class _Chip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? c.withValues(alpha: 0.1) : context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-          border: Border.all(color: selected ? c : AppColors.border),
+          border: Border.all(color: selected ? c : context.borderColor),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -696,7 +687,7 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                   width: AppSizing.bottomSheetHandleWidth,
                   height: AppSizing.bottomSheetHandleHeight,
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: context.borderColor,
                     borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                   ),
                 ),
@@ -830,7 +821,7 @@ class _SubTasksInput extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: 'Add a sub-task...',
                   hintStyle: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textHint,
+                    color: context.textTerColor,
                   ),
                   border: InputBorder.none,
                   isDense: true,
@@ -852,7 +843,7 @@ class _SubTasksInput extends StatelessWidget {
             ),
           ],
         ),
-        const Divider(height: 1, color: AppColors.border),
+        Divider(height: 1, color: context.borderColor),
       ],
     );
   }

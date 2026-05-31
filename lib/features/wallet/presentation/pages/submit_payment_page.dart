@@ -76,9 +76,9 @@ class _SubmitPaymentPageState extends State<SubmitPaymentPage> {
       builder: (context, state) {
         final isLoading = state is WalletActionLoading;
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bgColor,
             elevation: 0,
             title: Text(AppStrings.submitPaymentTitle,
                 style: AppTypography.headlineMedium),
@@ -151,12 +151,12 @@ class _SubmitPaymentPageState extends State<SubmitPaymentPage> {
                         labelStyle: AppTypography.labelLarge.copyWith(
                           color: selected
                               ? AppColors.primary
-                              : AppColors.textPrimary,
+                              : context.textPrimColor,
                         ),
                         side: BorderSide(
-                          color: selected ? AppColors.primary : AppColors.border,
+                          color: selected ? AppColors.primary : context.borderColor,
                         ),
-                        backgroundColor: AppColors.surface,
+                        backgroundColor: context.cardColor,
                         showCheckmark: false,
                       );
                     }).toList(),
@@ -183,7 +183,7 @@ class _SubmitPaymentPageState extends State<SubmitPaymentPage> {
                         padding: const EdgeInsets.all(AppSizing.md),
                         margin: const EdgeInsets.only(bottom: AppSizing.md),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant,
+                          color: context.surfaceColor,
                           borderRadius:
                               BorderRadius.circular(AppSizing.radiusMd),
                         ),
@@ -198,7 +198,7 @@ class _SubmitPaymentPageState extends State<SubmitPaymentPage> {
                             Text(
                               'Verification may take some time.',
                               style: AppTypography.bodySmall.copyWith(
-                                  color: AppColors.textSecondary),
+                                  color: context.textSecColor),
                               textAlign: TextAlign.center,
                             ),
                           ],

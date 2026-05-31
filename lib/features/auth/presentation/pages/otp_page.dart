@@ -273,15 +273,15 @@ class _OtpBoxesRow extends StatelessWidget {
             decoration: InputDecoration(
               counterText: '',
               filled: true,
-              fillColor: AppColors.surface100,
+              fillColor: context.surfaceColor,
               contentPadding: EdgeInsets.zero,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: context.borderColor),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: context.borderColor),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),

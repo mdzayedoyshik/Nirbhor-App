@@ -145,14 +145,14 @@ class _NotificationPageState extends State<NotificationPage> {
                         Text(
                           "You're all caught up",
                           style: AppTypography.h4.copyWith(
-                            color: AppColors.textPrimary,
+                            color: context.textPrimColor,
                           ),
                         ),
                         const SizedBox(height: AppSizing.xs),
                         Text(
                           'No new notifications right now.',
                           style: AppTypography.bodyM.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.textSecColor,
                           ),
                         ),
                       ],
@@ -418,7 +418,7 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         label,
         style: AppTypography.overline.copyWith(
-          color: AppColors.textTertiary,
+          color: context.textTerColor,
         ),
       ),
     );
@@ -556,7 +556,7 @@ class _NotificationTile extends StatelessWidget {
                           Text(
                             _timeAgo(notification.createdAt),
                             style: AppTypography.labelS.copyWith(
-                              color: AppColors.textTertiary,
+                              color: context.textTerColor,
                             ),
                           ),
                           if (isUnread) ...[

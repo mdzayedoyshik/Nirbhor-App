@@ -129,10 +129,8 @@ class _ExpenseListPageState extends State<ExpenseListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
         title: Text(AppStrings.expenseListTitle,
-            style: AppTypography.headlineMedium
-                .copyWith(color: context.textPrimColor)),
+            style: AppTypography.headlineMedium),
       ),
       floatingActionButton: _GradientFab(
         onPressed: () => context
@@ -534,7 +532,7 @@ class _Chip extends StatelessWidget {
               : context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusFull),
           border: Border.all(
-            color: selected ? activeColor : AppColors.border,
+            color: selected ? activeColor : context.borderColor,
           ),
         ),
         child: Text(
@@ -588,7 +586,7 @@ class _ExpenseChartState extends State<_ExpenseChart> {
         decoration: BoxDecoration(
           color: context.cardColor,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -825,7 +823,7 @@ class _ShimmerRowsState extends State<_ShimmerRows>
                 margin: const EdgeInsets.only(bottom: AppSizing.md),
                 padding: const EdgeInsets.all(AppSizing.md),
                 decoration: BoxDecoration(
-                  color: AppColors.surface200,
+                  color: context.dividerColor,
                   borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                 ),
                 child: Row(
@@ -834,7 +832,7 @@ class _ShimmerRowsState extends State<_ShimmerRows>
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: AppColors.surface300,
+                        color: context.surfaceColor,
                         borderRadius:
                             BorderRadius.circular(AppSizing.radiusMd),
                       ),
@@ -848,7 +846,7 @@ class _ShimmerRowsState extends State<_ShimmerRows>
                               height: 12,
                               width: double.infinity,
                               decoration: BoxDecoration(
-                                color: AppColors.surface300,
+                                color: context.surfaceColor,
                                 borderRadius: BorderRadius.circular(
                                     AppSizing.radiusFull),
                               )),
@@ -857,7 +855,7 @@ class _ShimmerRowsState extends State<_ShimmerRows>
                               height: 10,
                               width: 120,
                               decoration: BoxDecoration(
-                                color: AppColors.surface300,
+                                color: context.surfaceColor,
                                 borderRadius: BorderRadius.circular(
                                     AppSizing.radiusFull),
                               )),
@@ -869,7 +867,7 @@ class _ShimmerRowsState extends State<_ShimmerRows>
                         height: 14,
                         width: 60,
                         decoration: BoxDecoration(
-                          color: AppColors.surface300,
+                          color: context.surfaceColor,
                           borderRadius:
                               BorderRadius.circular(AppSizing.radiusFull),
                         )),

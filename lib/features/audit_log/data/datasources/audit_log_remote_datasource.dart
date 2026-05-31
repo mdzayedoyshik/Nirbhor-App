@@ -21,11 +21,11 @@ class AuditLogRemoteDataSource {
     final params = <String, String>{
       'page': '$page',
       'limit': '$limit',
-      if (action != null) 'action': action,
-      if (entityType != null) 'entity_type': entityType,
-      if (userId != null) 'user_id': userId,
-      if (from != null) 'from': from,
-      if (to != null) 'to': to,
+      'action': ?action,
+      'entity_type': ?entityType,
+      'user_id': ?userId,
+      'from': ?from,
+      'to': ?to,
     };
     final query = params.entries.map((e) => '${e.key}=${e.value}').join('&');
     final endpoint = '${ApiEndpoints.flatAuditLogs(flatId)}?$query';

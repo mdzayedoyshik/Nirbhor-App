@@ -23,9 +23,9 @@ class PaymentCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,7 +41,7 @@ class PaymentCard extends StatelessWidget {
                     Text(
                       payment.paymentMethod.toUpperCase(),
                       style: AppTypography.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.textSecColor),
                     ),
                   ],
                 ),
@@ -66,7 +66,7 @@ class PaymentCard extends StatelessWidget {
             Text(
               payment.note!,
               style: AppTypography.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
+                  .copyWith(color: context.textSecColor),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -75,7 +75,7 @@ class PaymentCard extends StatelessWidget {
           Text(
             _formatDate(payment.createdAt),
             style: AppTypography.bodySmall
-                .copyWith(color: AppColors.textSecondary),
+                .copyWith(color: context.textSecColor),
           ),
           if (onVerify != null || onReject != null) ...[
             const SizedBox(height: AppSizing.sm),
@@ -139,8 +139,8 @@ class _StatusChip extends StatelessWidget {
         bg = AppColors.error.withValues(alpha: 0.12);
         fg = AppColors.error;
       case 'cancelled':
-        bg = AppColors.textSecondary.withValues(alpha: 0.12);
-        fg = AppColors.textSecondary;
+        bg = context.textSecColor.withValues(alpha: 0.12);
+        fg = context.textSecColor;
       default: // pending
         bg = AppColors.warning.withValues(alpha: 0.12);
         fg = AppColors.warning;

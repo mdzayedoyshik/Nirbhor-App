@@ -62,17 +62,17 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         final isAssignee = task.assignedTo == widget.args.myMemberId;
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bgColor,
             elevation: 0,
             title: Text('Task Detail', style: AppTypography.headlineMedium),
             actions: [
               if (canManage) ...[
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.edit_outlined,
-                    color: AppColors.textPrimary,
+                    color: context.textPrimColor,
                   ),
                   onPressed: isLoading || task.isCompleted
                       ? null
@@ -179,6 +179,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
       destructive: true,
     ).then((confirmed) {
       if (confirmed == true && mounted) {
+        // ignore: use_build_context_synchronously
         context.read<TaskBloc>().add(
           TaskDeleteRequested(widget.args.flatId, task.id),
         );
@@ -190,7 +191,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizing.radiusLg),
@@ -221,9 +222,9 @@ class _HeaderCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,8 +239,8 @@ class _HeaderCard extends StatelessWidget {
                         ? TextDecoration.lineThrough
                         : null,
                     color: task.isCompleted
-                        ? AppColors.textSecondary
-                        : AppColors.textPrimary,
+                        ? context.textSecColor
+                        : context.textPrimColor,
                   ),
                 ),
               ),
@@ -262,7 +263,7 @@ class _HeaderCard extends StatelessWidget {
             Text(
               task.description!,
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: context.textSecColor,
               ),
             ),
           ],
@@ -283,17 +284,19 @@ class _InfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         children: [
           _InfoRow(
-            icon: Icons.person_outline,
-            label: 'Assigned to',
-            value: task.assignedToName ?? 'Unassigned',
-            muted: task.assignedToName == null,
+            icon: Icons.people_outline,
+            label: task.assignees.length > 1 ? 'Assignees' : 'Assigned to',
+            value: task.assignees.isNotEmpty
+                ? task.assignees.map((a) => a.name ?? 'Unknown').join(', ')
+                : (task.assignedToName ?? 'Unassigned'),
+            muted: task.assignees.isEmpty && task.assignedToName == null,
           ),
           const _Divider(),
           _InfoRow(
@@ -392,7 +395,7 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSizing.xs + 2),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: accent ?? AppColors.textSecondary),
+          Icon(icon, size: 18, color: accent ?? context.textSecColor),
           const SizedBox(width: AppSizing.sm),
           SizedBox(
             width: 96,
@@ -403,8 +406,8 @@ class _InfoRow extends StatelessWidget {
               value,
               style: AppTypography.bodyMedium.copyWith(
                 color: muted
-                    ? AppColors.textHint
-                    : accent ?? AppColors.textPrimary,
+                    ? context.textTerColor
+                    : accent ?? context.textPrimColor,
                 fontStyle: muted ? FontStyle.italic : null,
               ),
             ),
@@ -420,7 +423,7 @@ class _Divider extends StatelessWidget {
   const _Divider();
   @override
   Widget build(BuildContext context) =>
-      const Divider(height: 1, color: AppColors.divider);
+      Divider(height: 1, color: context.dividerColor);
 }
 
 // ── Status actions ────────────────────────────────────────────────────────────
@@ -489,8 +492,8 @@ class _RevertButton extends StatelessWidget {
         icon: const Icon(Icons.undo_rounded, size: 16),
         label: const Text('Revert to In Progress'),
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textSecondary,
-          side: const BorderSide(color: AppColors.border),
+          foregroundColor: context.textSecColor,
+          side: BorderSide(color: context.borderColor),
           padding: const EdgeInsets.symmetric(vertical: AppSizing.sm + 2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSizing.radiusMd),
@@ -541,9 +544,9 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -564,7 +567,7 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
                   Text(
                     '${subTasks.where((s) => s.isCompleted).length}/${subTasks.length}',
                     style: AppTypography.labelSmall.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.textSecColor,
                     ),
                   ),
                   const SizedBox(width: AppSizing.sm),
@@ -600,14 +603,14 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
                       ? 0
                       : subTasks.where((s) => s.isCompleted).length /
                             subTasks.length,
-                  backgroundColor: AppColors.border,
+                  backgroundColor: context.borderColor,
                   valueColor: const AlwaysStoppedAnimation(AppColors.success),
                   minHeight: 4,
                 ),
               ),
             ),
 
-          const Divider(height: 1, color: AppColors.divider),
+          Divider(height: 1, color: context.dividerColor),
 
           // Add input
           if (_showAdd && !isLocked)
@@ -632,11 +635,27 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
                       decoration: InputDecoration(
                         hintText: 'New sub-task...',
                         hintStyle: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textHint,
+                          color: context.textTerColor,
                         ),
-                        border: InputBorder.none,
+                        filled: true,
+                        fillColor: context.surfaceColor,
                         isDense: true,
-                        contentPadding: EdgeInsets.zero,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSizing.sm,
+                          vertical: AppSizing.xs + 2,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                          borderSide: BorderSide(color: context.borderColor),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                          borderSide: BorderSide(color: context.borderColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                          borderSide: const BorderSide(color: AppColors.brand),
+                        ),
                       ),
                       onSubmitted: (_) => _submitAdd(),
                       textInputAction: TextInputAction.done,
@@ -665,7 +684,7 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
               child: Text(
                 isLocked ? 'No sub-tasks' : 'No sub-tasks yet',
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textHint,
+                  color: context.textTerColor,
                 ),
               ),
             )
@@ -726,7 +745,7 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
     showDialog(
       context: context,
       builder: (dCtx) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: dCtx.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
         ),
@@ -738,7 +757,7 @@ class _SubTasksSectionState extends State<_SubTasksSection> {
           decoration: InputDecoration(
             hintText: 'Sub-task title',
             hintStyle: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textHint,
+              color: context.textTerColor,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSizing.radiusMd),
@@ -823,7 +842,7 @@ class _SubTaskTile extends StatelessWidget {
                     size: 22,
                     color: subTask.isCompleted
                         ? AppColors.success
-                        : AppColors.border,
+                        : context.borderColor,
                   ),
                 ),
               ),
@@ -835,8 +854,8 @@ class _SubTaskTile extends StatelessWidget {
                     subTask.title,
                     style: AppTypography.bodyMedium.copyWith(
                       color: subTask.isCompleted
-                          ? AppColors.textSecondary
-                          : AppColors.textPrimary,
+                          ? context.textSecColor
+                          : context.textPrimColor,
                       decoration: subTask.isCompleted
                           ? TextDecoration.lineThrough
                           : null,
@@ -846,10 +865,10 @@ class _SubTaskTile extends StatelessWidget {
               ),
               if (canDelete)
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.delete_outline,
                     size: 18,
-                    color: AppColors.textHint,
+                    color: context.textTerColor,
                   ),
                   onPressed: isLoading ? null : onDelete,
                   padding: EdgeInsets.zero,
@@ -858,7 +877,7 @@ class _SubTaskTile extends StatelessWidget {
             ],
           ),
         ),
-        if (showDivider) const Divider(height: 1, color: AppColors.divider),
+        if (showDivider) Divider(height: 1, color: context.dividerColor),
       ],
     );
   }
@@ -883,9 +902,8 @@ class _EditTaskSheet extends StatefulWidget {
 class _EditTaskSheetState extends State<_EditTaskSheet> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _descCtrl;
-  FlatMemberEntity? _selectedMember;
+  List<String> _selectedIds = [];
   DateTime? _dueDate;
-  bool _clearAssignee = false;
   bool _clearDueDate = false;
 
   @override
@@ -893,14 +911,8 @@ class _EditTaskSheetState extends State<_EditTaskSheet> {
     super.initState();
     _titleCtrl = TextEditingController(text: widget.task.title);
     _descCtrl = TextEditingController(text: widget.task.description ?? '');
-    // Resolve current assignee
-    if (widget.task.assignedTo != null) {
-      try {
-        _selectedMember = widget.members.firstWhere(
-          (m) => m.flatMemberId == widget.task.assignedTo,
-        );
-      } catch (_) {}
-    }
+    // Resolve current assignees
+    _selectedIds = widget.task.assignees.map((a) => a.flatMemberId).toList();
     // Resolve current due date
     if (widget.task.dueDate != null) {
       try {
@@ -931,8 +943,8 @@ class _EditTaskSheetState extends State<_EditTaskSheet> {
         description: _descCtrl.text.trim() != (widget.task.description ?? '')
             ? _descCtrl.text.trim()
             : null,
-        assignedTo: _clearAssignee ? null : _selectedMember?.flatMemberId,
-        clearAssignee: _clearAssignee,
+        assignedToIds: _selectedIds.isEmpty ? null : _selectedIds,
+        clearAssignee: _selectedIds.isEmpty,
         dueDate: _clearDueDate ? null : dueStr,
         clearDueDate: _clearDueDate,
       ),
@@ -951,16 +963,19 @@ class _EditTaskSheetState extends State<_EditTaskSheet> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
+          colorScheme: AppColors.isDark(ctx)
+              ? ColorScheme.dark(primary: AppColors.brand)
+              : ColorScheme.light(primary: AppColors.brand),
         ),
         child: child!,
       ),
     );
-    if (picked != null)
+    if (picked != null) {
       setState(() {
         _dueDate = picked;
         _clearDueDate = false;
       });
+    }
   }
 
   @override
@@ -984,7 +999,7 @@ class _EditTaskSheetState extends State<_EditTaskSheet> {
                 width: AppSizing.bottomSheetHandleWidth,
                 height: AppSizing.bottomSheetHandleHeight,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.borderColor,
                   borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                 ),
               ),
@@ -1006,14 +1021,10 @@ class _EditTaskSheetState extends State<_EditTaskSheet> {
             Row(
               children: [
                 Expanded(
-                  child: TaskAssigneePicker(
+                  child: TaskMultiAssigneePicker(
                     members: widget.members,
-                    selected: _clearAssignee ? null : _selectedMember,
-                    onChanged: (m) => setState(() {
-                      _selectedMember = m;
-                      _clearAssignee =
-                          m == null && widget.task.assignedTo != null;
-                    }),
+                    selectedIds: _selectedIds,
+                    onChanged: (ids) => setState(() => _selectedIds = ids),
                   ),
                 ),
                 const SizedBox(width: AppSizing.sm),

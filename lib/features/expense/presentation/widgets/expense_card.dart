@@ -75,7 +75,7 @@ class ExpenseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _categoryColor;
     return Material(
-      color: AppColors.surface,
+      color: context.cardColor,
       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       child: InkWell(
         onTap: onTap,
@@ -83,7 +83,7 @@ class ExpenseCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSizing.md),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.borderColor),
             borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           ),
           child: Row(
@@ -179,7 +179,7 @@ class ExpenseCard extends StatelessWidget {
                     Row(
                       children: [
                         Icon(Icons.person_outline,
-                            size: 12, color: AppColors.textSecondary),
+                            size: 12, color: context.textSecColor),
                         const SizedBox(width: 2),
                         Text(
                           expense.paidByName,
@@ -187,7 +187,7 @@ class ExpenseCard extends StatelessWidget {
                         ),
                         const SizedBox(width: AppSizing.sm),
                         Icon(Icons.calendar_today_outlined,
-                            size: 12, color: AppColors.textSecondary),
+                            size: 12, color: context.textSecColor),
                         const SizedBox(width: 2),
                         Text(
                           _formatDate(expense.date),
@@ -203,7 +203,7 @@ class ExpenseCard extends StatelessWidget {
               Text(
                 '৳${expense.amount.toStringAsFixed(0)}',
                 style: AppTypography.titleLarge.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.textPrimColor,
                   fontWeight: FontWeight.w700,
                 ),
               ),

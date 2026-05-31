@@ -17,8 +17,8 @@ class AppDialog {
   }) {
     return showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ctx.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         ),
@@ -30,7 +30,7 @@ class AppDialog {
             variant: AppButtonVariant.text,
             fullWidth: false,
             height: AppSizing.buttonHeightSm,
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(ctx).pop(false),
           ),
           AppButton(
             label: confirmLabel,
@@ -39,7 +39,7 @@ class AppDialog {
                 : AppButtonVariant.primary,
             fullWidth: false,
             height: AppSizing.buttonHeightSm,
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(ctx).pop(true),
           ),
         ],
       ),
@@ -54,8 +54,8 @@ class AppDialog {
   }) {
     return showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ctx.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         ),
@@ -67,7 +67,7 @@ class AppDialog {
             variant: AppButtonVariant.text,
             fullWidth: false,
             height: AppSizing.buttonHeightSm,
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(ctx).pop(),
           ),
         ],
       ),

@@ -265,7 +265,7 @@ class _FlatHomeViewState extends State<FlatHomeView> {
             content: Text(
               'Are you sure you want to exit?',
               style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.textSecondary),
+                  .copyWith(color: ctx.textSecColor),
             ),
             actions: [
               TextButton(
@@ -273,7 +273,7 @@ class _FlatHomeViewState extends State<FlatHomeView> {
                 child: Text(
                   'Cancel',
                   style: AppTypography.labelM
-                      .copyWith(color: AppColors.textSecondary),
+                      .copyWith(color: ctx.textSecColor),
                 ),
               ),
               TextButton(
@@ -394,7 +394,7 @@ class _BottomNavBar extends StatelessWidget {
         color: context.bottomNavBg,
         border: Border(
           top: BorderSide(
-            color: AppColors.surface200,
+            color: context.borderColor,
             width: AppSizing.borderWidth,
           ),
         ),
@@ -415,28 +415,6 @@ class _BottomNavBar extends StatelessWidget {
               final item = items[i];
               final isActive = i == selectedIndex;
 
-              // Notification badge on Home tab (index 0)
-              if (i == 0) {
-                return BlocBuilder<NotificationBloc, NotificationState>(
-                  builder: (ctx, state) {
-                    int count = 0;
-                    if (state is NotificationUnreadCountLoaded) {
-                      count = state.unreadCount;
-                    } else if (state is NotificationListLoaded) {
-                      count = state.unreadCount;
-                    } else if (state is NotificationError) {
-                      count = state.unreadCount;
-                    }
-                    return _NavTile(
-                      item: item,
-                      isActive: isActive,
-                      badge: count,
-                      onTap: () => onTap(i),
-                    );
-                  },
-                );
-              }
-
               return _NavTile(
                 item: item,
                 isActive: isActive,
@@ -455,21 +433,16 @@ class _NavTile extends StatelessWidget {
     required this.item,
     required this.isActive,
     required this.onTap,
-    this.badge = 0,
   });
 
   final _NavItem item;
   final bool isActive;
   final VoidCallback onTap;
-  final int badge;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.isDark(context);
     final activeColor = AppColors.brand;
-    final inactiveColor = isDark
-        ? AppColors.darkTextTertiary
-        : AppColors.textTertiary;
+    final inactiveColor = context.textTerColor;
 
     return Expanded(
       child: GestureDetector(
@@ -496,34 +469,6 @@ class _NavTile extends StatelessWidget {
                   size: AppSizing.iconMd,
                   color: isActive ? activeColor : inactiveColor,
                 ),
-                if (badge > 0)
-                  Positioned(
-                    top: -4,
-                    right: -8,
-                    child: Container(
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.error,
-                        borderRadius: BorderRadius.circular(AppSizing.rFull),
-                      ),
-                      child: Text(
-                        badge > 99 ? '99+' : '$badge',
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
               ],
             ),
             const SizedBox(height: 2),
@@ -750,14 +695,14 @@ class _HomeHeader extends StatelessWidget {
                 Text(
                   '$greeting, ${user?.name.split(' ').first ?? 'there'} $greetingEmoji',
                   style: AppTypography.h4.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.textPrimColor,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   flat.name,
                   style: AppTypography.bodyS.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.textSecColor,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -793,7 +738,7 @@ class _HomeHeader extends StatelessWidget {
                           : Icons.notifications_outlined,
                       color: count > 0
                           ? AppColors.brand
-                          : AppColors.textSecondary,
+                          : context.textSecColor,
                     ),
                     onPressed: () => context.push(
                       AppRoutes.notifications,
@@ -806,14 +751,31 @@ class _HomeHeader extends StatelessWidget {
                   ),
                   if (count > 0)
                     Positioned(
-                      top: 8,
-                      right: 8,
+                      top: 4,
+                      right: 4,
                       child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
                           color: AppColors.error,
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(
+                            AppSizing.rFull,
+                          ),
+                        ),
+                        child: Text(
+                          count > 99 ? '99+' : '$count',
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ),
@@ -980,11 +942,11 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: AppSizing.sp8),
           Text(
             value,
-            style: AppTypography.amountL.copyWith(color: AppColors.textPrimary),
+            style: AppTypography.amountL.copyWith(color: context.textPrimColor),
           ),
           Text(
             '$label · $subtitle',
-            style: AppTypography.labelS.copyWith(color: AppColors.textTertiary),
+            style: AppTypography.labelS.copyWith(color: context.textTerColor),
           ),
         ],
       ),
@@ -1085,13 +1047,13 @@ class _MealStatCard extends StatelessWidget {
               return Text(
                 pts != null ? '${pts.toStringAsFixed(1)} pts' : '--',
                 style: AppTypography.amountL
-                    .copyWith(color: AppColors.textPrimary),
+                    .copyWith(color: context.textPrimColor),
               );
             },
           ),
           Text(
             'Meals · ${_monthAbbr(DateTime.now().month)}',
-            style: AppTypography.labelS.copyWith(color: AppColors.textTertiary),
+            style: AppTypography.labelS.copyWith(color: context.textTerColor),
           ),
         ],
       ),
@@ -1117,10 +1079,10 @@ class _ShiftChip extends StatelessWidget {
       height: 20,
       decoration: BoxDecoration(
         color: on == null
-            ? AppColors.border.withValues(alpha: 0.5)
+            ? context.borderColor.withValues(alpha: 0.5)
             : isOn
                 ? color.withValues(alpha: 0.15)
-                : AppColors.surfaceVariant,
+                : context.surfaceColor,
         borderRadius: BorderRadius.circular(5),
       ),
       alignment: Alignment.center,
@@ -1130,10 +1092,10 @@ class _ShiftChip extends StatelessWidget {
           fontSize: 10,
           fontWeight: FontWeight.w700,
           color: on == null
-              ? AppColors.border
+              ? context.borderColor
               : isOn
                   ? color
-                  : AppColors.textHint,
+                  : context.textTerColor,
           height: 1,
         ),
       ),
@@ -1161,13 +1123,13 @@ class _QuickActionsRow extends StatelessWidget {
   void _showQrSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizing.radiusLg),
         ),
       ),
-      builder: (_) => Padding(
+      builder: (sheetCtx) => Padding(
         padding: const EdgeInsets.all(AppSizing.pagePadding),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1177,7 +1139,7 @@ class _QuickActionsRow extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(bottom: AppSizing.md),
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: sheetCtx.borderColor,
                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),
               ),
             ),
@@ -1186,7 +1148,7 @@ class _QuickActionsRow extends StatelessWidget {
             Text(
               'Share this QR code or join code with others',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: sheetCtx.textSecColor,
               ),
               textAlign: TextAlign.center,
             ),
@@ -1345,7 +1307,7 @@ class _QuickActionsRow extends StatelessWidget {
               label: 'Audit',
               onTap: () => context.push(
                 AppRoutes.auditLog,
-                extra: AuditLogPageArgs(flatId: flat.id),
+                extra: AuditLogPageArgs(flatId: flat.id, members: flat.members),
               ),
             ),
             BlocBuilder<JoinRequestsBloc, JoinRequestsState>(
@@ -1548,7 +1510,7 @@ class _MonthCloseChecklistCard extends StatelessWidget {
                             Text(
                               'Close $monthName $year',
                               style: AppTypography.labelL.copyWith(
-                                color: AppColors.textPrimary,
+                                color: context.textPrimColor,
                               ),
                             ),
                             Text(
@@ -1556,7 +1518,7 @@ class _MonthCloseChecklistCard extends StatelessWidget {
                                   ? 'Resolve ${expenses.length} expense${expenses.length > 1 ? 's' : ''} before closing'
                                   : 'All clear — ready to close this month',
                               style: AppTypography.bodyS.copyWith(
-                                color: AppColors.textSecondary,
+                                color: context.textSecColor,
                               ),
                             ),
                           ],
@@ -1570,7 +1532,7 @@ class _MonthCloseChecklistCard extends StatelessWidget {
                 if (expenses.isNotEmpty) ...[
                   Divider(
                     height: 1,
-                    color: AppColors.surface200,
+                    color: context.dividerColor,
                     indent: AppSizing.sp16,
                     endIndent: AppSizing.sp16,
                   ),
@@ -1581,7 +1543,7 @@ class _MonthCloseChecklistCard extends StatelessWidget {
                     child: Text(
                       'RESOLVE BEFORE CLOSING',
                       style: AppTypography.labelS.copyWith(
-                        color: AppColors.textTertiary,
+                        color: context.textTerColor,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -1619,7 +1581,7 @@ class _MonthCloseChecklistCard extends StatelessWidget {
                 if (expenses.isEmpty) ...[
                   Divider(
                     height: 1,
-                    color: AppColors.surface200,
+                    color: context.dividerColor,
                     indent: AppSizing.sp16,
                     endIndent: AppSizing.sp16,
                   ),
@@ -1735,7 +1697,7 @@ class _ExpenseChecklistItem extends StatelessWidget {
         vertical: AppSizing.sp8,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant.withValues(alpha: 0.5),
+        color: context.surfaceColor.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(AppSizing.r12),
       ),
       child: Column(
@@ -1744,19 +1706,19 @@ class _ExpenseChecklistItem extends StatelessWidget {
           Row(
             children: [
               // Category icon
-              Icon(categoryIcon, size: 14, color: AppColors.textSecondary),
+              Icon(categoryIcon, size: 14, color: context.textSecColor),
               const SizedBox(width: AppSizing.sp4),
               Text(
                 categoryLabel,
                 style: AppTypography.labelS.copyWith(
-                    color: AppColors.textSecondary),
+                    color: context.textSecColor),
               ),
               const Spacer(),
               // Amount
               Text(
                 '৳${expense.amount.toStringAsFixed(expense.amount % 1 == 0 ? 0 : 2)}',
                 style: AppTypography.labelL.copyWith(
-                    color: AppColors.textPrimary),
+                    color: context.textPrimColor),
               ),
             ],
           ),
@@ -1773,7 +1735,7 @@ class _ExpenseChecklistItem extends StatelessWidget {
                     if (dateLabel.isNotEmpty) '· $dateLabel',
                   ].join(' '),
                   style: AppTypography.bodyS.copyWith(
-                      color: AppColors.textTertiary),
+                      color: context.textTerColor),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -2107,7 +2069,7 @@ class _PendingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(AppSizing.r16),
         border: Border(left: BorderSide(color: accentColor, width: 4)),
         boxShadow: AppColors.shadowSm,
@@ -2125,7 +2087,7 @@ class _PendingCard extends StatelessWidget {
         title: Text(title, style: AppTypography.labelL),
         subtitle: Text(
           subtitle,
-          style: AppTypography.bodyS.copyWith(color: AppColors.textSecondary),
+          style: AppTypography.bodyS.copyWith(color: context.textSecColor),
         ),
         trailing: TextButton(
           onPressed: onAction,

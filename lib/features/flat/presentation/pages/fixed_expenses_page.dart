@@ -98,25 +98,21 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
     final hintsBloc = context.read<PaymentHintsBloc>();
     final currentState = hintsBloc.state;
 
-    final mealCtrl = TextEditingController(
-      text: currentState is PaymentHintsLoaded
-          ? currentState.hints.suggestedMealAmount.toStringAsFixed(0)
-          : currentState is PaymentHintsUpdateSuccess
-          ? currentState.hints.suggestedMealAmount.toStringAsFixed(0)
-          : '',
-    );
-    final householdCtrl = TextEditingController(
-      text: currentState is PaymentHintsLoaded
-          ? currentState.hints.suggestedHouseholdAmount.toStringAsFixed(0)
-          : currentState is PaymentHintsUpdateSuccess
-          ? currentState.hints.suggestedHouseholdAmount.toStringAsFixed(0)
-          : '',
-    );
+    final initialMeal = currentState is PaymentHintsLoaded
+        ? currentState.hints.suggestedMealAmount.toStringAsFixed(0)
+        : currentState is PaymentHintsUpdateSuccess
+        ? currentState.hints.suggestedMealAmount.toStringAsFixed(0)
+        : '';
+    final initialHousehold = currentState is PaymentHintsLoaded
+        ? currentState.hints.suggestedHouseholdAmount.toStringAsFixed(0)
+        : currentState is PaymentHintsUpdateSuccess
+        ? currentState.hints.suggestedHouseholdAmount.toStringAsFixed(0)
+        : '';
 
-    await showModalBottomSheet(
+    final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizing.radiusLg),
@@ -126,14 +122,15 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
         value: hintsBloc,
         child: _HintsSheet(
           flatId: widget.flatId,
-          mealCtrl: mealCtrl,
-          householdCtrl: householdCtrl,
+          initialMeal: initialMeal,
+          initialHousehold: initialHousehold,
         ),
       ),
     );
 
-    mealCtrl.dispose();
-    householdCtrl.dispose();
+    if (saved == true && context.mounted) {
+      AppSnackbar.success(context, AppStrings.paymentHintsUpdatedMsg);
+    }
   }
 
   Future<void> _redistribute(BuildContext context) async {
@@ -179,7 +176,7 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizing.radiusLg),
@@ -223,7 +220,7 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                     height: 4,
                     margin: const EdgeInsets.only(bottom: AppSizing.md),
                     decoration: BoxDecoration(
-                      color: AppColors.border,
+                      color: context.borderColor,
                       borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                     ),
                   ),
@@ -249,7 +246,7 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                 Text(
                   'Total fixed: ৳${totalFixed.toStringAsFixed(0)}',
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.textSecColor,
                   ),
                 ),
                 const SizedBox(height: AppSizing.md),
@@ -280,7 +277,7 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                                           ? 'Co-manager'
                                           : 'Member',
                                       style: AppTypography.labelSmall.copyWith(
-                                        color: AppColors.textSecondary,
+                                        color: context.textSecColor,
                                       ),
                                     ),
                                   ],
@@ -415,27 +412,27 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
         title: Text(
           AppStrings.fixedExpensesTitle,
           style: AppTypography.titleLarge,
         ),
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.cardColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: AppColors.textPrimary,
+            color: context.textPrimColor,
           ),
           onPressed: () => context.pop(),
         ),
         actions: [
           if (widget.canManage)
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.balance_outlined,
-                color: AppColors.textPrimary,
+                color: context.textPrimColor,
               ),
               tooltip: AppStrings.redistributeLabel,
               onPressed: () => _redistribute(context),
@@ -573,14 +570,14 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                             Text(
                               'No Expenses Added',
                               style: AppTypography.titleMedium.copyWith(
-                                color: AppColors.textPrimary,
+                                color: context.textPrimColor,
                               ),
                             ),
                             const SizedBox(height: AppSizing.xs),
                             Text(
                               'Add shared expenses like rent or utilities\nto track each member\'s contribution.',
                               style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
+                                color: context.textSecColor,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -664,9 +661,9 @@ class _HintsSectionCard extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.all(AppSizing.md),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.cardColor,
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.borderColor),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -695,10 +692,10 @@ class _HintsSectionCard extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: onEdit,
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.edit_outlined,
                       size: 18,
-                      color: AppColors.textSecondary,
+                      color: context.textSecColor,
                     ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(
@@ -713,7 +710,7 @@ class _HintsSectionCard extends StatelessWidget {
               Text(
                 AppStrings.paymentHintsHelperNote,
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.textSecColor,
                 ),
               ),
               const SizedBox(height: AppSizing.md),
@@ -770,13 +767,13 @@ class _HintRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 15, color: AppColors.textSecondary),
+        Icon(icon, size: 15, color: context.textSecColor),
         const SizedBox(width: AppSizing.xs),
         Expanded(
           child: Text(
             label,
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary,
+              color: context.textSecColor,
             ),
           ),
         ),
@@ -794,19 +791,36 @@ class _HintRow extends StatelessWidget {
 class _HintsSheet extends StatefulWidget {
   const _HintsSheet({
     required this.flatId,
-    required this.mealCtrl,
-    required this.householdCtrl,
+    required this.initialMeal,
+    required this.initialHousehold,
   });
 
   final String flatId;
-  final TextEditingController mealCtrl;
-  final TextEditingController householdCtrl;
+  final String initialMeal;
+  final String initialHousehold;
 
   @override
   State<_HintsSheet> createState() => _HintsSheetState();
 }
 
 class _HintsSheetState extends State<_HintsSheet> {
+  late final TextEditingController _mealCtrl;
+  late final TextEditingController _householdCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _mealCtrl = TextEditingController(text: widget.initialMeal);
+    _householdCtrl = TextEditingController(text: widget.initialHousehold);
+  }
+
+  @override
+  void dispose() {
+    _mealCtrl.dispose();
+    _householdCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<PaymentHintsBloc, PaymentHintsState>(
@@ -814,11 +828,7 @@ class _HintsSheetState extends State<_HintsSheet> {
           curr is PaymentHintsUpdateSuccess || curr is PaymentHintsError,
       listener: (context, state) {
         if (state is PaymentHintsUpdateSuccess) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            Navigator.of(context).pop();
-            AppSnackbar.success(context, AppStrings.paymentHintsUpdatedMsg);
-          });
+          Navigator.of(context).pop(true);
         }
         if (state is PaymentHintsError) {
           AppSnackbar.error(context, state.message);
@@ -837,14 +847,13 @@ class _HintsSheetState extends State<_HintsSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // drag handle
               Center(
                 child: Container(
                   width: 40,
                   height: 4,
                   margin: const EdgeInsets.only(bottom: AppSizing.md),
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: context.borderColor,
                     borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                   ),
                 ),
@@ -857,31 +866,31 @@ class _HintsSheetState extends State<_HintsSheet> {
               Text(
                 AppStrings.paymentHintsHelperNote,
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.textSecColor,
                 ),
               ),
               const SizedBox(height: AppSizing.md),
               AppTextField(
-                controller: widget.mealCtrl,
+                controller: _mealCtrl,
                 label: AppStrings.suggestedMealLabel,
                 hint: '0',
                 keyboardType: TextInputType.number,
-                prefixIcon: const Icon(
+                prefixIcon: Icon(
                   Icons.restaurant_outlined,
-                  color: AppColors.textSecondary,
+                  color: context.textSecColor,
                   size: 20,
                 ),
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: AppSizing.md),
               AppTextField(
-                controller: widget.householdCtrl,
+                controller: _householdCtrl,
                 label: AppStrings.suggestedHouseholdLabel,
                 hint: '0',
                 keyboardType: TextInputType.number,
-                prefixIcon: const Icon(
+                prefixIcon: Icon(
                   Icons.home_outlined,
-                  color: AppColors.textSecondary,
+                  color: context.textSecColor,
                   size: 20,
                 ),
                 textInputAction: TextInputAction.done,
@@ -895,10 +904,9 @@ class _HintsSheetState extends State<_HintsSheet> {
                     : () {
                         FocusScope.of(context).unfocus();
                         final meal =
-                            double.tryParse(widget.mealCtrl.text.trim()) ?? 0;
+                            double.tryParse(_mealCtrl.text.trim()) ?? 0;
                         final household =
-                            double.tryParse(widget.householdCtrl.text.trim()) ??
-                            0;
+                            double.tryParse(_householdCtrl.text.trim()) ?? 0;
                         context.read<PaymentHintsBloc>().add(
                           PaymentHintsUpdateRequested(
                             flatId: widget.flatId,
@@ -1004,9 +1012,9 @@ class _ExpenseFormState extends State<_ExpenseForm> {
                 controller: _typeCtrl,
                 label: AppStrings.expenseTypeLabel,
                 hint: AppStrings.expenseTypeHint,
-                prefixIcon: const Icon(
+                prefixIcon: Icon(
                   Icons.receipt_outlined,
-                  color: AppColors.textSecondary,
+                  color: context.textSecColor,
                 ),
                 textInputAction: TextInputAction.next,
                 validator: (v) =>
@@ -1021,13 +1029,13 @@ class _ExpenseFormState extends State<_ExpenseForm> {
                   decimal: true,
                 ),
                 textInputAction: TextInputAction.done,
-                prefixIcon: const Padding(
-                  padding: EdgeInsets.all(AppSizing.sm + 4),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.all(AppSizing.sm + 4),
                   child: Text(
                     '৳',
                     style: TextStyle(
                       fontSize: 18,
-                      color: AppColors.textSecondary,
+                      color: context.textSecColor,
                     ),
                   ),
                 ),

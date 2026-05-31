@@ -81,16 +81,16 @@ class _PaymentsListPageState extends State<PaymentsListPage>
         }
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bgColor,
             elevation: 0,
             title: Text(AppStrings.paymentsListTitle,
                 style: AppTypography.headlineMedium),
             bottom: TabBar(
               controller: _tabController,
               labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.textSecondary,
+              unselectedLabelColor: context.textSecColor,
               indicatorColor: AppColors.primary,
               tabs: [
                 Tab(
@@ -151,7 +151,7 @@ class _PaymentsListPageState extends State<PaymentsListPage>
       return Center(
         child: Text(state.message,
             style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textSecondary)),
+                .copyWith(color: context.textSecColor)),
       );
     }
     if (payments == null || payments.isEmpty) {
@@ -159,7 +159,7 @@ class _PaymentsListPageState extends State<PaymentsListPage>
         child: Text(
           'No payments here.',
           style: AppTypography.bodyMedium
-              .copyWith(color: AppColors.textSecondary),
+              .copyWith(color: context.textSecColor),
         ),
       );
     }
@@ -235,7 +235,7 @@ class _PaymentsListPageState extends State<PaymentsListPage>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppSizing.radiusLg)),
@@ -257,7 +257,7 @@ class _PaymentsListPageState extends State<PaymentsListPage>
               margin: const EdgeInsets.only(bottom: AppSizing.md),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: context.borderColor,
                 borderRadius: BorderRadius.circular(AppSizing.radiusFull),
               ),
             ),

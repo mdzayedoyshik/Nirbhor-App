@@ -40,9 +40,9 @@ class _AllWalletsPageState extends State<AllWalletsPage> {
       },
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.bgColor,
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: context.bgColor,
             elevation: 0,
             title: Text(AppStrings.allWalletsTitle,
                 style: AppTypography.headlineMedium),
@@ -65,7 +65,7 @@ class _AllWalletsPageState extends State<AllWalletsPage> {
           children: [
             Text(state.message,
                 style: AppTypography.bodyMedium
-                    .copyWith(color: AppColors.textSecondary)),
+                    .copyWith(color: context.textSecColor)),
             const SizedBox(height: AppSizing.md),
             TextButton(
               onPressed: () => context
@@ -81,7 +81,7 @@ class _AllWalletsPageState extends State<AllWalletsPage> {
       return Center(
         child: Text('No wallet data available.',
             style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textSecondary)),
+                .copyWith(color: context.textSecColor)),
       );
     }
 
