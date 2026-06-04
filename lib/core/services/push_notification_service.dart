@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 
 import '../di/injection_container.dart';
@@ -32,27 +34,37 @@ class ForegroundPushEvent {
   final String flatId;
   final String referenceId;
 
-  bool get isTask =>
-      type.contains('task');
-  bool get isComplaint =>
-      type.contains('complaint');
+  bool get isTask => type.contains('task');
+  bool get isComplaint => type.contains('complaint');
   bool get isPayment =>
       type.contains('payment') ||
       type.contains('wallet') ||
       type.contains('contribution');
 }
 
+// ─── Android notification channel ────────────────────────────────────────────
+
+const _channel = AndroidNotificationChannel(
+  'nirbhor_high_importance',
+  'Nirbhor Notifications',
+  description: 'Flat management alerts and updates',
+  importance: Importance.high,
+);
+
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 /// Singleton that handles Firebase Cloud Messaging for all three app states:
 ///
-/// • **Foreground** – `onMessage`: refreshes the notification list & badge;
-///   broadcasts a [ForegroundPushEvent] so open feature pages can reload.
+/// • **Foreground** – `onMessage`: shows a local notification banner, refreshes
+///   the badge, and broadcasts a [ForegroundPushEvent] so open pages can reload.
+///   Tapping the banner navigates just like the background/terminated paths.
 ///
 /// • **Background** – `onMessageOpenedApp`: navigates to the relevant screen.
 ///
-/// • **Terminated** – `getInitialMessage`: waits for auth + flat to be ready,
-///   then navigates.
+/// • **Terminated** – `getInitialMessage`: waits until the router has settled on
+///   `/home` (i.e. SplashPage has already finished its navigation) before
+///   pushing the destination, preventing the race where SplashPage's
+///   `router.go(home)` overwrites the push.
 ///
 /// Call [initialize] once in `main()` after `runApp`.
 class PushNotificationService {
@@ -65,6 +77,7 @@ class PushNotificationService {
   /// relevant push arrives while the page is visible.
   Stream<ForegroundPushEvent> get foregroundStream => _foregroundController.stream;
 
+  final _localNotifications = FlutterLocalNotificationsPlugin();
   GoRouter? _router;
 
   // ── Initialisation ─────────────────────────────────────────────────────────
@@ -73,6 +86,39 @@ class PushNotificationService {
     _router = router;
 
     await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // Create the Android channel so foreground messages can be displayed.
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(_channel);
+
+    // onDidReceiveNotificationResponse fires when the user taps a local
+    // notification that was shown while the app was in the foreground.
+    // The payload is the JSON-encoded FCM data map.
+    await _localNotifications.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(),
+      ),
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        final payload = response.payload;
+        if (payload == null || payload.isEmpty) return;
+        try {
+          final data = Map<String, dynamic>.from(
+            jsonDecode(payload) as Map,
+          );
+          _navigateFromData(data);
+        } catch (_) {}
+      },
+    );
+
+    // Tell iOS to show alerts/badge/sound while app is in foreground.
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
       sound: true,
@@ -103,12 +149,35 @@ class PushNotificationService {
     final flatId = data['flat_id'] as String? ?? '';
     final referenceId = data['reference_id'] as String? ?? '';
 
-    // 1. Always refresh the notification badge and list
+    // 1. Show a visible notification banner.
+    //    Payload = JSON-encoded FCM data so the tap handler can navigate.
+    final notification = message.notification;
+    if (notification != null) {
+      _localNotifications.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channel.id,
+            _channel.name,
+            channelDescription: _channel.description,
+            icon: '@mipmap/ic_launcher',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: const DarwinNotificationDetails(),
+        ),
+        payload: jsonEncode(data),
+      );
+    }
+
+    // 2. Always refresh the notification badge and list.
     sl<NotificationBloc>()
       ..add(const NotificationUnreadCountRequested())
       ..add(const NotificationLoadRequested());
 
-    // 2. Broadcast to any open feature page that wants to reload its data
+    // 3. Broadcast to any open feature page that wants to reload its data.
     if (type.isNotEmpty) {
       _foregroundController.add(
         ForegroundPushEvent(type: type, flatId: flatId, referenceId: referenceId),
@@ -117,46 +186,55 @@ class PushNotificationService {
   }
 
   void _onMessageOpenedApp(RemoteMessage message) {
-    _navigateFromMessage(message);
+    _navigateFromData(message.data);
   }
 
   // ── Terminated-state helper ────────────────────────────────────────────────
 
-  /// Waits for [FlatBloc] to reach [FlatLoaded] before navigating,
-  /// so the app has context (canManage, myMemberId) for the target screen.
+  /// Waits until both conditions are true before navigating:
+  ///   1. [FlatBloc] has reached [FlatLoaded] (flat context is available).
+  ///   2. The router is already at [AppRoutes.home] (SplashPage has finished).
+  ///
+  /// Without condition 2, SplashPage's own `router.go(home)` would fire after
+  /// our `router.push(destination)` and wipe the destination off the stack,
+  /// causing the "flickers to home" bug.
   void _navigateWhenReady(RemoteMessage message) {
-    final flatState = sl<FlatBloc>().state;
-    if (flatState is FlatLoaded || flatState is FlatPendingExit) {
-      // Flat is already loaded — navigate after the first frame
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _navigateFromMessage(message),
-      );
-      return;
-    }
+    late void Function() check;
 
-    // Flat is not yet loaded; listen until it is
-    StreamSubscription<FlatState>? sub;
-    sub = sl<FlatBloc>().stream.listen((state) {
-      if (state is FlatLoaded || state is FlatPendingExit) {
-        sub?.cancel();
-        _navigateFromMessage(message);
+    check = () {
+      final flatState = sl<FlatBloc>().state;
+      final flatReady = flatState is FlatLoaded || flatState is FlatPendingExit;
+      final path =
+          _router?.routerDelegate.currentConfiguration.uri.path ?? '';
+      final atHome = path == AppRoutes.home;
+
+      if (flatReady && atHome) {
+        _router?.routerDelegate.removeListener(check);
+        // One extra frame so the home page finishes building before we push.
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _navigateFromData(message.data),
+        );
       }
-    });
+    };
+
+    // Listen to every router navigation via the delegate (ChangeNotifier).
+    _router?.routerDelegate.addListener(check);
+    // Also evaluate immediately in case we're already in the right state.
+    check();
   }
 
   // ── Navigation ─────────────────────────────────────────────────────────────
 
-  void _navigateFromMessage(RemoteMessage message) {
+  void _navigateFromData(Map<String, dynamic> data) {
     final router = _router;
     if (router == null) return;
 
-    final data    = message.data;
-    final type    = (data['type'] as String? ?? '').toLowerCase();
-    final flatId  = data['flat_id'] as String? ?? '';
+    final type   = (data['type']   as String? ?? '').toLowerCase();
+    final flatId = (data['flat_id'] as String? ?? '');
 
     if (flatId.isEmpty) { router.go(AppRoutes.home); return; }
 
-    // Resolve flat + user context from singleton BLoCs
+    // Resolve flat + user context from singleton BLoCs.
     final flatState = sl<FlatBloc>().state;
     final flat = switch (flatState) {
       FlatLoaded(:final flat)      => flat,
@@ -175,11 +253,11 @@ class PushNotificationService {
       return;
     }
 
-    final member      = flat.memberByUserId(authState.user.id);
-    final canManage   = member?.canManage ?? false;
-    final myMemberId  = member?.flatMemberId ?? '';
+    final member     = flat.memberByUserId(authState.user.id);
+    final canManage  = member?.canManage ?? false;
+    final myMemberId = member?.flatMemberId ?? '';
 
-    // ── Route by type (mirrors notification_page._handleTap) ────────────────
+    // ── Route by type (mirrors notification_page._handleTap) ───────────────
 
     if (type.contains('join_request')) {
       if (canManage) {
@@ -196,7 +274,6 @@ class PushNotificationService {
     }
 
     if (type.contains('exit')) {
-      // Home auto-renders PendingExitPage when FlatState is FlatPendingExit
       router.go(AppRoutes.home);
       return;
     }
@@ -257,8 +334,6 @@ class PushNotificationService {
     }
 
     if (type.contains('month_closed') || type.contains('monthly')) {
-      // Extract month + year from FCM data payload so the summary page opens
-      // directly on the closed month rather than the current month.
       final initialMonth = int.tryParse(data['month'] as String? ?? '');
       final initialYear  = int.tryParse(data['year']  as String? ?? '');
       router.push(

@@ -1,6 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -24,6 +25,12 @@ import 'features/flat/presentation/bloc/flat_bloc.dart';
 import 'features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
 import 'firebase_options.dart';
 
+// Must be a top-level function for FCM background isolate
+@pragma('vm:entry-point')
+Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
+  // No BLoC/DI access here — runs in a separate isolate.
+  // Firebase is already initialized by the plugin before this is called.
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,10 +41,13 @@ Future<void> main() async {
   );
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
 
   // Disable both Crashlytics and Analytics in debug builds to avoid
   // polluting production datasets with local dev data.
-  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+    !kDebugMode,
+  );
   await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(!kDebugMode);
 
   // Catch Flutter framework errors (widget build, layout, painting).
@@ -118,7 +128,9 @@ class _AppViewState extends State<_AppView> {
         // FlatBloc check is triggered here; navigation is handled by the
         // router's redirect + refreshListenable (via _AuthNotifier).
         if (state is AuthAuthenticated) {
-          context.read<FlatBloc>().add(FlatCheckRequested(userId: state.user.id));
+          context.read<FlatBloc>().add(
+            FlatCheckRequested(userId: state.user.id),
+          );
         }
       },
       child: BlocBuilder<ThemeCubit, ThemeState>(
@@ -136,9 +148,3 @@ class _AppViewState extends State<_AppView> {
     );
   }
 }
-/*
-1. Create expense date picker is still in light colors, 
-2. make all tabs appbar the same (Meals, wallet, expense, settings). Simple, minimal
-3. Due date datepicker in task creating is still in light colors. but perfect in edit bottom sheet
-4. Sub task text field is too small in task create, but perfect in task details subtask add
-*/
