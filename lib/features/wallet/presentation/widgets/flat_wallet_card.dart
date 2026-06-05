@@ -5,14 +5,36 @@ import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_sizing.dart';
 import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/constants/app_typography.dart';
+import '../../../../../core/di/injection_container.dart';
 import '../../../../../core/router/app_router.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../flat/presentation/bloc/flat_bloc.dart';
 import '../../domain/entities/flat_wallet_entity.dart';
+import '../args/transaction_history_args.dart';
 
 class FlatWalletCard extends StatelessWidget {
   const FlatWalletCard({super.key, required this.flatWallet, required this.flatId});
 
   final FlatWalletEntity flatWallet;
   final String flatId;
+
+  TransactionHistoryArgs _buildArgs() {
+    final flatState = sl<FlatBloc>().state;
+    final flat = switch (flatState) {
+      FlatLoaded(:final flat) => flat,
+      FlatPendingExit(:final flat) => flat,
+      _ => null,
+    };
+    final authState = sl<AuthBloc>().state;
+    final userId =
+        authState is AuthAuthenticated ? authState.user.id : '';
+    final member = flat?.memberByUserId(userId);
+    return TransactionHistoryArgs(
+      flatId: flatId,
+      myMemberId: member?.flatMemberId ?? '',
+      members: flat?.activeMembers ?? const [],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +48,8 @@ class FlatWalletCard extends StatelessWidget {
     final textColor = isNeg ? AppColors.error : AppColors.success;
 
     return GestureDetector(
-      onTap: () => context.push(AppRoutes.walletTransactions, extra: flatId),
+      onTap: () =>
+          context.push(AppRoutes.walletTransactions, extra: _buildArgs()),
       child: Container(
         padding: const EdgeInsets.symmetric(
             horizontal: AppSizing.md, vertical: AppSizing.sm + 2),

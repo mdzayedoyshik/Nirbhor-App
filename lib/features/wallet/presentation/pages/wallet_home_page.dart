@@ -6,12 +6,16 @@ import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_sizing.dart';
 import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/constants/app_typography.dart';
+import '../../../../../core/di/injection_container.dart';
 import '../../../../../core/router/app_router.dart';
 import '../../../../../core/widgets/app_button.dart';
 import '../../../../../core/widgets/app_snackbar.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../flat/presentation/bloc/flat_bloc.dart';
 import '../../domain/entities/flat_wallet_entity.dart';
 import '../../domain/entities/wallet_summary_entity.dart';
 import '../args/submit_payment_args.dart';
+import '../args/transaction_history_args.dart';
 import '../args/wallet_page_args.dart';
 import '../bloc/wallet/wallet_bloc.dart';
 import '../widgets/transaction_row.dart';
@@ -30,6 +34,26 @@ class _WalletHomePageState extends State<WalletHomePage> {
   void initState() {
     super.initState();
     context.read<WalletBloc>().add(WalletSummaryRequested(widget.args.flatId));
+  }
+
+  /// Builds the args for the Transaction History page by reading flat + auth
+  /// context from the singleton BLoCs.
+  TransactionHistoryArgs _buildTxHistoryArgs() {
+    final flatState = sl<FlatBloc>().state;
+    final flat = switch (flatState) {
+      FlatLoaded(:final flat) => flat,
+      FlatPendingExit(:final flat) => flat,
+      _ => null,
+    };
+    final authState = sl<AuthBloc>().state;
+    final userId =
+        authState is AuthAuthenticated ? authState.user.id : '';
+    final member = flat?.memberByUserId(userId);
+    return TransactionHistoryArgs(
+      flatId: widget.args.flatId,
+      myMemberId: member?.flatMemberId ?? '',
+      members: flat?.activeMembers ?? const [],
+    );
   }
 
   @override
@@ -195,7 +219,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
                       TextButton(
                         onPressed: () => context.push(
                           AppRoutes.walletTransactions,
-                          extra: widget.args.flatId,
+                          extra: _buildTxHistoryArgs(),
                         ),
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.brand,

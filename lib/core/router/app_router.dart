@@ -71,6 +71,7 @@ import '../../features/task/presentation/pages/create_task_page.dart';
 import '../../features/task/presentation/pages/task_detail_page.dart';
 import '../../features/task/presentation/pages/task_page.dart';
 import '../../features/wallet/presentation/args/submit_payment_args.dart';
+import '../../features/wallet/presentation/args/transaction_history_args.dart';
 import '../../features/wallet/presentation/args/wallet_page_args.dart';
 import '../../features/wallet/presentation/bloc/all_wallets/all_wallets_bloc.dart';
 import '../../features/wallet/presentation/bloc/payment_hints/payment_hints_bloc.dart';
@@ -305,10 +306,11 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: AppRoutes.walletTransactions,
         redirect: (_, state) =>
-            state.extra is String ? null : AppRoutes.home,
+            state.extra is TransactionHistoryArgs ? null : AppRoutes.home,
         builder: (_, state) => BlocProvider(
           create: (_) => sl<TransactionsBloc>(),
-          child: TransactionHistoryPage(flatId: state.extra! as String),
+          child: TransactionHistoryPage(
+              args: state.extra! as TransactionHistoryArgs),
         ),
       ),
       GoRoute(

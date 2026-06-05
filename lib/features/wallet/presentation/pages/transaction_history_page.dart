@@ -6,6 +6,8 @@ import '../../../../../core/constants/app_sizing.dart';
 import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/constants/app_typography.dart';
 import '../../../../../core/widgets/app_snackbar.dart';
+import '../../../flat/domain/entities/flat_member_entity.dart';
+import '../args/transaction_history_args.dart';
 import '../bloc/transactions/transactions_bloc.dart';
 import '../widgets/transaction_row.dart';
 import '../../domain/entities/transaction_entity.dart';
@@ -52,7 +54,6 @@ List<_ListItem> _buildGrouped(List<TransactionEntity> txs) {
 
     if (txDay != currentDay) {
       currentDay = txDay;
-
       final String label;
       if (txDay == today) {
         label = 'Today';
@@ -63,7 +64,6 @@ List<_ListItem> _buildGrouped(List<TransactionEntity> txs) {
       } else {
         label = '${txDay.day} ${months[txDay.month - 1]} ${txDay.year}';
       }
-
       items.add(_DateHeader(label));
     }
 
@@ -76,9 +76,9 @@ List<_ListItem> _buildGrouped(List<TransactionEntity> txs) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 class TransactionHistoryPage extends StatefulWidget {
-  const TransactionHistoryPage({super.key, required this.flatId});
+  const TransactionHistoryPage({super.key, required this.args});
 
-  final String flatId;
+  final TransactionHistoryArgs args;
 
   @override
   State<TransactionHistoryPage> createState() =>
@@ -87,9 +87,14 @@ class TransactionHistoryPage extends StatefulWidget {
 
 class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   final _scrollController = ScrollController();
+
+  /// null = all types
   String? _typeFilter;
 
-  static const _filters = [
+  /// null = all members; defaults to the current user's member ID
+  String? _memberFilter;
+
+  static const _typeFilters = [
     (label: 'All', value: null),
     (label: 'Deposits', value: 'deposit'),
     (label: 'Deductions', value: 'deduction'),
@@ -99,13 +104,21 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   @override
   void initState() {
     super.initState();
+    // Default: show current user's transactions
+    _memberFilter = widget.args.myMemberId.isNotEmpty
+        ? widget.args.myMemberId
+        : null;
     _load();
     _scrollController.addListener(_onScroll);
   }
 
   void _load() {
     context.read<TransactionsBloc>().add(
-          TransactionsLoadRequested(widget.flatId, type: _typeFilter),
+          TransactionsLoadRequested(
+            widget.args.flatId,
+            type: _typeFilter,
+            memberId: _memberFilter,
+          ),
         );
   }
 
@@ -114,7 +127,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
         _scrollController.position.maxScrollExtent - 200) {
       context
           .read<TransactionsBloc>()
-          .add(TransactionsLoadMoreRequested(widget.flatId));
+          .add(TransactionsLoadMoreRequested(widget.args.flatId));
     }
   }
 
@@ -145,14 +158,32 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
           ),
           body: Column(
             children: [
-              _FilterBar(
+              // ── Type filter ──────────────────────────────
+              _ChipFilterBar<String?>(
+                chips: _typeFilters
+                    .map((f) => (label: f.label, value: f.value))
+                    .toList(),
                 selected: _typeFilter,
-                filters: _filters,
                 onSelect: (v) {
                   setState(() => _typeFilter = v);
                   _load();
                 },
               ),
+
+              // ── Member filter ─────────────────────────────
+              if (widget.args.members.isNotEmpty)
+                _MemberFilterBar(
+                  members: widget.args.members,
+                  myMemberId: widget.args.myMemberId,
+                  selected: _memberFilter,
+                  onSelect: (id) {
+                    setState(() => _memberFilter = id);
+                    _load();
+                  },
+                ),
+
+              const Divider(height: 1, thickness: 1),
+
               Expanded(child: _buildBody(context, state)),
             ],
           ),
@@ -212,7 +243,6 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
         ),
         itemCount: itemCount,
         itemBuilder: (context, index) {
-          // Load-more spinner pinned at the bottom
           if (index == grouped.length) {
             return const Padding(
               padding: EdgeInsets.all(AppSizing.md),
@@ -223,11 +253,9 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
           }
 
           final item = grouped[index];
-
           if (item is _DateHeader) {
             return _DateHeaderTile(label: item.label);
           }
-
           return TransactionRow(transaction: (item as _TxItem).tx);
         },
       ),
@@ -257,18 +285,109 @@ class _DateHeaderTile extends StatelessWidget {
   }
 }
 
-// ── Filter bar ────────────────────────────────────────────────────────────────
+// ── Member filter bar ─────────────────────────────────────────────────────────
 
-class _FilterBar extends StatelessWidget {
-  const _FilterBar({
+class _MemberFilterBar extends StatelessWidget {
+  const _MemberFilterBar({
+    required this.members,
+    required this.myMemberId,
     required this.selected,
-    required this.filters,
     required this.onSelect,
   });
 
-  final String? selected;
-  final List<({String label, String? value})> filters;
+  final List<FlatMemberEntity> members;
+  final String myMemberId;
+  final String? selected; // null = all
   final void Function(String?) onSelect;
+
+  String _firstName(String fullName) {
+    final parts = fullName.trim().split(' ');
+    return parts.first;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = <({String label, String? value})>[
+      (label: 'All Members', value: null),
+      ...members.map((m) => (
+            label: m.flatMemberId == myMemberId
+                ? '${_firstName(m.name)} (Me)'
+                : _firstName(m.name),
+            value: m.flatMemberId,
+          )),
+    ];
+
+    return Container(
+      color: context.bgColor,
+      padding: const EdgeInsets.only(
+        left: AppSizing.pagePadding,
+        right: AppSizing.pagePadding,
+        bottom: AppSizing.sm,
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: chips.map((chip) {
+            final isSelected = selected == chip.value;
+            return Padding(
+              padding: const EdgeInsets.only(right: AppSizing.sm),
+              child: ChoiceChip(
+                avatar: chip.value != null
+                    ? CircleAvatar(
+                        radius: 9,
+                        backgroundColor: isSelected
+                            ? AppColors.primary
+                            : context.surfaceColor,
+                        child: Text(
+                          chip.label[0].toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: isSelected
+                                ? AppColors.white
+                                : context.textSecColor,
+                          ),
+                        ),
+                      )
+                    : null,
+                label: Text(chip.label),
+                selected: isSelected,
+                onSelected: (_) => onSelect(chip.value),
+                selectedColor: AppColors.primary.withValues(alpha: 0.15),
+                labelStyle: AppTypography.labelLarge.copyWith(
+                  color:
+                      isSelected ? AppColors.primary : context.textPrimColor,
+                  fontSize: 12,
+                ),
+                side: BorderSide(
+                  color:
+                      isSelected ? AppColors.primary : context.borderColor,
+                ),
+                backgroundColor: context.cardColor,
+                showCheckmark: false,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                visualDensity: VisualDensity.compact,
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Generic chip filter bar ───────────────────────────────────────────────────
+
+class _ChipFilterBar<T> extends StatelessWidget {
+  const _ChipFilterBar({
+    required this.chips,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final List<({String label, T value})> chips;
+  final T selected;
+  final void Function(T) onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -279,14 +398,14 @@ class _FilterBar extends StatelessWidget {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: filters.map((f) {
-            final isSelected = selected == f.value;
+          children: chips.map((chip) {
+            final isSelected = selected == chip.value;
             return Padding(
               padding: const EdgeInsets.only(right: AppSizing.sm),
               child: ChoiceChip(
-                label: Text(f.label),
+                label: Text(chip.label),
                 selected: isSelected,
-                onSelected: (_) => onSelect(f.value),
+                onSelected: (_) => onSelect(chip.value),
                 selectedColor: AppColors.primary.withValues(alpha: 0.15),
                 labelStyle: AppTypography.labelLarge.copyWith(
                   color: isSelected ? AppColors.primary : context.textPrimColor,
