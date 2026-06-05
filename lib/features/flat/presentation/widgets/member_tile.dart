@@ -32,6 +32,7 @@ class MemberTile extends StatelessWidget {
       child: Row(
         children: [
           AppAvatar(
+            imageUrl: member.photoUrl,
             name: member.name,
             radius: 20,
             backgroundColor: _roleColor(member.role).withValues(alpha: 0.15),

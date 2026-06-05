@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/widgets/app_avatar.dart';
 import '../../../flat/domain/entities/flat_member_entity.dart';
 
 /// Reusable assignee picker button used in create + edit sheets.
@@ -142,16 +143,12 @@ class TaskMemberPickerSheet extends StatelessWidget {
           ...members.map(
             (m) => ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
+              leading: AppAvatar(
+                imageUrl: m.photoUrl,
+                name: m.name,
                 radius: 18,
                 backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-                child: Text(
-                  m.name.isNotEmpty ? m.name[0].toUpperCase() : '?',
-                  style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                textColor: AppColors.primary,
               ),
               title: Text(m.name, style: AppTypography.bodyMedium),
               subtitle: Text(

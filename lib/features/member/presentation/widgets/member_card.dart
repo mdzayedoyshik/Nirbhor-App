@@ -52,6 +52,7 @@ class MemberCard extends StatelessWidget {
       child: Row(
         children: [
           AppAvatar(
+            imageUrl: member.photoUrl,
             name: member.name,
             radius: 22,
             backgroundColor: roleColor.withValues(alpha: 0.15),

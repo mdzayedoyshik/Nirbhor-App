@@ -5,13 +5,15 @@ class TaskAssigneeEntity extends Equatable {
   const TaskAssigneeEntity({
     required this.flatMemberId,
     required this.name,
+    this.photoUrl,
   });
 
   final String flatMemberId;
   final String? name;
+  final String? photoUrl;
 
   @override
-  List<Object?> get props => [flatMemberId, name];
+  List<Object?> get props => [flatMemberId, name, photoUrl];
 }
 
 class TaskEntity extends Equatable {

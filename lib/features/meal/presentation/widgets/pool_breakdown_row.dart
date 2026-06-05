@@ -35,6 +35,7 @@ class PoolBreakdownRow extends StatelessWidget {
       child: Row(
         children: [
           AppAvatar(
+            imageUrl: member.photoUrl,
             name: member.memberName,
             radius: 18,
             backgroundColor: isMe

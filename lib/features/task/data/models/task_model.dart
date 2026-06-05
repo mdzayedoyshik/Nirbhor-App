@@ -36,6 +36,7 @@ class TaskModel extends TaskEntity {
           .map((a) => TaskAssigneeEntity(
                 flatMemberId: a['flat_member_id'] as String,
                 name: a['name'] as String?,
+                photoUrl: a['avatar_url'] as String?,
               ))
           .toList(),
       createdBy: json['created_by'] as String,

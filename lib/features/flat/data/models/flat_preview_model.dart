@@ -4,7 +4,6 @@ class FlatPreviewModel extends FlatPreviewEntity {
   const FlatPreviewModel({
     required super.flatId,
     required super.flatName,
-    super.photoUrl,
     super.address,
     required super.memberCount,
     required super.myStatus,
@@ -18,7 +17,6 @@ class FlatPreviewModel extends FlatPreviewEntity {
       FlatPreviewModel(
         flatId: json['flat_id'] as String,
         flatName: json['flat_name'] as String,
-        photoUrl: json['photo_url'] as String?,
         address: json['address'] as String?,
         memberCount: json['member_count'] as int,
         myStatus: json['my_status'] as String,

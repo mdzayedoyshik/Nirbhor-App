@@ -5,6 +5,7 @@ class FlatMemberEntity extends Equatable {
   final String userId;
   final String name;
   final String email;
+  final String? photoUrl;
   final String role; // 'manager' | 'co-manager' | 'member'
   final double fixedContribution;
   final bool isActive;
@@ -15,6 +16,7 @@ class FlatMemberEntity extends Equatable {
     required this.userId,
     required this.name,
     required this.email,
+    this.photoUrl,
     required this.role,
     required this.fixedContribution,
     required this.isActive,
@@ -31,6 +33,7 @@ class FlatMemberEntity extends Equatable {
     userId,
     name,
     email,
+    photoUrl,
     role,
     fixedContribution,
     isActive,

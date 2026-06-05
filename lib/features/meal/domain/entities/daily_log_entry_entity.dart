@@ -42,6 +42,7 @@ class DailyLogEntryEntity extends Equatable {
     this.id,
     required this.flatMemberId,
     required this.memberName,
+    this.photoUrl,
     required this.breakfast,
     required this.lunch,
     required this.dinner,
@@ -55,6 +56,7 @@ class DailyLogEntryEntity extends Equatable {
   final String? id; // null if preference-based (no real log yet)
   final String flatMemberId;
   final String memberName;
+  final String? photoUrl;
   final bool breakfast;
   final bool lunch;
   final bool dinner;
@@ -83,6 +85,7 @@ class DailyLogEntryEntity extends Equatable {
         id,
         flatMemberId,
         memberName,
+        photoUrl,
         breakfast,
         lunch,
         dinner,

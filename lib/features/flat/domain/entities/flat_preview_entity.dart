@@ -3,7 +3,6 @@ import 'package:equatable/equatable.dart';
 class FlatPreviewEntity extends Equatable {
   final String flatId;
   final String flatName;
-  final String? photoUrl;
   final String? address;
   final int memberCount;
   final String myStatus; // 'not_member' | 'pending' | 'active_member'
@@ -12,7 +11,6 @@ class FlatPreviewEntity extends Equatable {
   const FlatPreviewEntity({
     required this.flatId,
     required this.flatName,
-    this.photoUrl,
     this.address,
     required this.memberCount,
     required this.myStatus,
@@ -27,7 +25,6 @@ class FlatPreviewEntity extends Equatable {
   List<Object?> get props => [
     flatId,
     flatName,
-    photoUrl,
     address,
     memberCount,
     myStatus,

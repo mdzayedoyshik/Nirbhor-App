@@ -59,6 +59,7 @@ class DailyMealLogsModel extends DailyMealLogsEntity {
         id: m['id'] as String?,
         flatMemberId: m['flat_member_id'] as String,
         memberName: m['member_name'] as String? ?? '',
+        photoUrl: m['avatar_url'] as String?,
         breakfast: m['breakfast'] as bool? ?? false,
         lunch: m['lunch'] as bool? ?? false,
         dinner: m['dinner'] as bool? ?? false,

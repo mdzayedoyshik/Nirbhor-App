@@ -57,7 +57,6 @@ class FlatPreviewPage extends StatelessWidget {
                   const SizedBox(height: AppSizing.lg),
                   // Flat avatar
                   AppAvatar(
-                    imageUrl: preview.photoUrl,
                     name: preview.flatName,
                     radius: 48,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.15),

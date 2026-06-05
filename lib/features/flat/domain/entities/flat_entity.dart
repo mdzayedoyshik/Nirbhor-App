@@ -7,7 +7,6 @@ class FlatEntity extends Equatable {
   final String id;
   final String name;
   final String? address;
-  final String? photoUrl;
   final String joinCode;
   final String createdAt;
   final List<FlatMemberEntity> members;
@@ -17,7 +16,6 @@ class FlatEntity extends Equatable {
     required this.id,
     required this.name,
     this.address,
-    this.photoUrl,
     required this.joinCode,
     required this.createdAt,
     required this.members,
@@ -43,7 +41,6 @@ class FlatEntity extends Equatable {
     id,
     name,
     address,
-    photoUrl,
     joinCode,
     createdAt,
     members,

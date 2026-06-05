@@ -9,7 +9,6 @@ abstract class FlatRepository {
   Future<FlatEntity> createFlat({
     required String name,
     String? address,
-    String? photoUrl,
   });
 
   Future<FlatEntity> getFlat(String flatId);
@@ -18,7 +17,6 @@ abstract class FlatRepository {
     required String flatId,
     String? name,
     String? address,
-    String? photoUrl,
   });
 
   Future<void> deleteFlat(String flatId);

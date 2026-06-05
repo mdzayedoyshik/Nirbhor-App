@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -176,7 +177,8 @@ class _AssigneeChips extends StatelessWidget {
           height: 20,
           child: Stack(
             children: visible.asMap().entries.map((e) {
-              final initials = (e.value.name ?? '?')
+              final assignee = e.value;
+              final initials = (assignee.name ?? '?')
                   .split(' ')
                   .take(2)
                   .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
@@ -191,15 +193,35 @@ class _AssigneeChips extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: context.cardColor, width: 1.5),
                   ),
-                  child: Center(
-                    child: Text(
-                      initials,
-                      style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.white,
-                        fontSize: 8,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                  child: ClipOval(
+                    child: assignee.photoUrl != null &&
+                            assignee.photoUrl!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: assignee.photoUrl!,
+                            width: 20,
+                            height: 20,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, _, _) => Center(
+                              child: Text(
+                                initials,
+                                style: AppTypography.labelSmall.copyWith(
+                                  color: AppColors.white,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Center(
+                            child: Text(
+                              initials,
+                              style: AppTypography.labelSmall.copyWith(
+                                color: AppColors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
                   ),
                 ),
               );

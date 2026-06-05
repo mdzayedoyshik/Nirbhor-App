@@ -11,34 +11,27 @@ import '../constants/app_typography.dart';
 import '../services/image_upload_service.dart';
 import 'app_snackbar.dart';
 
-/// A reusable image picker widget that handles pick → upload → callback.
+/// Circular avatar image picker — pick → compress → upload → callback.
 ///
-/// - [circular] = true  → round avatar style (for profile)
-/// - [circular] = false → rounded-square card style (for flat photo)
-///
-/// The widget manages its own upload loading state so the UX feels
-/// seamless: user picks an image, sees a spinner, then sees their new image —
-/// all without knowing that two API calls happened.
+/// The widget manages its own upload loading state. The user picks an image,
+/// sees a spinner, then sees their new photo — all without knowing about the
+/// two-step compress+upload happening under the hood.
 class AppImagePicker extends StatefulWidget {
   /// Current image URL to display (optional).
   final String? imageUrl;
 
-  /// Whether to render as a circle (profile) or rounded square (flat).
-  final bool circular;
-
-  /// Diameter for circular mode, height for square mode.
+  /// Diameter of the avatar.
   final double size;
 
-  /// Initials / name used for the circular fallback avatar.
+  /// Name used for the initials fallback.
   final String? name;
 
-  /// Called with the uploaded URL once the image has been successfully uploaded.
+  /// Called with the public URL once the image has been uploaded.
   final void Function(String url) onUploaded;
 
   const AppImagePicker({
     super.key,
     this.imageUrl,
-    this.circular = true,
     this.size = 100,
     this.name,
     required this.onUploaded,
@@ -54,22 +47,18 @@ class _AppImagePickerState extends State<AppImagePicker> {
       GetIt.instance<ImageUploadService>();
 
   bool _uploading = false;
-
-  /// URL set after a successful upload — overrides the initial [widget.imageUrl].
   String? _uploadedUrl;
 
   String? get _displayUrl => _uploadedUrl ?? widget.imageUrl;
 
-  // ── pick & upload ──────────────────────────────────────────────────────────
-
   Future<void> _pick(ImageSource source) async {
-    // Close the bottom-sheet first so the picker opens cleanly.
     if (context.mounted) Navigator.of(context).pop();
 
     final XFile? file = await _picker.pickImage(
       source: source,
       imageQuality: 85,
-      maxWidth: 1200,
+      maxWidth: 800,
+      maxHeight: 800,
     );
     if (file == null || !mounted) return;
 
@@ -85,12 +74,9 @@ class _AppImagePickerState extends State<AppImagePicker> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _uploading = false);
-      AppSnackbar.error(
-          context, 'Image upload failed. Please try again.');
+      AppSnackbar.error(context, 'Image upload failed. Please try again.');
     }
   }
-
-  // ── bottom sheet ───────────────────────────────────────────────────────────
 
   void _showOptions() {
     showModalBottomSheet<void>(
@@ -106,7 +92,6 @@ class _AppImagePickerState extends State<AppImagePicker> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: AppSizing.sm),
-            // drag handle
             Container(
               width: 40,
               height: 4,
@@ -135,14 +120,8 @@ class _AppImagePickerState extends State<AppImagePicker> {
     );
   }
 
-  // ── build ──────────────────────────────────────────────────────────────────
-
   @override
-  Widget build(BuildContext context) =>
-      widget.circular ? _buildCircular() : _buildSquare();
-
-  // Circular avatar (profile page)
-  Widget _buildCircular() {
+  Widget build(BuildContext context) {
     final url = _displayUrl;
     final diameter = widget.size;
 
@@ -151,7 +130,6 @@ class _AppImagePickerState extends State<AppImagePicker> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Avatar body
           CircleAvatar(
             radius: diameter / 2,
             backgroundColor: AppColors.primary.withValues(alpha: 0.12),
@@ -173,13 +151,12 @@ class _AppImagePickerState extends State<AppImagePicker> {
                             height: diameter,
                             fit: BoxFit.cover,
                             errorWidget: (_, _, _) =>
-                                _CircularFallback(name: widget.name, size: diameter),
+                                _Fallback(name: widget.name, size: diameter),
                           )
-                        : _CircularFallback(name: widget.name, size: diameter),
+                        : _Fallback(name: widget.name, size: diameter),
               ),
             ),
           ),
-          // Camera badge
           Positioned(
             bottom: 2,
             right: 2,
@@ -202,95 +179,12 @@ class _AppImagePickerState extends State<AppImagePicker> {
       ),
     );
   }
-
-  // Rounded-square card (flat photo)
-  Widget _buildSquare() {
-    final url = _displayUrl;
-
-    return GestureDetector(
-      onTap: _uploading ? null : _showOptions,
-      child: Container(
-        width: double.infinity,
-        height: widget.size,
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.04),
-          border: Border.all(
-            color: _uploading ? AppColors.primary : context.borderColor,
-          ),
-          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: _uploading
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(color: AppColors.primary),
-                    const SizedBox(height: AppSizing.sm),
-                    Text(
-                      'Uploading…',
-                      style: TextStyle(
-                        color: context.textSecColor,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            : url != null && url.isNotEmpty
-                ? Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CachedNetworkImage(
-                        imageUrl: url,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, _, _) => _SquareEmpty(),
-                      ),
-                      // "Change" chip overlay
-                      Positioned(
-                        bottom: AppSizing.sm,
-                        right: AppSizing.sm,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizing.sm + 2,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.55),
-                            borderRadius:
-                                BorderRadius.circular(AppSizing.radiusFull),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.edit, color: Colors.white, size: 13),
-                              SizedBox(width: 4),
-                              Text(
-                                'Change',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : _SquareEmpty(),
-      ),
-    );
-  }
 }
 
-// ── helpers ────────────────────────────────────────────────────────────────
-
-class _CircularFallback extends StatelessWidget {
+class _Fallback extends StatelessWidget {
   final String? name;
   final double size;
-  const _CircularFallback({this.name, required this.size});
+  const _Fallback({this.name, required this.size});
 
   @override
   Widget build(BuildContext context) {
@@ -312,37 +206,6 @@ class _CircularFallback extends StatelessWidget {
                 color: AppColors.primary,
               ),
       ),
-    );
-  }
-}
-
-class _SquareEmpty extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          Icons.add_photo_alternate_outlined,
-          size: 40,
-          color: AppColors.primary.withValues(alpha: 0.65),
-        ),
-        const SizedBox(height: AppSizing.sm),
-        Text(
-          'Add Photo',
-          style: AppTypography.labelSmall.copyWith(
-            color: context.textSecColor,
-          ),
-        ),
-        const SizedBox(height: AppSizing.xs),
-        Text(
-          'Tap to select from gallery or camera',
-          style: AppTypography.labelSmall.copyWith(
-            color: context.textTerColor,
-            fontSize: 11,
-          ),
-        ),
-      ],
     );
   }
 }

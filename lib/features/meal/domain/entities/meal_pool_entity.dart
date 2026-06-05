@@ -4,18 +4,20 @@ class MealPoolMemberEntity extends Equatable {
   const MealPoolMemberEntity({
     required this.flatMemberId,
     required this.memberName,
+    this.photoUrl,
     required this.totalPoints,
     required this.estimatedMealCost,
   });
 
   final String flatMemberId;
   final String memberName;
+  final String? photoUrl;
   final double totalPoints;
   final double estimatedMealCost;
 
   @override
   List<Object?> get props =>
-      [flatMemberId, memberName, totalPoints, estimatedMealCost];
+      [flatMemberId, memberName, photoUrl, totalPoints, estimatedMealCost];
 }
 
 class MealPoolEntity extends Equatable {

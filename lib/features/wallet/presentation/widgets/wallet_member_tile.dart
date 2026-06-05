@@ -36,7 +36,7 @@ class WalletMemberTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              AppAvatar(name: member.memberName, radius: 20),
+              AppAvatar(imageUrl: member.photoUrl, name: member.memberName, radius: 20),
               const SizedBox(width: AppSizing.sm),
               Expanded(
                 child: Column(

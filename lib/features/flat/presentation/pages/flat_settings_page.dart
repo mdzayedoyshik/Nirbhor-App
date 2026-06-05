@@ -9,7 +9,6 @@ import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dialog.dart';
-import '../../../../core/widgets/app_image_picker.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../audit_log/presentation/args/audit_log_page_args.dart';
@@ -29,14 +28,12 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameCtrl;
   late final TextEditingController _addressCtrl;
-  late String? _photoUrl;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.flat.name);
     _addressCtrl = TextEditingController(text: widget.flat.address ?? '');
-    _photoUrl = widget.flat.photoUrl;
   }
 
   @override
@@ -55,7 +52,6 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
         address: _addressCtrl.text.trim().isEmpty
             ? null
             : _addressCtrl.text.trim(),
-        photoUrl: _photoUrl,
       ),
     );
   }
@@ -191,20 +187,6 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                       ),
                       textInputAction: TextInputAction.next,
                       maxLines: 2,
-                    ),
-                    const SizedBox(height: AppSizing.md),
-                    Text(
-                      AppStrings.flatPhotoUrlLabel,
-                      style: AppTypography.labelSmall.copyWith(
-                        color: context.textSecColor,
-                      ),
-                    ),
-                    const SizedBox(height: AppSizing.sm),
-                    AppImagePicker(
-                      imageUrl: _photoUrl,
-                      circular: false,
-                      size: 160,
-                      onUploaded: (url) => setState(() => _photoUrl = url),
                     ),
                     const SizedBox(height: AppSizing.xl),
                     AppButton(

@@ -8,7 +8,6 @@ class CreateFlatUseCase {
   Future<FlatEntity> call({
     required String name,
     String? address,
-    String? photoUrl,
   }) =>
-      _repository.createFlat(name: name, address: address, photoUrl: photoUrl);
+      _repository.createFlat(name: name, address: address);
 }

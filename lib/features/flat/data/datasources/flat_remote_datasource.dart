@@ -12,11 +12,9 @@ class FlatRemoteDataSource {
   Future<Map<String, dynamic>> createFlat({
     required String name,
     String? address,
-    String? photoUrl,
   }) {
     final body = <String, dynamic>{'name': name};
     if (address != null) body['address'] = address;
-    if (photoUrl != null) body['photo_url'] = photoUrl;
     return _apiClient.post(ApiEndpoints.flats, body, auth: true);
   }
 
@@ -27,12 +25,10 @@ class FlatRemoteDataSource {
     required String flatId,
     String? name,
     String? address,
-    String? photoUrl,
   }) {
     final body = <String, dynamic>{};
     if (name != null) body['name'] = name;
     if (address != null) body['address'] = address;
-    if (photoUrl != null) body['photo_url'] = photoUrl;
     return _apiClient.put(ApiEndpoints.flat(flatId), body, auth: true);
   }
 

@@ -75,6 +75,7 @@ class MemberMealRow extends StatelessWidget {
           children: [
             // Avatar
             AppAvatar(
+              imageUrl: entry.photoUrl,
               name: entry.memberName,
               radius: 18,
               backgroundColor: AppColors.primary.withValues(alpha: 0.1),

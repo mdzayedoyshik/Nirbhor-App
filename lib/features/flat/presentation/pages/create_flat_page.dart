@@ -8,7 +8,6 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/app_image_picker.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../bloc/flat_bloc.dart';
@@ -24,7 +23,6 @@ class _CreateFlatPageState extends State<CreateFlatPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
-  String? _photoUrl;
 
   @override
   void dispose() {
@@ -41,7 +39,6 @@ class _CreateFlatPageState extends State<CreateFlatPage> {
         address: _addressCtrl.text.trim().isEmpty
             ? null
             : _addressCtrl.text.trim(),
-        photoUrl: _photoUrl,
       ),
     );
   }
@@ -150,13 +147,6 @@ class _CreateFlatPageState extends State<CreateFlatPage> {
                       ),
                       textInputAction: TextInputAction.next,
                       maxLines: 2,
-                    ),
-                    const SizedBox(height: AppSizing.md),
-                    AppImagePicker(
-                      imageUrl: _photoUrl,
-                      circular: false,
-                      size: 160,
-                      onUploaded: (url) => setState(() => _photoUrl = url),
                     ),
                     const SizedBox(height: AppSizing.xl),
                     AppButton(

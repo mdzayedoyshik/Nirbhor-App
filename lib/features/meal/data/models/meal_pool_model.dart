@@ -31,6 +31,7 @@ class MealPoolModel extends MealPoolEntity {
       MealPoolMemberEntity(
         flatMemberId: m['flat_member_id'] as String,
         memberName: m['member_name'] as String? ?? '',
+        photoUrl: m['avatar_url'] as String?,
         totalPoints: (m['total_points'] as num?)?.toDouble() ?? 0,
         estimatedMealCost: (m['estimated_meal_cost'] as num?)?.toDouble() ?? 0,
       );

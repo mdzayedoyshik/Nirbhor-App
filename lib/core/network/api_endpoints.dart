@@ -15,7 +15,7 @@ class ApiEndpoints {
   static const String setPassword = '/auth/set-password';
   static const String logout = '/auth/logout';
   static const String deviceToken = '/auth/device-token';
-  static const String upload = '/upload';
+  static const String avatarUpload = '/auth/avatar';
 
   // Flat
   static const String flats = '/flats';

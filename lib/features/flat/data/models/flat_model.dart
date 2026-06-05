@@ -7,7 +7,6 @@ class FlatModel extends FlatEntity {
     required super.id,
     required super.name,
     super.address,
-    super.photoUrl,
     required super.joinCode,
     required super.createdAt,
     required super.members,
@@ -18,7 +17,6 @@ class FlatModel extends FlatEntity {
     id: json['id'] as String,
     name: json['name'] as String,
     address: json['address'] as String?,
-    photoUrl: json['photo_url'] as String?,
     joinCode: json['join_code'] as String,
     createdAt: json['created_at'] as String,
     members: (json['members'] as List<dynamic>? ?? [])
