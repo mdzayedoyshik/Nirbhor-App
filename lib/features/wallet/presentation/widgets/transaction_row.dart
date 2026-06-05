@@ -10,113 +10,204 @@ class TransactionRow extends StatelessWidget {
 
   final TransactionEntity transaction;
 
-  @override
-  Widget build(BuildContext context) {
-    final isDeposit = transaction.isDeposit;
-    final isRefund = transaction.isRefund;
+  // ── Meta resolution ───────────────────────────────────────────────────────
 
-    final iconColor = isDeposit
-        ? AppColors.success
-        : isRefund
-            ? const Color(0xFF0D9488)
-            : AppColors.error;
-    final icon = isDeposit
-        ? Icons.arrow_downward_rounded
-        : isRefund
-            ? Icons.swap_horiz_rounded
-            : Icons.arrow_upward_rounded;
-    final amountPrefix = isDeposit || isRefund ? '+' : '−';
-    final amountColor = isDeposit || isRefund ? AppColors.success : AppColors.error;
-
-    String categoryLabel = '';
-    if (transaction.category != null) {
-      switch (transaction.category) {
-        case 'fixed':
-          categoryLabel = 'Fixed';
-        case 'meal':
-          categoryLabel = 'Meal';
-        case 'household':
-          categoryLabel = 'Household';
-      }
+  ({IconData icon, Color color, Color amountColor, String title, String prefix})
+      _resolveMeta(TransactionEntity t) {
+    // ── Legacy type (pre-migration records) ──────────────────────────────────
+    if (t.transactionType == 'fixed_adjustment') {
+      // Old description was "Fixed contribution adjustment: +333.33" or "…: -333.33"
+      // A minus sign in the description means member paid less (net credit).
+      final isCredit = t.description.contains(': -');
+      return (
+        icon: Icons.swap_vert_rounded,
+        color: AppColors.warning,
+        amountColor: isCredit ? AppColors.success : AppColors.warning,
+        title: 'Contribution Adjusted',
+        prefix: isCredit ? '+' : '−',
+      );
     }
 
+    // ── Deposit ──────────────────────────────────────────────────────────────
+    if (t.isDeposit) {
+      return (
+        icon: Icons.account_balance_wallet_rounded,
+        color: AppColors.success,
+        amountColor: AppColors.success,
+        title: 'Payment Received',
+        prefix: '+',
+      );
+    }
+
+    // ── Refund ───────────────────────────────────────────────────────────────
+    if (t.isRefund) {
+      return (
+        icon: Icons.replay_rounded,
+        color: const Color(0xFF0D9488),
+        amountColor: const Color(0xFF0D9488),
+        title: 'Refund',
+        prefix: '+',
+      );
+    }
+
+    // ── Deduction — varies by category ───────────────────────────────────────
+    return switch (t.category) {
+      'fixed' => (
+          icon: Icons.home_rounded,
+          color: AppColors.primary,
+          amountColor: AppColors.error,
+          title: 'Monthly Contribution',
+          prefix: '−',
+        ),
+      'meal' => (
+          icon: Icons.restaurant_rounded,
+          color: AppColors.warning,
+          amountColor: AppColors.error,
+          title: 'Meal Expense',
+          prefix: '−',
+        ),
+      'household' => (
+          icon: Icons.handyman_rounded,
+          color: const Color(0xFF8B5CF6),
+          amountColor: AppColors.error,
+          title: 'Household Expense',
+          prefix: '−',
+        ),
+      _ => (
+          icon: Icons.remove_circle_outline_rounded,
+          color: AppColors.error,
+          amountColor: AppColors.error,
+          title: 'Deduction',
+          prefix: '−',
+        ),
+    };
+  }
+
+  // ── Subtitle builder ──────────────────────────────────────────────────────
+
+  String _buildSubtitle(TransactionEntity t) {
+    final parts = <String>[];
+
+    // Who this belongs to
+    if (t.memberName != null && t.memberName!.isNotEmpty) {
+      parts.add(t.memberName!);
+    }
+
+    final hint = _descriptionHint(t);
+    if (hint.isNotEmpty) parts.add(hint);
+
+    return parts.join(' · ');
+  }
+
+  /// Returns a short, clean context string from the raw description.
+  /// Returns empty string when the description adds no value.
+  String _descriptionHint(TransactionEntity t) {
+    final raw = t.description;
+
+    // Legacy ugly string — drop it entirely (we show "Contribution Adjusted" as title)
+    if (raw.startsWith('Fixed contribution adjustment')) return '';
+
+    // "Fixed contribution for June 2026" → "June 2026"
+    const fixedPrefix = 'Fixed contribution for ';
+    if (raw.startsWith(fixedPrefix)) return raw.substring(fixedPrefix.length);
+
+    // New backend format
+    if (raw == 'Contribution rate adjusted') return 'Rate change';
+
+    // Generic strings already covered by the title row — suppress
+    if (_isRedundant(raw)) return '';
+
+    // Anything else: pass through, capped at 40 chars
+    return raw.length > 40 ? '${raw.substring(0, 38)}…' : raw;
+  }
+
+  bool _isRedundant(String desc) {
+    final lower = desc.toLowerCase();
+    return lower == 'payment received' ||
+        lower == 'deposit' ||
+        lower == 'refund' ||
+        lower == 'meal expense' ||
+        lower == 'household expense';
+  }
+
+  // ── Amount formatter ──────────────────────────────────────────────────────
+
+  /// Formats [amount] as a whole-taka string with comma separators.
+  /// e.g. 1000000 → "1,000,000"
+  String _formatAmount(double amount) {
+    final String s = amount.abs().round().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buffer.write(',');
+      buffer.write(s[i]);
+    }
+    return buffer.toString();
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final meta = _resolveMeta(transaction);
+    final subtitle = _buildSubtitle(transaction);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSizing.sm),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Icon bubble
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
+              color: meta.color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(AppSizing.radiusFull),
             ),
-            child: Icon(icon, size: 20, color: iconColor),
+            child: Icon(meta.icon, size: 22, color: meta.color),
           ),
-          const SizedBox(width: AppSizing.sm),
+          const SizedBox(width: AppSizing.sm + 4),
+
+          // Title + subtitle
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  transaction.description,
-                  style: AppTypography.titleMedium,
+                  meta.title,
+                  style: AppTypography.titleMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Row(
-                  children: [
-                    if (categoryLabel.isNotEmpty) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: context.surfaceColor,
-                          borderRadius:
-                              BorderRadius.circular(AppSizing.radiusFull),
-                        ),
-                        child: Text(
-                          categoryLabel,
-                          style: AppTypography.labelSmall.copyWith(
-                            color: context.textSecColor,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: AppSizing.xs),
-                    ],
-                    Text(
-                      _formatDate(transaction.createdAt),
-                      style: AppTypography.bodySmall.copyWith(
-                        color: context.textSecColor,
-                      ),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: context.textSecColor,
                     ),
-                  ],
-                ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ],
             ),
           ),
+          const SizedBox(width: AppSizing.sm),
+
+          // Amount
           Text(
-            '$amountPrefix৳${transaction.amount.toStringAsFixed(0)}',
-            style: AppTypography.titleLarge.copyWith(
-              color: amountColor,
-              fontWeight: FontWeight.w600,
+            '${meta.prefix}৳${_formatAmount(transaction.amount)}',
+            style: AppTypography.titleMedium.copyWith(
+              color: meta.amountColor,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _formatDate(String iso) {
-    try {
-      final dt = DateTime.parse(iso).toLocal();
-      final months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ];
-      return '${dt.day} ${months[dt.month - 1]}';
-    } catch (_) {
-      return iso;
-    }
   }
 }
