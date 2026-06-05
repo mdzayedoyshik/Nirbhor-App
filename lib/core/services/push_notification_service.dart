@@ -259,12 +259,18 @@ class PushNotificationService {
 
     // ── Route by type (mirrors notification_page._handleTap) ───────────────
 
-    if (type.contains('join_request')) {
-      if (canManage) {
-        router.push(AppRoutes.flatRequests, extra: flatId);
-      } else {
-        router.go(AppRoutes.home);
-      }
+    if (type == 'join_request_received') {
+      if (canManage) router.push(AppRoutes.flatRequests, extra: flatId);
+      return;
+    }
+
+    if (type == 'join_request_approved') {
+      router.go(AppRoutes.home);
+      return;
+    }
+
+    if (type == 'join_request_declined') {
+      // Informational only — no navigation
       return;
     }
 

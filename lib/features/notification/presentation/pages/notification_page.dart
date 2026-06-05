@@ -9,6 +9,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../complaint/presentation/args/complaint_page_args.dart';
 import '../../../expense/presentation/args/expense_list_args.dart';
+import '../../../flat/domain/entities/flat_member_entity.dart';
 import '../../../flat/presentation/bloc/flat_bloc.dart';
 import '../../../summary/presentation/args/summary_page_args.dart';
 import '../../../task/presentation/args/task_page_args.dart';
@@ -289,12 +290,20 @@ class _NotificationPageState extends State<NotificationPage> {
     final myMemberId = widget.args.myMemberId;
 
     // ── Join requests ────────────────────────────────────────────────────────
-    if (type.contains('join_request')) {
-      // join_request_received  → manager sees pending requests list
-      // join_request_declined  → non-manager; push-only, no in-app navigation
-      if (canManage) {
-        context.push(AppRoutes.flatRequests, extra: flatId);
-      }
+    if (type == 'join_request_received') {
+      // Manager sees the pending requests list
+      if (canManage) context.push(AppRoutes.flatRequests, extra: flatId);
+      return;
+    }
+
+    if (type == 'join_request_approved') {
+      // Approved member navigates home — FlatBloc will show their flat
+      context.go(AppRoutes.home);
+      return;
+    }
+
+    if (type == 'join_request_declined') {
+      // Informational only — no navigation needed
       return;
     }
 
@@ -323,13 +332,22 @@ class _NotificationPageState extends State<NotificationPage> {
 
     // ── Tasks ────────────────────────────────────────────────────────────────
     if (type.contains('task')) {
+      final raw = context.read<FlatBloc>().state;
+      final resolved = raw is FlatActionLoading
+          ? raw.base
+          : raw is FlatError
+              ? raw.fallback
+              : raw;
+      final members = resolved is FlatLoaded
+          ? resolved.flat.activeMembers
+          : const <FlatMemberEntity>[];
       context.push(
         AppRoutes.tasks,
         extra: TaskPageArgs(
           flatId: flatId,
           canManage: canManage,
           myMemberId: myMemberId,
-          members: const [],
+          members: members,
         ),
       );
       return;
@@ -386,12 +404,24 @@ class _NotificationPageState extends State<NotificationPage> {
 
     // ── Month closed → summary ───────────────────────────────────────────────
     if (type.contains('month_closed') || type.contains('monthly')) {
+      // reference_id is stored as "YYYY-M" (e.g. "2026-5") by the backend
+      int? initialMonth;
+      int? initialYear;
+      if (n.referenceId != null) {
+        final parts = n.referenceId!.split('-');
+        if (parts.length == 2) {
+          initialYear  = int.tryParse(parts[0]);
+          initialMonth = int.tryParse(parts[1]);
+        }
+      }
       context.push(
         AppRoutes.summary,
         extra: SummaryPageArgs(
           flatId: flatId,
           isManager: canManage,
           myMemberId: myMemberId,
+          initialMonth: initialMonth,
+          initialYear: initialYear,
         ),
       );
       return;
