@@ -171,8 +171,32 @@ class _PaymentsHubPageState extends State<PaymentsHubPage> {
           elevation: 0,
           title: Text('Manage Payments', style: AppTypography.headlineMedium),
         ),
-        floatingActionButton: widget.args.canManage
-            ? FloatingActionButton.extended(
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // ── Submit Payment — visible to everyone ──────────────────────────
+            FloatingActionButton.extended(
+              heroTag: 'fab_submit_payment',
+              onPressed: () => context.push(
+                AppRoutes.walletSubmitPayment,
+                extra: SubmitPaymentArgs(
+                  flatId: widget.args.flatId,
+                  canManage: widget.args.canManage,
+                ),
+              ),
+              backgroundColor: AppColors.success,
+              icon: const Icon(Icons.payments_rounded, color: AppColors.white),
+              label: Text(
+                'Submit Payment',
+                style: AppTypography.labelLarge.copyWith(color: AppColors.white),
+              ),
+            ),
+
+            // ── New Request — manager / co-manager only ───────────────────────
+            if (widget.args.canManage) ...[
+              const SizedBox(height: AppSizing.sm),
+              FloatingActionButton.extended(
                 heroTag: 'fab_new_request',
                 onPressed: () => _showCreateRequestSheet(context),
                 backgroundColor: AppColors.primary,
@@ -181,23 +205,10 @@ class _PaymentsHubPageState extends State<PaymentsHubPage> {
                   'New Request',
                   style: AppTypography.labelLarge.copyWith(color: AppColors.white),
                 ),
-              )
-            : FloatingActionButton.extended(
-                heroTag: 'fab_submit_payment',
-                onPressed: () => context.push(
-                  AppRoutes.walletSubmitPayment,
-                  extra: SubmitPaymentArgs(
-                    flatId: widget.args.flatId,
-                    canManage: false,
-                  ),
-                ),
-                backgroundColor: AppColors.success,
-                icon: const Icon(Icons.payments_rounded, color: AppColors.white),
-                label: Text(
-                  'Submit Payment',
-                  style: AppTypography.labelLarge.copyWith(color: AppColors.white),
-                ),
               ),
+            ],
+          ],
+        ),
         body: Column(
           children: [
             // ── Pill Tab Bar ──────────────────────────────────────────────────
