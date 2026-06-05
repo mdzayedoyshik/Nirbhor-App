@@ -514,17 +514,50 @@ class _SummaryContent extends StatelessWidget {
         if (isManager && !summary.isClosed && isCurrentMonth) ...[
           const SizedBox(height: AppSizing.md),
           Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSizing.pagePadding),
-            child: AppButton(
-              label: 'Close This Month',
-              icon: const Icon(Icons.lock_outline, color: AppColors.white, size: 18),
-              onPressed: onClose,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSizing.pagePadding),
+            child: _CloseMonthButton(onClose: onClose),
           ),
         ],
         const SizedBox(height: AppSizing.xl),
       ],
+    );
+  }
+}
+
+class _CloseMonthButton extends StatelessWidget {
+  const _CloseMonthButton({required this.onClose});
+
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    // Last day of month — DateTime(y, m+1, 0) gives the last day of month m
+    final lastDay = DateTime(now.year, now.month + 1, 0).day;
+    final isLastDay = now.day == lastDay;
+
+    const icon = Icon(Icons.lock_outline, color: AppColors.white, size: 18);
+
+    if (isLastDay) {
+      return AppButton(
+        label: 'Close This Month',
+        icon: icon,
+        onPressed: onClose,
+      );
+    }
+
+    return GestureDetector(
+      onTap: () => AppSnackbar.show(
+        context,
+        'This month can only be closed on ${_shortMonth(now.month)} $lastDay.',
+      ),
+      child: IgnorePointer(
+        child: AppButton(
+          label: 'Close This Month',
+          icon: icon,
+          onPressed: null,
+        ),
+      ),
     );
   }
 }
@@ -1038,6 +1071,38 @@ class _CloseMonthSheetState extends State<_CloseMonthSheet> {
                       style: AppTypography.headlineSmall,
                     ),
                   ],
+                ),
+              ),
+
+              // Irreversibility warning
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSizing.pagePadding, AppSizing.sm,
+                    AppSizing.pagePadding, 0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizing.sm, vertical: AppSizing.xs + 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    border: Border.all(
+                        color: AppColors.error.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded,
+                          color: AppColors.error, size: 15),
+                      const SizedBox(width: AppSizing.xs),
+                      Expanded(
+                        child: Text(
+                          'This action is permanent and cannot be undone. '
+                          'Meal costs for this month will be finalized.',
+                          style: AppTypography.bodySmall
+                              .copyWith(color: AppColors.error),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
