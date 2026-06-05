@@ -255,6 +255,7 @@ class PushNotificationService {
 
     final member     = flat.memberByUserId(authState.user.id);
     final canManage  = member?.canManage ?? false;
+    final isManager  = member?.isManager ?? false;
     final myMemberId = member?.flatMemberId ?? '';
 
     // ── Route by type (mirrors notification_page._handleTap) ───────────────
@@ -346,7 +347,7 @@ class PushNotificationService {
         AppRoutes.summary,
         extra: SummaryPageArgs(
           flatId: flatId,
-          isManager: canManage,
+          isManager: isManager,
           myMemberId: myMemberId,
           initialMonth: initialMonth,
           initialYear: initialYear,

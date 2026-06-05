@@ -287,6 +287,7 @@ class _NotificationPageState extends State<NotificationPage> {
     final type = n.type.toLowerCase();
     final flatId = widget.args.flatId;
     final canManage = widget.args.canManage;
+    final isManager = widget.args.isManager;
     final myMemberId = widget.args.myMemberId;
 
     // ── Join requests ────────────────────────────────────────────────────────
@@ -418,7 +419,7 @@ class _NotificationPageState extends State<NotificationPage> {
         AppRoutes.summary,
         extra: SummaryPageArgs(
           flatId: flatId,
-          isManager: canManage,
+          isManager: isManager,
           myMemberId: myMemberId,
           initialMonth: initialMonth,
           initialYear: initialYear,

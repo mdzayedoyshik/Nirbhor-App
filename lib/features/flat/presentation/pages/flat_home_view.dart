@@ -745,6 +745,7 @@ class _HomeHeader extends StatelessWidget {
                       extra: NotificationPageArgs(
                         flatId: flat.id,
                         canManage: me?.canManage ?? false,
+                        isManager: me?.isManager ?? false,
                         myMemberId: me?.flatMemberId ?? '',
                       ),
                     ),
@@ -1262,7 +1263,7 @@ class _QuickActionsRow extends StatelessWidget {
             AppRoutes.summary,
             extra: SummaryPageArgs(
               flatId: flat.id,
-              isManager: canManage,
+              isManager: me?.isManager ?? false,
               myMemberId: me!.flatMemberId,
             ),
           );
@@ -1358,6 +1359,7 @@ class _QuickActionsRow extends StatelessWidget {
                 extra: NotificationPageArgs(
                   flatId: flat.id,
                   canManage: false,
+                  isManager: false,
                   myMemberId: me?.flatMemberId ?? '',
                 ),
               ),
