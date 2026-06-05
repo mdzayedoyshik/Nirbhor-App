@@ -207,6 +207,7 @@ class _PaymentRequestsPageState extends State<PaymentRequestsPage>
                       AppRoutes.walletSubmitPayment,
                       extra: SubmitPaymentArgs(
                         flatId: widget.args.flatId,
+                        canManage: widget.args.canManage,
                         paymentRequestId: req.id,
                         requestedAmount: req.amount,
                         requestNote: req.note,

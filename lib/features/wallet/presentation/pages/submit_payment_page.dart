@@ -6,10 +6,12 @@ import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_sizing.dart';
 import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/constants/app_typography.dart';
+import '../../../../../core/router/app_router.dart';
 import '../../../../../core/widgets/app_button.dart';
 import '../../../../../core/widgets/app_snackbar.dart';
 import '../../../../../core/widgets/app_text_field.dart';
 import '../args/submit_payment_args.dart';
+import '../args/wallet_page_args.dart';
 import '../bloc/wallet/wallet_bloc.dart';
 
 class SubmitPaymentPage extends StatefulWidget {
@@ -32,9 +34,10 @@ class _SubmitPaymentPageState extends State<SubmitPaymentPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.args.initialAmount != null) {
-      _amountController.text =
-          widget.args.initialAmount!.toStringAsFixed(0);
+    // Pre-fill: prefer initialAmount, fall back to the linked request's amount.
+    final prefill = widget.args.initialAmount ?? widget.args.requestedAmount;
+    if (prefill != null) {
+      _amountController.text = prefill.toStringAsFixed(0);
     }
   }
 
@@ -67,7 +70,16 @@ class _SubmitPaymentPageState extends State<SubmitPaymentPage> {
       listener: (context, state) {
         if (state is WalletPaymentSubmitSuccess) {
           AppSnackbar.success(context, AppStrings.paymentSubmittedMsg);
-          context.pop();
+          // Replace the submit page with the Awaiting tab so the member can
+          // immediately see their payment pending verification.
+          context.pushReplacement(
+            AppRoutes.walletRequests,
+            extra: WalletPageArgs(
+              flatId: widget.args.flatId,
+              canManage: widget.args.canManage,
+              initialTab: 1, // 1 = Awaiting
+            ),
+          );
         }
         if (state is WalletError) {
           AppSnackbar.error(context, state.message);

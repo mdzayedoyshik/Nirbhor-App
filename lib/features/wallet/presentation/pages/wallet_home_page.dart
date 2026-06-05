@@ -173,6 +173,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
                         AppRoutes.walletSubmitPayment,
                         extra: SubmitPaymentArgs(
                           flatId: widget.args.flatId,
+                          canManage: widget.args.canManage,
                           initialAmount: summary.suggestedTotalToPay,
                         ),
                       ),
@@ -200,6 +201,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
                                     AppRoutes.walletSubmitPayment,
                                     extra: SubmitPaymentArgs(
                                       flatId: widget.args.flatId,
+                                      canManage: widget.args.canManage,
                                       paymentRequestId: req.id,
                                       requestedAmount: req.amount,
                                       requestNote: req.note,

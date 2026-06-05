@@ -173,6 +173,7 @@ class _PaymentsHubPageState extends State<PaymentsHubPage> {
         ),
         floatingActionButton: widget.args.canManage
             ? FloatingActionButton.extended(
+                heroTag: 'fab_new_request',
                 onPressed: () => _showCreateRequestSheet(context),
                 backgroundColor: AppColors.primary,
                 icon: const Icon(Icons.add, color: AppColors.white),
@@ -181,7 +182,22 @@ class _PaymentsHubPageState extends State<PaymentsHubPage> {
                   style: AppTypography.labelLarge.copyWith(color: AppColors.white),
                 ),
               )
-            : null,
+            : FloatingActionButton.extended(
+                heroTag: 'fab_submit_payment',
+                onPressed: () => context.push(
+                  AppRoutes.walletSubmitPayment,
+                  extra: SubmitPaymentArgs(
+                    flatId: widget.args.flatId,
+                    canManage: false,
+                  ),
+                ),
+                backgroundColor: AppColors.success,
+                icon: const Icon(Icons.payments_rounded, color: AppColors.white),
+                label: Text(
+                  'Submit Payment',
+                  style: AppTypography.labelLarge.copyWith(color: AppColors.white),
+                ),
+              ),
         body: Column(
           children: [
             // ── Pill Tab Bar ──────────────────────────────────────────────────
@@ -513,6 +529,7 @@ class _PendingRequestsTab extends StatelessWidget {
                         AppRoutes.walletSubmitPayment,
                         extra: SubmitPaymentArgs(
                           flatId: args.flatId,
+                          canManage: args.canManage,
                           paymentRequestId: req.id,
                           requestedAmount: req.amount,
                           requestNote: req.note,
