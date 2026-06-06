@@ -144,4 +144,7 @@ class ApiEndpoints {
       '/flats/$flatId/monthly-summaries';
   static String flatMonthlySummaryCloseStatus(String flatId) =>
       '/flats/$flatId/monthly-summary/close-status';
+
+  // Feedback
+  static const String feedback = '/feedback';
 }

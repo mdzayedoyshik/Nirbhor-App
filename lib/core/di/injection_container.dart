@@ -36,6 +36,11 @@ import '../../features/complaint/domain/usecases/get_complaints_usecase.dart';
 import '../../features/complaint/domain/usecases/raise_complaint_usecase.dart';
 import '../../features/complaint/domain/usecases/update_complaint_status_usecase.dart';
 import '../../features/complaint/presentation/bloc/complaint_bloc.dart';
+import '../../features/feedback/data/datasources/feedback_remote_datasource.dart';
+import '../../features/feedback/data/repositories/feedback_repository_impl.dart';
+import '../../features/feedback/domain/repositories/feedback_repository.dart';
+import '../../features/feedback/domain/usecases/submit_feedback_usecase.dart';
+import '../../features/feedback/presentation/bloc/feedback_bloc.dart';
 import '../../features/expense/data/datasources/expense_remote_datasource.dart';
 import '../../features/expense/data/repositories/expense_repository_impl.dart';
 import '../../features/expense/domain/repositories/expense_repository.dart';
@@ -484,6 +489,15 @@ Future<void> configureDependencies() async {
       deleteComplaint: sl(),
     ),
   );
+
+  // ── Feedback ──────────────────────────────────────────────────────────────
+  sl.registerLazySingleton(
+    () => FeedbackRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton<FeedbackRepository>(
+    () => FeedbackRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton(() => SubmitFeedbackUseCase(sl()));
+  sl.registerFactory(() => FeedbackBloc(submitFeedback: sl()));
 
   sl.registerFactory(
     () => SummaryBloc(

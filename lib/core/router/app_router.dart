@@ -29,6 +29,8 @@ import '../../features/complaint/presentation/args/complaint_page_args.dart';
 import '../../features/complaint/presentation/bloc/complaint_bloc.dart';
 import '../../features/complaint/presentation/pages/complaint_detail_page.dart';
 import '../../features/complaint/presentation/pages/complaint_page.dart';
+import '../../features/feedback/presentation/bloc/feedback_bloc.dart';
+import '../../features/feedback/presentation/pages/feedback_page.dart';
 import '../../features/expense/presentation/args/edit_expense_args.dart';
 import '../../features/expense/presentation/args/expense_detail_args.dart';
 import '../../features/expense/presentation/args/expense_list_args.dart';
@@ -134,6 +136,9 @@ class AppRoutes {
   // Complaints
   static const complaints = '/complaints';
   static const complaintDetail = '/complaints/detail';
+
+  // Feedback
+  static const feedback = '/feedback';
 
   // Notifications
   static const notifications = '/notifications';
@@ -477,6 +482,15 @@ GoRouter createRouter(AuthBloc authBloc) {
             child: ComplaintDetailPage(args: args),
           );
         },
+      ),
+
+      // ── Feedback ─────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.feedback,
+        builder: (_, _) => BlocProvider(
+          create: (_) => sl<FeedbackBloc>(),
+          child: const FeedbackPage(),
+        ),
       ),
 
       // ── Summary ──────────────────────────────────────

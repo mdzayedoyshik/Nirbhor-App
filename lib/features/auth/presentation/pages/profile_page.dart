@@ -286,6 +286,20 @@ class _ProfilePageState extends State<ProfilePage> {
                           ],
                         ),
                         const SizedBox(height: AppSizing.xl),
+                        // ── Support Section ────────────────────────────────
+                        _SectionLabel(label: 'Support'),
+                        const SizedBox(height: AppSizing.sm),
+                        _SettingsCard(
+                          children: [
+                            _SettingsRow(
+                              icon: Icons.feedback_outlined,
+                              label: 'Report / Feedback',
+                              showArrow: true,
+                              onTap: () => context.push(AppRoutes.feedback),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSizing.xl),
                         // ── Logout ─────────────────────────────────────────
                         AppButton(
                           label: AppStrings.logoutLabel,
