@@ -63,7 +63,7 @@ class QuickActionButton extends StatelessWidget {
                         color: isDark
                             ? AppColors.darkTextSecondary
                             : AppColors.textSecondary,
-                        fontSize: 10,
+                        fontSize: 12,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 1,

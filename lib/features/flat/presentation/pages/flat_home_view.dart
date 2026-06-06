@@ -1218,6 +1218,7 @@ class _QuickActionsRow extends StatelessWidget {
       QuickActionButton(
         icon: Icons.task_alt_rounded,
         label: 'Tasks',
+        iconColor: const Color(0xFF6C63FF),
         onTap: () {
           if (me == null) return;
           context
@@ -1238,6 +1239,7 @@ class _QuickActionsRow extends StatelessWidget {
       QuickActionButton(
         icon: Icons.report_problem_outlined,
         label: 'Complaints',
+        iconColor: const Color(0xFFEF4444),
         onTap: () {
           if (me == null) return;
           context
@@ -1257,6 +1259,7 @@ class _QuickActionsRow extends StatelessWidget {
       QuickActionButton(
         icon: Icons.bar_chart_rounded,
         label: 'Summary',
+        iconColor: const Color(0xFF10B981),
         onTap: () {
           if (me == null) return;
           context.push(
@@ -1272,6 +1275,7 @@ class _QuickActionsRow extends StatelessWidget {
       QuickActionButton(
         icon: Icons.monetization_on_outlined,
         label: 'Fixed Exp.',
+        iconColor: const Color(0xFFF59E0B),
         onTap: () => context
             .push(
               AppRoutes.flatExpenses,
@@ -1284,11 +1288,13 @@ class _QuickActionsRow extends StatelessWidget {
       QuickActionButton(
         icon: Icons.qr_code_rounded,
         label: 'Invite',
+        iconColor: const Color(0xFF3B82F6),
         onTap: () => _showQrSheet(context),
       ),
       QuickActionButton(
         icon: Icons.payments_outlined,
         label: 'Payment',
+        iconColor: const Color(0xFF8B5CF6),
         onTap: () => context
             .push(
               AppRoutes.walletRequests,
@@ -1306,6 +1312,7 @@ class _QuickActionsRow extends StatelessWidget {
             QuickActionButton(
               icon: Icons.history_edu_rounded,
               label: 'Audit',
+              iconColor: const Color(0xFF0EA5E9),
               onTap: () => context.push(
                 AppRoutes.auditLog,
                 extra: AuditLogPageArgs(flatId: flat.id, members: flat.members),
@@ -1323,6 +1330,7 @@ class _QuickActionsRow extends StatelessWidget {
                   icon: Icons.group_add_outlined,
                   label: 'Requests',
                   badge: pendingCount,
+                  iconColor: const Color(0xFFF97316),
                   onTap: () => context
                       .push(AppRoutes.flatRequests, extra: flat.id)
                       .then((_) {
@@ -1342,6 +1350,7 @@ class _QuickActionsRow extends StatelessWidget {
             QuickActionButton(
               icon: Icons.group_outlined,
               label: 'Members',
+              iconColor: const Color(0xFF0EA5E9),
               onTap: () =>
                   context.push(AppRoutes.flatMembers, extra: flat).then((_) {
                     if (context.mounted) {
@@ -1354,6 +1363,7 @@ class _QuickActionsRow extends StatelessWidget {
             QuickActionButton(
               icon: Icons.notifications_outlined,
               label: 'Notifications',
+              iconColor: const Color(0xFFF97316),
               onTap: () => context.push(
                 AppRoutes.notifications,
                 extra: NotificationPageArgs(
