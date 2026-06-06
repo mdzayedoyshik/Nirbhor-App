@@ -87,3 +87,12 @@ jobs:
           releaseFiles: build/app/outputs/bundle/release/*.aab
           tracks: alpha
           status: completed
+
+      # - name: Upload to Play Store (Production)
+      #   uses: r0adkll/upload-google-play@v1
+      #   with:
+      #     serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
+      #     packageName: com.techorbit.nirbhor
+      #     releaseFiles: build/app/outputs/bundle/release/*.aab
+      #     tracks: production
+      #     status: completed
