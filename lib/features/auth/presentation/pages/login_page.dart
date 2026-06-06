@@ -179,7 +179,7 @@ class _LoginPageState extends State<LoginPage> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () =>
-                            context.push(AppRoutes.forgotPassword),
+                            context.pushReplacement(AppRoutes.forgotPassword),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                               horizontal: AppSizing.xs,

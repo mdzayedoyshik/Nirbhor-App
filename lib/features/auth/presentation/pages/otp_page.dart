@@ -111,7 +111,9 @@ class _OtpPageState extends State<OtpPage> {
             ),
           );
         } else if (state is AuthPasswordResetReady) {
-          context.go(
+          // forgot-password flow — keep email screen in the back-stack
+          // so the user can try a different email if they need to
+          context.pushReplacement(
             AppRoutes.resetPassword,
             extra: ResetPasswordPageArgs(setupToken: state.setupToken),
           );

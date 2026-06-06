@@ -51,9 +51,9 @@ class _EmailPageState extends State<EmailPage> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthPasswordRequired) {
-          context.go(AppRoutes.login, extra: state.email);
+          context.push(AppRoutes.login, extra: state.email);
         } else if (state is AuthOtpSent) {
-          context.go(
+          context.push(
             AppRoutes.otp,
             extra: OtpPageArgs(
               otpVerificationToken: state.otpVerificationToken,

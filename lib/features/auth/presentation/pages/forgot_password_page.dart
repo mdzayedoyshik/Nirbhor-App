@@ -43,7 +43,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthForgotPasswordOtpSent) {
-          context.go(
+          context.pushReplacement(
             AppRoutes.otp,
             extra: OtpPageArgs(
               otpVerificationToken: state.otpVerificationToken,
