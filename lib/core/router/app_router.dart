@@ -653,11 +653,32 @@ class _ConfigCheckObserver extends NavigatorObserver {
 
 /// Wraps an auth bloc stream as a [ChangeNotifier] so GoRouter's
 /// [refreshListenable] re-runs the redirect whenever auth state changes.
+///
+/// Only notifies for states that actually change routing decisions:
+/// - [AuthInitial] / [AuthLoading(session)] → show splash
+/// - [AuthAuthenticated] → redirect away from auth screens
+/// - [AuthUnauthenticated] → redirect away from protected screens
+///
+/// Intermediate states like [AuthLoading(otp)], [AuthPasswordResetReady],
+/// [AuthForgotPasswordOtpSent], etc. must NOT trigger a router refresh.
+/// go_router 17.x re-evaluates route-level redirects on every refresh, and
+/// those redirects check `state.extra` — which is ephemeral and arrives as
+/// null during a refresh-triggered re-evaluation. This would fire the
+/// `/auth/otp` guard and redirect to `/auth/email` mid-flow, racing with
+/// the BlocConsumer navigation and causing a gray screen in production.
 class _AuthNotifier extends ChangeNotifier {
-  late final StreamSubscription<dynamic> _sub;
+  late final StreamSubscription<AuthState> _sub;
 
-  _AuthNotifier(Stream<dynamic> stream) {
-    _sub = stream.listen((_) => notifyListeners());
+  _AuthNotifier(Stream<AuthState> stream) {
+    _sub = stream.listen((state) {
+      if (state is AuthInitial ||
+          state is AuthAuthenticated ||
+          state is AuthUnauthenticated ||
+          (state is AuthLoading &&
+              state.source == AuthLoadingSource.session)) {
+        notifyListeners();
+      }
+    });
   }
 
   @override

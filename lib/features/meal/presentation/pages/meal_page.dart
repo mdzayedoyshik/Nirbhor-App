@@ -20,9 +20,9 @@ import '../widgets/member_meal_row.dart';
 import '../widgets/pool_breakdown_row.dart';
 
 const _shiftColors = {
-  'breakfast': Color(0xFFF59E0B),
-  'lunch': Color(0xFF10B981),
-  'dinner': Color(0xFF6C63FF),
+  'breakfast': AppColors.mealBreakfast,
+  'lunch': AppColors.mealLunch,
+  'dinner': AppColors.mealDinner,
 };
 const _shiftIcons = {
   'breakfast': Icons.wb_sunny_outlined,
@@ -773,7 +773,7 @@ class _PrefsTabState extends State<_PrefsTab>
                   ),
                   const SizedBox(height: AppSizing.xs),
                   Text(
-                    'Set your default meals for each day. Used when you haven\'t toggled a specific day.',
+                    'Set your default meals for each day. Used when you haven\'t toggled a specific day.\nB = Breakfast ● L = Lunch ● D = Dinner',
                     style: AppTypography.bodyS
                         .copyWith(color: context.textSecColor),
                   ),
@@ -1727,11 +1727,11 @@ class _CalendarCell extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _MealDot(active: hasBreakfast, color: const Color(0xFFF59E0B)),
+              _MealDot(active: hasBreakfast, color: AppColors.mealBreakfast),
               const SizedBox(width: 2),
-              _MealDot(active: hasLunch, color: AppColors.primary),
+              _MealDot(active: hasLunch, color: AppColors.mealLunch),
               const SizedBox(width: 2),
-              _MealDot(active: hasDinner, color: const Color(0xFF8B5CF6)),
+              _MealDot(active: hasDinner, color: AppColors.mealDinner),
             ],
           ),
           if (guestCount > 0) ...[
@@ -1777,11 +1777,11 @@ class _CalendarLegend extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: const [
-        _LegendItem(color: Color(0xFFF59E0B), label: 'Breakfast'),
+        _LegendItem(color: AppColors.mealBreakfast, label: 'Breakfast'),
         SizedBox(width: AppSizing.md),
-        _LegendItem(color: AppColors.primary, label: 'Lunch'),
+        _LegendItem(color: AppColors.mealLunch, label: 'Lunch'),
         SizedBox(width: AppSizing.md),
-        _LegendItem(color: Color(0xFF8B5CF6), label: 'Dinner'),
+        _LegendItem(color: AppColors.mealDinner, label: 'Dinner'),
       ],
     );
   }

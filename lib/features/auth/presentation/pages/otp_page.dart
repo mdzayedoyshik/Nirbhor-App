@@ -9,10 +9,10 @@ import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../args/complete_setup_page_args.dart';
 import '../args/otp_page_args.dart';
 import '../args/reset_password_page_args.dart';
-import '../../../../core/widgets/app_snackbar.dart';
 import '../bloc/auth_bloc.dart';
 
 class OtpPage extends StatefulWidget {
@@ -140,14 +140,15 @@ class _OtpPageState extends State<OtpPage> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      gradient: AppColors.brandGradient,
                       borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-                      boxShadow: AppColors.shadowMd,
+                      // boxShadow: AppColors.shadowMd,
                     ),
-                    child: const Icon(
-                      Icons.home_rounded,
-                      color: AppColors.white,
-                      size: AppSizing.iconLg,
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Image.asset(
+                        'assets/images/icon.png',
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                   const SizedBox(height: AppSizing.lg),

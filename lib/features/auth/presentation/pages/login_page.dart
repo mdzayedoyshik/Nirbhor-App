@@ -75,15 +75,15 @@ class _LoginPageState extends State<LoginPage> {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        gradient: AppColors.brandGradient,
-                        borderRadius:
-                            BorderRadius.circular(AppSizing.radiusLg),
-                        boxShadow: AppColors.shadowMd,
+                        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+                        // boxShadow: AppColors.shadowMd,
                       ),
-                      child: const Icon(
-                        Icons.home_rounded,
-                        color: AppColors.white,
-                        size: AppSizing.iconLg,
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Image.asset(
+                          'assets/images/icon.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppSizing.lg),

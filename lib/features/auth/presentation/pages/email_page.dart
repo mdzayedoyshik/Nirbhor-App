@@ -88,14 +88,15 @@ class _EmailPageState extends State<EmailPage> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          gradient: AppColors.brandGradient,
                           borderRadius: BorderRadius.circular(AppSizing.r20),
-                          boxShadow: AppColors.shadowBrand,
+                          // boxShadow: AppColors.shadowBrand,
                         ),
-                        child: const Icon(
-                          Icons.home_rounded,
-                          color: AppColors.white,
-                          size: 44,
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Image.asset(
+                            'assets/images/icon.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                     ),

@@ -144,20 +144,20 @@ class _SplashPageState extends State<SplashPage>
                               width: 80,
                               height: 80,
                               decoration: BoxDecoration(
-                                color: AppColors.brand.withValues(alpha: 0.10),
                                 borderRadius: BorderRadius.circular(
                                   AppSizing.radiusLg,
                                 ),
                                 border: Border.all(
-                                  color:
-                                      AppColors.brand.withValues(alpha: 0.18),
+                                  color: AppColors.brand.withValues(alpha: 0.18),
                                   width: AppSizing.borderWidthMd,
                                 ),
                               ),
-                              child: const Icon(
-                                Icons.home_rounded,
-                                size: 44,
-                                color: AppColors.brand,
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Image.asset(
+                                  'assets/images/icon.png',
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
                           ),
@@ -196,7 +196,7 @@ class _SplashPageState extends State<SplashPage>
                               child: child,
                             ),
                             child: Text(
-                              'নির্ভর — Your Home, Together',
+                              'Shared Living - Manage with ease',
                               style: AppTypography.bodyM.copyWith(
                                 color: isDark
                                     ? AppColors.darkTextSecondary

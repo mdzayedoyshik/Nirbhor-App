@@ -94,10 +94,20 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     Emitter<WalletState> emit,
   ) async {
     final current = state;
-    final summary =
-        current is WalletSummaryLoaded ? current.summary : null;
-    final flatWallet =
-        current is WalletSummaryLoaded ? current.flatWallet : null;
+    final summary = current is WalletSummaryLoaded
+        ? current.summary
+        : current is WalletPaymentSubmitSuccess
+            ? current.summary
+            : current is WalletActionLoading
+                ? current.summary
+                : null;
+    final flatWallet = current is WalletSummaryLoaded
+        ? current.flatWallet
+        : current is WalletPaymentSubmitSuccess
+            ? current.flatWallet
+            : current is WalletActionLoading
+                ? current.flatWallet
+                : null;
     if (summary != null) {
       emit(WalletActionLoading(summary, flatWallet: flatWallet));
     }
