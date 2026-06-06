@@ -292,6 +292,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         _SettingsCard(
                           children: [
                             _SettingsRow(
+                              icon: Icons.help_outline_rounded,
+                              label: 'Help & FAQ',
+                              showArrow: true,
+                              onTap: () => context.push(AppRoutes.helpCenter),
+                            ),
+                            _SettingsDivider(),
+                            _SettingsRow(
                               icon: Icons.feedback_outlined,
                               label: 'Report / Feedback',
                               showArrow: true,

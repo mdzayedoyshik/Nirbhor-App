@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/services/onboarding_service.dart';
 import '../bloc/auth_bloc.dart';
 
 class SplashPage extends StatefulWidget {
@@ -27,6 +28,7 @@ class _SplashPageState extends State<SplashPage>
   // ── navigation state ──────────────────────────────────────────────────────
   bool _minDelayDone = false;
   AuthState? _resolvedState;
+  bool? _hasSeenOnboarding;
 
   static const _minDelay = Duration(milliseconds: 2200);
   static const _animDuration = Duration(milliseconds: 900);
@@ -35,12 +37,11 @@ class _SplashPageState extends State<SplashPage>
   void initState() {
     super.initState();
 
-    // Force status bar to be transparent on the splash
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarBrightness: Brightness.light,
-        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.dark,
       ),
     );
 
@@ -60,6 +61,13 @@ class _SplashPageState extends State<SplashPage>
 
     _ctrl.forward();
 
+    // Load first-launch flag in parallel with the min delay.
+    OnboardingService.instance.hasSeenOnboarding().then((seen) {
+      if (!mounted) return;
+      _hasSeenOnboarding = seen;
+      _tryNavigate();
+    });
+
     Future.delayed(_minDelay, () {
       if (!mounted) return;
       _minDelayDone = true;
@@ -70,7 +78,6 @@ class _SplashPageState extends State<SplashPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Auth may have already resolved before the BlocListener fires.
     final state = context.read<AuthBloc>().state;
     if (state is AuthAuthenticated || state is AuthUnauthenticated) {
       _resolvedState = state;
@@ -85,11 +92,16 @@ class _SplashPageState extends State<SplashPage>
   }
 
   void _tryNavigate() {
-    if (!mounted || !_minDelayDone || _resolvedState == null) return;
+    if (!mounted) return;
+    // All three signals must be ready before navigating.
+    if (!_minDelayDone || _resolvedState == null || _hasSeenOnboarding == null) return;
+
     if (_resolvedState is AuthAuthenticated) {
       context.go(AppRoutes.home);
-    } else {
+    } else if (_hasSeenOnboarding!) {
       context.go(AppRoutes.email);
+    } else {
+      context.go(AppRoutes.onboarding);
     }
   }
 
@@ -103,15 +115,17 @@ class _SplashPageState extends State<SplashPage>
 
   @override
   Widget build(BuildContext context) {
+    final bg = context.bgColor;
+    final isDark = context.isDarkMode;
+
     return BlocListener<AuthBloc, AuthState>(
       listener: (_, state) => _onAuthState(state),
       child: Scaffold(
+        backgroundColor: bg,
         body: Container(
           width: double.infinity,
           height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: AppColors.brandGradient,
-          ),
+          color: bg,
           child: SafeArea(
             child: Column(
               children: [
@@ -121,7 +135,7 @@ class _SplashPageState extends State<SplashPage>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Logo mark — white rounded-square with brand icon
+                        // Logo mark
                         FadeTransition(
                           opacity: _opacity,
                           child: ScaleTransition(
@@ -130,17 +144,15 @@ class _SplashPageState extends State<SplashPage>
                               width: 80,
                               height: 80,
                               decoration: BoxDecoration(
-                                color: AppColors.white,
+                                color: AppColors.brand.withValues(alpha: 0.10),
                                 borderRadius: BorderRadius.circular(
                                   AppSizing.radiusLg,
                                 ),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x33000000),
-                                    blurRadius: 24,
-                                    offset: Offset(0, 8),
-                                  ),
-                                ],
+                                border: Border.all(
+                                  color:
+                                      AppColors.brand.withValues(alpha: 0.18),
+                                  width: AppSizing.borderWidthMd,
+                                ),
                               ),
                               child: const Icon(
                                 Icons.home_rounded,
@@ -163,7 +175,9 @@ class _SplashPageState extends State<SplashPage>
                             child: Text(
                               'Nirbhor',
                               style: AppTypography.h1.copyWith(
-                                color: AppColors.white,
+                                color: isDark
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.textPrimary,
                                 fontSize: 34,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.5,
@@ -184,7 +198,9 @@ class _SplashPageState extends State<SplashPage>
                             child: Text(
                               'নির্ভর — Your Home, Together',
                               style: AppTypography.bodyM.copyWith(
-                                color: AppColors.white.withValues(alpha: 0.75),
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.textSecondary,
                                 letterSpacing: 0.2,
                               ),
                             ),
@@ -205,7 +221,7 @@ class _SplashPageState extends State<SplashPage>
                       height: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        color: AppColors.white,
+                        color: AppColors.brand,
                       ),
                     ),
                   ),

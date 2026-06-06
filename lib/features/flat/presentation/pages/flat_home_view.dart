@@ -41,6 +41,7 @@ import '../../../task/presentation/args/task_page_args.dart';
 import '../../../wallet/presentation/args/wallet_page_args.dart';
 import '../../../wallet/presentation/bloc/wallet/wallet_bloc.dart';
 import '../../../wallet/presentation/pages/wallet_home_page.dart';
+import '../../../onboarding/presentation/widgets/getting_started_card.dart';
 import '../../domain/entities/flat_entity.dart';
 import '../../domain/entities/flat_member_entity.dart';
 import '../bloc/flat_bloc.dart';
@@ -577,6 +578,19 @@ class _HomeDashboard extends StatelessWidget {
                   .slideY(begin: 0.08, end: 0, duration: 400.ms),
 
               const SizedBox(height: AppSizing.sp24),
+
+              // ── 3b. GETTING STARTED CHECKLIST ───────────────────────────
+              // Shown until dismissed; role-aware (manager vs member).
+              // The card returns SizedBox.shrink() when dismissed/loading,
+              // so the SizedBox gap is wrapped in the same conditional to
+              // avoid a phantom 16 px gap after dismissal.
+              if (me != null)
+                GettingStartedCard(
+                  flat: flat,
+                  me: me!,
+                  canManage: canManage,
+                  onTabSelect: onTabSelect,
+                ).animate().fadeIn(duration: 350.ms, delay: 160.ms),
 
               // ── 4a. MONTH-CLOSE CHECKLIST (manager only) ─────────────
               // Appears when a previous month is unclosed. Lets the manager

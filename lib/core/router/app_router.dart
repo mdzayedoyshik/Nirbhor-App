@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/enums/auth_enums.dart';
 import '../../core/services/app_config_checker.dart';
+import '../../features/help/presentation/pages/help_center_page.dart';
+import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/audit_log/presentation/args/audit_log_page_args.dart';
 import '../../features/audit_log/presentation/bloc/audit_log_bloc.dart';
 import '../../features/audit_log/presentation/bloc/audit_log_event.dart';
@@ -154,6 +156,10 @@ class AppRoutes {
   static const expenseDetail = '/expenses/detail';
   static const recordExpense = '/expenses/record';
   static const editExpense = '/expenses/edit';
+
+  // Onboarding & Help
+  static const onboarding = '/onboarding';
+  static const helpCenter = '/help';
 }
 
 /// Root navigator key — use this to push dialogs/sheets from outside the
@@ -186,13 +192,32 @@ GoRouter createRouter(AuthBloc authBloc) {
 
       final isAuthenticated = authState is AuthAuthenticated;
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
-      if (isAuthenticated && isAuthRoute) return AppRoutes.home;
-      if (!isAuthenticated && !isAuthRoute) return AppRoutes.email;
+      final isOnboarding = state.matchedLocation == AppRoutes.onboarding;
+      final isHelp = state.matchedLocation == AppRoutes.helpCenter;
+
+      // Authenticated users never see onboarding or auth screens.
+      if (isAuthenticated && (isAuthRoute || isOnboarding)) return AppRoutes.home;
+      // Unauthenticated users can be on auth routes, onboarding, or help.
+      if (!isAuthenticated && !isAuthRoute && !isOnboarding && !isHelp) {
+        return AppRoutes.email;
+      }
       return null;
     },
     routes: [
       // ── Splash ────────────────────────────────────────
       GoRoute(path: AppRoutes.splash, builder: (_, _) => const SplashPage()),
+
+      // ── Onboarding (first-launch, pre-auth) ───────────
+      GoRoute(
+        path: AppRoutes.onboarding,
+        builder: (_, _) => const OnboardingPage(),
+      ),
+
+      // ── Help Center (accessible from profile) ─────────
+      GoRoute(
+        path: AppRoutes.helpCenter,
+        builder: (_, _) => const HelpCenterPage(),
+      ),
 
       // ── Auth ──────────────────────────────────────────
       GoRoute(path: AppRoutes.email, builder: (_, _) => const EmailPage()),
