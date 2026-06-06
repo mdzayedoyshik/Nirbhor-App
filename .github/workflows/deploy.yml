@@ -79,20 +79,20 @@ jobs:
           name: ${{ steps.version.outputs.name }} (build ${{ steps.version.outputs.build }})
           files: build/app/outputs/apk/release/app-release.apk
 
-      - name: Upload to Play Store (Closed Testing)
+      - name: Upload to Play Store (Internal Testing)
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
           packageName: com.techorbit.nirbhor
           releaseFiles: build/app/outputs/bundle/release/*.aab
-          tracks: alpha
+          tracks: internal
           status: completed
 
-      # - name: Upload to Play Store (Production)
-      #   uses: r0adkll/upload-google-play@v1
-      #   with:
-      #     serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
-      #     packageName: com.techorbit.nirbhor
-      #     releaseFiles: build/app/outputs/bundle/release/*.aab
-      #     tracks: production
-      #     status: completed
+      - name: Upload to Play Store (Production)
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
+          packageName: com.techorbit.nirbhor
+          releaseFiles: build/app/outputs/bundle/release/*.aab
+          tracks: production
+          status: completed

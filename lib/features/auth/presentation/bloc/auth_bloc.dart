@@ -317,7 +317,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } on GoogleSignInException catch (e, stackTrace) {
       log('Google Sign-In failed: $e', stackTrace: stackTrace);
       if (e.code == GoogleSignInExceptionCode.canceled) {
-        emit(const AuthInitial());
+        emit(const AuthUnauthenticated());
       } else {
         _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onGoogleSignIn: GoogleSignInException');
         try { await _analytics.logLoginFailed(errorCode: e.code.toString()); } catch (_) {}
@@ -326,7 +326,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } on PlatformException catch (e, stackTrace) {
       log('Platform exception occurred: $e', stackTrace: stackTrace);
       if (e.code == 'sign_in_canceled') {
-        emit(const AuthInitial());
+        emit(const AuthUnauthenticated());
       } else {
         _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onGoogleSignIn: PlatformException');
         emit(AuthFailure(_message(e)));

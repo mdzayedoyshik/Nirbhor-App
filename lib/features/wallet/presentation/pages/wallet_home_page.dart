@@ -63,9 +63,6 @@ class _WalletHomePageState extends State<WalletHomePage> {
         if (state is WalletError) {
           AppSnackbar.error(context, state.message);
         }
-        if (state is WalletPaymentSubmitSuccess) {
-          AppSnackbar.success(context, AppStrings.paymentSubmittedMsg);
-        }
       },
       builder: (context, state) {
         return Scaffold(

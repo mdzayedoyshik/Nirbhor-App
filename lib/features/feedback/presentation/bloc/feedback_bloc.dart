@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../domain/usecases/submit_feedback_usecase.dart';
 
@@ -21,10 +22,13 @@ class FeedbackBloc extends Bloc<FeedbackEvent, FeedbackState> {
   ) async {
     emit(const FeedbackLoading());
     try {
+      final info = await PackageInfo.fromPlatform();
+      final appVersion = '${info.version}+${info.buildNumber}';
       await _submit(
         type: event.type,
         title: event.title,
         description: event.description,
+        appVersion: appVersion,
       );
       emit(const FeedbackSuccess());
     } catch (e) {
