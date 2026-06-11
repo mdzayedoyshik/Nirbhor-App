@@ -23,26 +23,29 @@ class FlatRefreshRequested extends FlatEvent {
 class FlatCreateRequested extends FlatEvent {
   final String name;
   final String? address;
+  final String? timezone;
 
-  const FlatCreateRequested({required this.name, this.address});
+  const FlatCreateRequested({required this.name, this.address, this.timezone});
 
   @override
-  List<Object?> get props => [name, address];
+  List<Object?> get props => [name, address, timezone];
 }
 
 class FlatUpdateRequested extends FlatEvent {
   final String flatId;
   final String? name;
   final String? address;
+  final String? timezone;
 
   const FlatUpdateRequested({
     required this.flatId,
     this.name,
     this.address,
+    this.timezone,
   });
 
   @override
-  List<Object?> get props => [flatId, name, address];
+  List<Object?> get props => [flatId, name, address, timezone];
 }
 
 class FlatDeleteRequested extends FlatEvent {

@@ -11,6 +11,7 @@ class FlatModel extends FlatEntity {
     required super.createdAt,
     required super.members,
     required super.fixedExpenses,
+    required super.timezone,
   });
 
   factory FlatModel.fromJson(Map<String, dynamic> json) => FlatModel(
@@ -19,6 +20,7 @@ class FlatModel extends FlatEntity {
     address: json['address'] as String?,
     joinCode: json['join_code'] as String,
     createdAt: json['created_at'] as String,
+    timezone: json['timezone'] as String? ?? 'Asia/Dhaka',
     members: (json['members'] as List<dynamic>? ?? [])
         .map((m) => FlatMemberModel.fromJson(m as Map<String, dynamic>))
         .toList(),

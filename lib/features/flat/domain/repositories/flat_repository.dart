@@ -9,6 +9,7 @@ abstract class FlatRepository {
   Future<FlatEntity> createFlat({
     required String name,
     String? address,
+    String? timezone,
   });
 
   Future<FlatEntity> getFlat(String flatId);
@@ -17,6 +18,7 @@ abstract class FlatRepository {
     required String flatId,
     String? name,
     String? address,
+    String? timezone,
   });
 
   Future<void> deleteFlat(String flatId);

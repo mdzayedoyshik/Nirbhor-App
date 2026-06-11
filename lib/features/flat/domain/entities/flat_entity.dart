@@ -11,6 +11,7 @@ class FlatEntity extends Equatable {
   final String createdAt;
   final List<FlatMemberEntity> members;
   final List<FixedExpenseEntity> fixedExpenses;
+  final String timezone; // IANA timezone, e.g. "Asia/Dhaka"
 
   const FlatEntity({
     required this.id,
@@ -20,7 +21,10 @@ class FlatEntity extends Equatable {
     required this.createdAt,
     required this.members,
     required this.fixedExpenses,
+    required this.timezone,
   });
+
+  String get displayTimezone => timezone;
 
   List<FlatMemberEntity> get activeMembers =>
       members.where((m) => m.isActive).toList();
@@ -45,5 +49,6 @@ class FlatEntity extends Equatable {
     createdAt,
     members,
     fixedExpenses,
+    timezone,
   ];
 }

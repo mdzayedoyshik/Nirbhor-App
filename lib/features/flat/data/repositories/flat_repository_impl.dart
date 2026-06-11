@@ -26,8 +26,9 @@ class FlatRepositoryImpl implements FlatRepository {
   Future<FlatEntity> createFlat({
     required String name,
     String? address,
+    String? timezone,
   }) async {
-    final response = await _dataSource.createFlat(name: name, address: address);
+    final response = await _dataSource.createFlat(name: name, address: address, timezone: timezone);
     final data = response['data'] as Map<String, dynamic>;
     // Create returns partial flat — fetch full to get members/expenses
     final flatId = data['id'] as String;
@@ -45,11 +46,13 @@ class FlatRepositoryImpl implements FlatRepository {
     required String flatId,
     String? name,
     String? address,
+    String? timezone,
   }) async {
     final response = await _dataSource.updateFlat(
       flatId: flatId,
       name: name,
       address: address,
+      timezone: timezone,
     );
     return FlatModel.fromJson(response['data'] as Map<String, dynamic>);
   }

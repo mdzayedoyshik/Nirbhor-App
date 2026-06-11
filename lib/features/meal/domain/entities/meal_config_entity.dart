@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 class MealConfigEntity extends Equatable {
   const MealConfigEntity({
@@ -10,6 +11,7 @@ class MealConfigEntity extends Equatable {
     required this.lockTimeBreakfast,
     required this.lockTimeLunch,
     required this.lockTimeDinner,
+    required this.flatTimezone,
   });
 
   final String id;
@@ -17,13 +19,14 @@ class MealConfigEntity extends Equatable {
   final double breakfastPoints;
   final double lunchPoints;
   final double dinnerPoints;
-  final String lockTimeBreakfast; // "HH:MM" UTC — stored & enforced in UTC on the backend
-  final String lockTimeLunch;
-  final String lockTimeDinner;
+  final String lockTimeBreakfast; // flat-local HH:MM
+  final String lockTimeLunch; // flat-local HH:MM
+  final String lockTimeDinner; // flat-local HH:MM
+  final String flatTimezone; // IANA timezone name for this flat
 
-  /// Returns true if the UTC lock time for [shift] has passed for today.
-  /// Lock times are stored in UTC in the DB and returned as UTC "HH:MM" strings,
-  /// so we compare against UTC wall-clock time to stay in sync with the backend.
+  /// Returns true if the flat-local lock time for [shift] has passed for today.
+  /// Lock times are stored as flat-local "HH:MM" strings on the backend and
+  /// compared against the flat's wall-clock time (not UTC, not device local).
   bool isLocked(String shift) {
     final lockTime = _lockTime(shift);
     if (lockTime == null) return false;
@@ -31,8 +34,15 @@ class MealConfigEntity extends Equatable {
     if (parts.length < 2) return false;
     final h = int.tryParse(parts[0]) ?? 0;
     final m = int.tryParse(parts[1]) ?? 0;
-    final now = DateTime.now().toUtc(); // UTC — matches backend lock-time enforcement
-    return now.hour > h || (now.hour == h && now.minute >= m);
+    try {
+      final location = tz.getLocation(flatTimezone);
+      final nowLocal = tz.TZDateTime.now(location);
+      return nowLocal.hour > h || (nowLocal.hour == h && nowLocal.minute >= m);
+    } catch (_) {
+      // Fallback: use device local time (wrong timezone but better than UTC)
+      final now = DateTime.now();
+      return now.hour > h || (now.hour == h && now.minute >= m);
+    }
   }
 
   String? _lockTime(String shift) => switch (shift) {
@@ -59,5 +69,6 @@ class MealConfigEntity extends Equatable {
         lockTimeBreakfast,
         lockTimeLunch,
         lockTimeDinner,
+        flatTimezone,
       ];
 }

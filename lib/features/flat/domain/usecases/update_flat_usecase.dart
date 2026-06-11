@@ -9,9 +9,11 @@ class UpdateFlatUseCase {
     required String flatId,
     String? name,
     String? address,
+    String? timezone,
   }) => _repository.updateFlat(
     flatId: flatId,
     name: name,
     address: address,
+    timezone: timezone,
   );
 }

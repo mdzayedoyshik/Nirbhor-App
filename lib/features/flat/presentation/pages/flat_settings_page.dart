@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizing.dart';
@@ -28,12 +29,14 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameCtrl;
   late final TextEditingController _addressCtrl;
+  late String _selectedTimezone;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.flat.name);
     _addressCtrl = TextEditingController(text: widget.flat.address ?? '');
+    _selectedTimezone = widget.flat.timezone;
   }
 
   @override
@@ -52,8 +55,153 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
         address: _addressCtrl.text.trim().isEmpty
             ? null
             : _addressCtrl.text.trim(),
+        timezone: _selectedTimezone,
       ),
     );
+  }
+
+  Future<void> _showTimezonePicker(BuildContext context) async {
+    final allZones =
+        tz.timeZoneDatabase.locations.keys.toList()..sort();
+    final TextEditingController searchCtrl = TextEditingController();
+    List<String> filtered = List.from(allZones);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizing.radiusLg),
+        ),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (builderContext, setSheetState) {
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.75,
+              minChildSize: 0.4,
+              maxChildSize: 0.92,
+              builder: (_, scrollController) {
+                return Column(
+                  children: [
+                    const SizedBox(height: AppSizing.sm),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: context.borderColor,
+                        borderRadius:
+                            BorderRadius.circular(AppSizing.radiusFull),
+                      ),
+                    ),
+                    const SizedBox(height: AppSizing.md),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizing.pagePadding,
+                      ),
+                      child: Text(
+                        AppStrings.flatTimezonePickerTitle,
+                        style: AppTypography.titleMedium,
+                      ),
+                    ),
+                    const SizedBox(height: AppSizing.sm),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizing.pagePadding,
+                      ),
+                      child: TextField(
+                        controller: searchCtrl,
+                        decoration: InputDecoration(
+                          hintText: AppStrings.flatTimezoneSearchHint,
+                          hintStyle: AppTypography.bodySmall.copyWith(
+                            color: context.textSecColor,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: context.textSecColor,
+                          ),
+                          filled: true,
+                          fillColor: context.surfaceColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppSizing.radiusMd,
+                            ),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: AppSizing.sp12,
+                          ),
+                        ),
+                        onChanged: (query) {
+                          setSheetState(() {
+                            filtered = allZones
+                                .where(
+                                  (z) => z.toLowerCase().contains(
+                                        query.toLowerCase(),
+                                      ),
+                                )
+                                .toList();
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: AppSizing.sm),
+                    Expanded(
+                      child: ListView.builder(
+                        controller: scrollController,
+                        itemCount: filtered.length,
+                        itemBuilder: (_, index) {
+                          final zone = filtered[index];
+                          final isSelected = zone == _selectedTimezone;
+                          return InkWell(
+                            onTap: () {
+                              setState(() => _selectedTimezone = zone);
+                              Navigator.of(sheetContext).pop();
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSizing.pagePadding,
+                                vertical: AppSizing.sp12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      zone,
+                                      style: AppTypography.bodyMedium.copyWith(
+                                        color: isSelected
+                                            ? AppColors.brand
+                                            : context.textPrimColor,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    const Icon(
+                                      Icons.check_rounded,
+                                      color: AppColors.brand,
+                                      size: AppSizing.iconSm,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+    searchCtrl.dispose();
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
@@ -187,6 +335,58 @@ class _FlatSettingsPageState extends State<FlatSettingsPage> {
                       ),
                       textInputAction: TextInputAction.next,
                       maxLines: 2,
+                    ),
+                    const SizedBox(height: AppSizing.md),
+                    // Timezone picker tile
+                    InkWell(
+                      onTap: () => _showTimezonePicker(context),
+                      borderRadius:
+                          BorderRadius.circular(AppSizing.radiusMd),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSizing.md,
+                          vertical: AppSizing.sp12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: context.cardColor,
+                          borderRadius:
+                              BorderRadius.circular(AppSizing.radiusMd),
+                          border: Border.all(color: context.borderColor),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.language_rounded,
+                              color: context.textSecColor,
+                              size: AppSizing.iconMd,
+                            ),
+                            const SizedBox(width: AppSizing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    AppStrings.flatTimezoneLabel,
+                                    style: AppTypography.labelS.copyWith(
+                                      color: context.textSecColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _selectedTimezone,
+                                    style: AppTypography.bodyMedium,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: context.textSecColor,
+                              size: AppSizing.iconMd,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: AppSizing.xl),
                     AppButton(

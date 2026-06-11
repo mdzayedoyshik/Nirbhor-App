@@ -87,6 +87,9 @@ class AppStrings {
   static const String flatPhotoUrlLabel = 'Photo URL (optional)';
   static const String flatPhotoUrlHint = 'https://example.com/photo.jpg';
   static const String flatCreatedSuccess = 'Flat created successfully!';
+  static const String flatTimezoneLabel = 'Timezone';
+  static const String flatTimezonePickerTitle = 'Select Timezone';
+  static const String flatTimezoneSearchHint = 'Search timezones...';
 
   // Flat — join
   static const String joinFlatTitle = 'Join a Flat';

@@ -154,6 +154,7 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
       final flat = await _createFlat(
         name: event.name,
         address: event.address,
+        timezone: event.timezone,
       );
       emit(FlatLoaded(flat));
       try {
@@ -182,6 +183,7 @@ class FlatBloc extends Bloc<FlatEvent, FlatState> {
         flatId: event.flatId,
         name: event.name,
         address: event.address,
+        timezone: event.timezone,
       );
       emit(FlatLoaded(flat));
       try {

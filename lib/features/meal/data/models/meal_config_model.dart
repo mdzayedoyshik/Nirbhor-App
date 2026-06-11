@@ -10,6 +10,7 @@ class MealConfigModel extends MealConfigEntity {
     required super.lockTimeBreakfast,
     required super.lockTimeLunch,
     required super.lockTimeDinner,
+    required super.flatTimezone,
   });
 
   factory MealConfigModel.fromJson(Map<String, dynamic> json) =>
@@ -22,5 +23,6 @@ class MealConfigModel extends MealConfigEntity {
         lockTimeBreakfast: json['lock_time_breakfast'] as String? ?? '08:00',
         lockTimeLunch: json['lock_time_lunch'] as String? ?? '12:00',
         lockTimeDinner: json['lock_time_dinner'] as String? ?? '21:00',
+        flatTimezone: json['flat_timezone'] as String? ?? 'Asia/Dhaka',
       );
 }
