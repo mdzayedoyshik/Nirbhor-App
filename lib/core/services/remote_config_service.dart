@@ -54,10 +54,15 @@ class RemoteConfigService {
         }),
       });
 
-      // Startup fetch: loads whatever the server has right now.
-      await rc.fetch();
+      // Apply whatever we already have (last fetch from a previous run, or the
+      // defaults above) — this is LOCAL and instant, so startup never waits on
+      // the network. Critical for offline launches: the app renders immediately
+      // instead of stalling on the native splash until the fetch times out.
       await rc.activate();
       _loadConfig(rc);
+
+      // Refresh from the server in the BACKGROUND; updates apply when they land.
+      unawaited(_refreshInBackground(rc));
 
       // Real-time listener: Firebase pushes updates via persistent connection
       // the moment you publish in the console, bypassing CDN cache entirely.
@@ -75,6 +80,20 @@ class RemoteConfigService {
     } catch (e, st) {
       log('[RemoteConfig] init failed, using defaults', error: e, stackTrace: st);
       _config = null;
+    }
+  }
+
+  // Fetches fresh config off the startup path. Offline / timeout simply leaves
+  // the cached-or-default values in place.
+  Future<void> _refreshInBackground(FirebaseRemoteConfig rc) async {
+    try {
+      final changed = await rc.fetchAndActivate();
+      if (changed) {
+        _loadConfig(rc);
+        _updateController.add(config);
+      }
+    } catch (e) {
+      log('[RemoteConfig] background refresh failed (using cached/defaults): $e');
     }
   }
 

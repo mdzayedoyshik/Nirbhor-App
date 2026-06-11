@@ -16,6 +16,10 @@ class ApiClient {
 
   String get _base => AppEnv.baseUrl;
 
+  // Hard ceiling so a stalled connection (e.g. captive portal, dead network)
+  // can never hang a request forever — a timeout surfaces as NetworkException.
+  static const _requestTimeout = Duration(seconds: 20);
+
   Map<String, String> get _baseHeaders =>
       {'Content-Type': 'application/json'};
 
@@ -158,12 +162,12 @@ class ApiClient {
     );
 
     try {
-      var response = await fn();
+      var response = await fn().timeout(_requestTimeout);
 
       if (response.statusCode == 401 && auth) {
         final refreshed = await _tryRefresh();
         if (!refreshed) throw const TokenExpiredException();
-        response = await fn();
+        response = await fn().timeout(_requestTimeout);
       }
 
       ApiLogger.logResponse(
@@ -192,7 +196,7 @@ class ApiClient {
         Uri.parse('$_base${ApiEndpoints.refresh}'),
         headers: _baseHeaders,
         body: jsonEncode({'refresh_token': refreshToken}),
-      );
+      ).timeout(_requestTimeout);
       if (response.statusCode != 200) {
         ApiLogger.logRefresh(success: false);
         return false;

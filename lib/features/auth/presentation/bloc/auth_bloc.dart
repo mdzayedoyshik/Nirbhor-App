@@ -121,7 +121,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           isPremium: false,
         );
       } catch (_) {}
+    } on NetworkException catch (_) {
+      // Offline and nothing cached to restore from yet. Keep the session intact
+      // (do NOT clear tokens) so a reconnect / relaunch restores it — surfacing
+      // the login screen instead of freezing forever on the splash.
+      emit(const AuthUnauthenticated());
     } catch (e, stackTrace) {
+      // Genuine auth failure (expired / invalid session) — sign out cleanly.
       _analytics.recordException(e, stackTrace, reason: 'AuthBloc._onSessionCheck');
       await _tokenService.clearTokens();
       emit(const AuthUnauthenticated());

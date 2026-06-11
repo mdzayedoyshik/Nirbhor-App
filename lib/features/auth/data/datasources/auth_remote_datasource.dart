@@ -1,3 +1,5 @@
+import '../../../../core/cache/cache_service.dart';
+import '../../../../core/cache/cacheable.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/services/token_service.dart';
@@ -6,12 +8,15 @@ import '../models/token_model.dart';
 class AuthRemoteDataSource {
   final ApiClient _apiClient;
   final TokenService _tokenService;
+  final CacheService _cache;
 
   AuthRemoteDataSource({
     required ApiClient apiClient,
     required TokenService tokenService,
+    required CacheService cache,
   })  : _apiClient = apiClient,
-        _tokenService = tokenService;
+        _tokenService = tokenService,
+        _cache = cache;
 
   Future<Map<String, dynamic>> checkEmail(String email) =>
       _apiClient.post(ApiEndpoints.checkEmail, {'email': email});
@@ -73,8 +78,14 @@ class AuthRemoteDataSource {
         auth: true,
       );
 
-  Future<Map<String, dynamic>> getProfile() =>
-      _apiClient.get(ApiEndpoints.profile, auth: true);
+  // Cached so a returning user can restore their session and reach the app
+  // (with cached data) while offline, instead of being stuck at the splash.
+  Future<Map<String, dynamic>> getProfile() => cacheable(
+        cache: _cache,
+        key: 'profile',
+        fetchRaw: () => _apiClient.get(ApiEndpoints.profile, auth: true),
+        parse: (json) => json,
+      );
 
   Future<Map<String, dynamic>> updateProfile({
     required String name,

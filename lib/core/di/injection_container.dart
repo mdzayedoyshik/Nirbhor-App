@@ -192,7 +192,7 @@ Future<void> configureDependencies() async {
 
   // ── Auth ──────────────────────────────────────────────
   sl.registerLazySingleton(
-    () => AuthRemoteDataSource(apiClient: sl(), tokenService: sl()),
+    () => AuthRemoteDataSource(apiClient: sl(), tokenService: sl(), cache: sl()),
   );
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(dataSource: sl()),
