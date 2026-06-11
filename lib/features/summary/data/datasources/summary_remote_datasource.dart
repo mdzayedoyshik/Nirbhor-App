@@ -1,3 +1,5 @@
+import '../../../../core/cache/cache_service.dart';
+import '../../../../core/cache/cacheable.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../expense/data/models/expense_model.dart';
@@ -7,17 +9,23 @@ import '../models/closed_month_model.dart';
 import '../models/month_summary_model.dart';
 
 class SummaryRemoteDataSource {
-  SummaryRemoteDataSource({required ApiClient apiClient})
-      : _apiClient = apiClient;
+  SummaryRemoteDataSource({required ApiClient apiClient, required CacheService cache})
+      : _apiClient = apiClient,
+        _cache = cache;
   final ApiClient _apiClient;
+  final CacheService _cache;
 
   Future<MonthSummaryModel> getMonthlySummary(
-      String flatId, int month, int year) async {
-    final endpoint =
-        '${ApiEndpoints.flatMonthlySummary(flatId)}?month=$month&year=$year';
-    final response = await _apiClient.get(endpoint, auth: true);
-    return MonthSummaryModel.fromJson(response['data'] as Map<String, dynamic>);
-  }
+          String flatId, int month, int year) =>
+      cacheable(
+        cache: _cache,
+        key: 'monthly_summary:$flatId:$month:$year',
+        fetchRaw: () => _apiClient.get(
+            '${ApiEndpoints.flatMonthlySummary(flatId)}?month=$month&year=$year',
+            auth: true),
+        parse: (json) =>
+            MonthSummaryModel.fromJson(json['data'] as Map<String, dynamic>),
+      );
 
   Future<ClosePreviewModel> getClosePreview(String flatId) async {
     final response = await _apiClient.get(
@@ -37,17 +45,16 @@ class SummaryRemoteDataSource {
     );
   }
 
-  Future<List<ClosedMonthModel>> getClosedMonths(String flatId) async {
-    final response = await _apiClient.get(
-      ApiEndpoints.flatMonthlySummaries(flatId),
-      auth: true,
-    );
-    final data = response['data'] as Map<String, dynamic>;
-    return (data['closed_months'] as List)
-        .map((e) =>
-            ClosedMonthModel.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
+  Future<List<ClosedMonthModel>> getClosedMonths(String flatId) => cacheable(
+        cache: _cache,
+        key: 'closed_months:$flatId',
+        fetchRaw: () =>
+            _apiClient.get(ApiEndpoints.flatMonthlySummaries(flatId), auth: true),
+        parse: (json) =>
+            ((json['data'] as Map<String, dynamic>)['closed_months'] as List)
+                .map((e) => ClosedMonthModel.fromJson(e as Map<String, dynamic>))
+                .toList(),
+      );
 
   Future<MonthCloseStatusEntity> getMonthCloseStatus(String flatId) async {
     final response = await _apiClient.get(

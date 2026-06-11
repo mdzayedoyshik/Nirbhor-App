@@ -13,13 +13,16 @@ import 'package:nirbhor/features/summary/presentation/bloc/summary_bloc.dart';
 
 import 'core/di/injection_container.dart';
 import 'core/env/app_env.dart';
+import 'core/network/connectivity_cubit.dart';
 import 'core/router/app_router.dart';
 import 'core/services/analytics_service.dart';
 import 'core/services/bloc_crashlytics_observer.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/services/remote_config_service.dart';
+import 'core/services/review_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_cubit.dart';
+import 'core/widgets/offline_banner.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/profile_bloc.dart';
 import 'features/flat/presentation/bloc/flat_bloc.dart';
@@ -77,6 +80,9 @@ Future<void> main() async {
 
   sl<AuthBloc>().add(const AuthSessionCheckRequested());
 
+  // Begin watching network connectivity (drives the global offline banner).
+  sl<ConnectivityCubit>().start();
+
   // Load theme before rendering so there is no flash.
   final themeCubit = ThemeCubit();
   await themeCubit.loadSavedTheme();
@@ -102,6 +108,7 @@ class NirbhorApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<ThemeCubit>.value(value: themeCubit),
+        BlocProvider<ConnectivityCubit>.value(value: sl<ConnectivityCubit>()),
         BlocProvider<AuthBloc>.value(value: sl<AuthBloc>()),
         BlocProvider<ProfileBloc>.value(value: sl<ProfileBloc>()),
         BlocProvider<FlatBloc>.value(value: sl<FlatBloc>()),
@@ -123,19 +130,74 @@ class _AppView extends StatefulWidget {
   State<_AppView> createState() => _AppViewState();
 }
 
-class _AppViewState extends State<_AppView> {
+class _AppViewState extends State<_AppView> with WidgetsBindingObserver {
+  DateTime? _foregroundSince;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _foregroundSince = DateTime.now();
+    // Count this cold start toward the review-prompt heuristics.
+    ReviewService.instance.recordLaunch();
+  }
+
+  @override
+  void dispose() {
+    _accumulateForegroundTime();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _foregroundSince = DateTime.now();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _accumulateForegroundTime();
+    }
+  }
+
+  // Fold the elapsed foreground span into cumulative usage, then reset.
+  void _accumulateForegroundTime() {
+    final since = _foregroundSince;
+    if (since == null) return;
+    ReviewService.instance.addUsage(DateTime.now().difference(since));
+    _foregroundSince = null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
-        // FlatBloc check is triggered here; navigation is handled by the
-        // router's redirect + refreshListenable (via _AuthNotifier).
-        if (state is AuthAuthenticated) {
-          context.read<FlatBloc>().add(
-            FlatCheckRequested(userId: state.user.id),
-          );
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AuthBloc, AuthState>(
+          listener: (context, state) {
+            // FlatBloc check is triggered here; navigation is handled by the
+            // router's redirect + refreshListenable (via _AuthNotifier).
+            if (state is AuthAuthenticated) {
+              context.read<FlatBloc>().add(
+                FlatCheckRequested(userId: state.user.id),
+              );
+            }
+          },
+        ),
+        // When connectivity returns, refresh the always-on flat state. Each
+        // visible page refreshes its own data via ReconnectRefresher.
+        BlocListener<ConnectivityCubit, ConnectivityStatus>(
+          listenWhen: (prev, curr) =>
+              prev == ConnectivityStatus.offline &&
+              curr == ConnectivityStatus.online,
+          listener: (context, _) {
+            final auth = context.read<AuthBloc>().state;
+            if (auth is AuthAuthenticated) {
+              context.read<FlatBloc>().add(
+                FlatCheckRequested(userId: auth.user.id),
+              );
+            }
+          },
+        ),
+      ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
           return MaterialApp.router(
@@ -145,6 +207,8 @@ class _AppViewState extends State<_AppView> {
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),
             themeMode: themeState.mode,
+            builder: (context, child) =>
+                OfflineBanner(child: child ?? const SizedBox.shrink()),
           );
         },
       ),

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../../../../core/cache/cache_service.dart';
 import '../../../../core/enums/auth_enums.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/services/analytics_properties_manager.dart';
@@ -41,6 +42,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final TokenService _tokenService;
   final AnalyticsService _analytics;
   final AnalyticsPropertiesManager _propertiesManager;
+  final CacheService _cache;
 
   AuthBloc({
     required CheckEmailUseCase checkEmail,
@@ -57,6 +59,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required TokenService tokenService,
     required AnalyticsService analytics,
     required AnalyticsPropertiesManager propertiesManager,
+    required CacheService cache,
   })  : _checkEmail = checkEmail,
         _verifyOtp = verifyOtp,
         _login = login,
@@ -71,6 +74,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         _tokenService = tokenService,
         _analytics = analytics,
         _propertiesManager = propertiesManager,
+        _cache = cache,
         super(const AuthInitial()) {
     on<AuthSessionCheckRequested>(_onSessionCheck);
     on<AuthEmailCheckRequested>(_onEmailCheck);
@@ -355,6 +359,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await _analytics.logEvent(eventName: 'auth_logout');
       await _analytics.clearUserId();
       await _propertiesManager.clearUserProperties();
+    } catch (_) {}
+    // Clear cached API responses so the next user never sees stale data.
+    try {
+      await _cache.clearAll();
     } catch (_) {}
     emit(const AuthUnauthenticated());
   }

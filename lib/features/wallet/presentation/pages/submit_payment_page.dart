@@ -225,6 +225,7 @@ class _SubmitPaymentPageState extends State<SubmitPaymentPage> {
                     variant: AppButtonVariant.primary,
                     fullWidth: true,
                     loading: isLoading,
+                    offlineDisabled: true,
                   ),
                 ],
               ),

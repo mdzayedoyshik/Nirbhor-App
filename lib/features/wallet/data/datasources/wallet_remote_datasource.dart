@@ -1,3 +1,5 @@
+import '../../../../core/cache/cache_service.dart';
+import '../../../../core/cache/cacheable.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../models/flat_wallet_model.dart';
@@ -10,44 +12,60 @@ import '../models/wallet_member_summary_model.dart';
 import '../models/wallet_model.dart';
 import '../models/wallet_summary_model.dart';
 
+/// Cache-aware wallet datasource. GET methods use [cacheable] (remote-first,
+/// fall back to last-cached on NetworkException); write methods always hit the
+/// network and are gated when offline at the UI layer.
 class WalletRemoteDataSource {
-  WalletRemoteDataSource({required ApiClient apiClient})
-      : _apiClient = apiClient;
+  WalletRemoteDataSource({
+    required ApiClient apiClient,
+    required CacheService cache,
+  })  : _apiClient = apiClient,
+        _cache = cache;
 
   final ApiClient _apiClient;
+  final CacheService _cache;
 
-  Future<WalletModel> getMyWallet(String flatId) async {
-    final response =
-        await _apiClient.get(ApiEndpoints.flatWalletMe(flatId), auth: true);
-    final data = response['data'] as Map<String, dynamic>;
-    return WalletModel.fromJson(data['wallet'] as Map<String, dynamic>);
-  }
+  Future<WalletModel> getMyWallet(String flatId) => cacheable(
+        cache: _cache,
+        key: 'wallet_me:$flatId',
+        fetchRaw: () =>
+            _apiClient.get(ApiEndpoints.flatWalletMe(flatId), auth: true),
+        parse: (json) => WalletModel.fromJson(
+            (json['data'] as Map<String, dynamic>)['wallet']
+                as Map<String, dynamic>),
+      );
 
-  Future<List<WalletMemberSummaryModel>> getAllWallets(String flatId) async {
-    final response =
-        await _apiClient.get(ApiEndpoints.flatWallets(flatId), auth: true);
-    final data = response['data'] as Map<String, dynamic>;
-    return (data['wallets'] as List)
-        .map((w) =>
-            WalletMemberSummaryModel.fromJson(w as Map<String, dynamic>))
-        .toList();
-  }
+  Future<List<WalletMemberSummaryModel>> getAllWallets(String flatId) =>
+      cacheable(
+        cache: _cache,
+        key: 'wallets_all:$flatId',
+        fetchRaw: () =>
+            _apiClient.get(ApiEndpoints.flatWallets(flatId), auth: true),
+        parse: (json) =>
+            ((json['data'] as Map<String, dynamic>)['wallets'] as List)
+                .map((w) =>
+                    WalletMemberSummaryModel.fromJson(w as Map<String, dynamic>))
+                .toList(),
+      );
 
-  Future<FlatWalletModel> getFlatWallet(String flatId) async {
-    final response =
-        await _apiClient.get(ApiEndpoints.flatWalletFlat(flatId), auth: true);
-    final data = response['data'] as Map<String, dynamic>;
-    return FlatWalletModel.fromJson(
-        data['flat_wallet'] as Map<String, dynamic>);
-  }
+  Future<FlatWalletModel> getFlatWallet(String flatId) => cacheable(
+        cache: _cache,
+        key: 'wallet_flat:$flatId',
+        fetchRaw: () =>
+            _apiClient.get(ApiEndpoints.flatWalletFlat(flatId), auth: true),
+        parse: (json) => FlatWalletModel.fromJson(
+            (json['data'] as Map<String, dynamic>)['flat_wallet']
+                as Map<String, dynamic>),
+      );
 
-  Future<WalletSummaryModel> getWalletSummary(String flatId) async {
-    final response = await _apiClient.get(
-        ApiEndpoints.flatWalletSummary(flatId),
-        auth: true);
-    return WalletSummaryModel.fromJson(
-        response['data'] as Map<String, dynamic>);
-  }
+  Future<WalletSummaryModel> getWalletSummary(String flatId) => cacheable(
+        cache: _cache,
+        key: 'wallet_summary:$flatId',
+        fetchRaw: () =>
+            _apiClient.get(ApiEndpoints.flatWalletSummary(flatId), auth: true),
+        parse: (json) =>
+            WalletSummaryModel.fromJson(json['data'] as Map<String, dynamic>),
+      );
 
   Future<PaymentRequestModel> createPaymentRequest({
     required String flatId,
@@ -72,7 +90,7 @@ class WalletRemoteDataSource {
     String flatId, {
     String? status,
     String? memberId,
-  }) async {
+  }) {
     final params = <String, String>{
       'status': ?status,
       'member_id': ?memberId,
@@ -80,12 +98,15 @@ class WalletRemoteDataSource {
     final endpoint = params.isEmpty
         ? ApiEndpoints.flatPaymentRequests(flatId)
         : '${ApiEndpoints.flatPaymentRequests(flatId)}?${params.entries.map((e) => '${e.key}=${e.value}').join('&')}';
-    final response = await _apiClient.get(endpoint, auth: true);
-    final data = response['data'] as Map<String, dynamic>;
-    return (data['payment_requests'] as List)
-        .map((r) =>
-            PaymentRequestModel.fromJson(r as Map<String, dynamic>))
-        .toList();
+    return cacheable(
+      cache: _cache,
+      key: 'payment_requests:$flatId:${status ?? ''}:${memberId ?? ''}',
+      fetchRaw: () => _apiClient.get(endpoint, auth: true),
+      parse: (json) =>
+          ((json['data'] as Map<String, dynamic>)['payment_requests'] as List)
+              .map((r) => PaymentRequestModel.fromJson(r as Map<String, dynamic>))
+              .toList(),
+    );
   }
 
   Future<void> cancelPaymentRequest(String flatId, String requestId) =>
@@ -117,7 +138,7 @@ class WalletRemoteDataSource {
     String flatId, {
     String? status,
     String? memberId,
-  }) async {
+  }) {
     final params = <String, String>{
       'status': ?status,
       'member_id': ?memberId,
@@ -125,11 +146,15 @@ class WalletRemoteDataSource {
     final endpoint = params.isEmpty
         ? ApiEndpoints.flatPayments(flatId)
         : '${ApiEndpoints.flatPayments(flatId)}?${params.entries.map((e) => '${e.key}=${e.value}').join('&')}';
-    final response = await _apiClient.get(endpoint, auth: true);
-    final data = response['data'] as Map<String, dynamic>;
-    return (data['payments'] as List)
-        .map((p) => PaymentModel.fromJson(p as Map<String, dynamic>))
-        .toList();
+    return cacheable(
+      cache: _cache,
+      key: 'payments:$flatId:${status ?? ''}:${memberId ?? ''}',
+      fetchRaw: () => _apiClient.get(endpoint, auth: true),
+      parse: (json) =>
+          ((json['data'] as Map<String, dynamic>)['payments'] as List)
+              .map((p) => PaymentModel.fromJson(p as Map<String, dynamic>))
+              .toList(),
+    );
   }
 
   Future<VerifyPaymentResultModel> verifyPayment(
@@ -186,28 +211,36 @@ class WalletRemoteDataSource {
     String? to,
     int page = 1,
     int limit = 20,
-  }) async {
-    final data = await getTransactionsRaw(
-      flatId,
-      memberId: memberId,
-      type: type,
-      category: category,
-      from: from,
-      to: to,
-      page: page,
-      limit: limit,
+  }) {
+    return cacheable(
+      cache: _cache,
+      key: 'transactions:$flatId:p$page:l$limit:'
+          '${memberId ?? ''}:${type ?? ''}:${category ?? ''}:${from ?? ''}:${to ?? ''}',
+      fetchRaw: () => getTransactionsRaw(
+        flatId,
+        memberId: memberId,
+        type: type,
+        category: category,
+        from: from,
+        to: to,
+        page: page,
+        limit: limit,
+      ),
+      parse: (data) => (data['transactions'] as List)
+          .map((t) => TransactionModel.fromJson(t as Map<String, dynamic>))
+          .toList(),
     );
-    return (data['transactions'] as List)
-        .map((t) => TransactionModel.fromJson(t as Map<String, dynamic>))
-        .toList();
   }
 
-  Future<PaymentHintsModel> getPaymentHints(String flatId) async {
-    final response =
-        await _apiClient.get(ApiEndpoints.flatPaymentHints(flatId), auth: true);
-    final data = response['data'] as Map<String, dynamic>;
-    return PaymentHintsModel.fromJson(data['hints'] as Map<String, dynamic>);
-  }
+  Future<PaymentHintsModel> getPaymentHints(String flatId) => cacheable(
+        cache: _cache,
+        key: 'payment_hints:$flatId',
+        fetchRaw: () =>
+            _apiClient.get(ApiEndpoints.flatPaymentHints(flatId), auth: true),
+        parse: (json) => PaymentHintsModel.fromJson(
+            (json['data'] as Map<String, dynamic>)['hints']
+                as Map<String, dynamic>),
+      );
 
   Future<PaymentHintsModel> updatePaymentHints(
     String flatId, {

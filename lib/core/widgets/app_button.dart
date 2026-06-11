@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_sizing.dart';
 import '../constants/app_typography.dart';
+import '../network/connectivity_cubit.dart';
 
 enum AppButtonVariant { primary, secondary, outlined, text }
 
@@ -14,6 +16,11 @@ class AppButton extends StatelessWidget {
   final Widget? icon;
   final double height;
 
+  /// When true, the button is greyed-out and unpressable while the device is
+  /// offline. Set this on buttons that perform a network write (submit, save,
+  /// delete, …) so users can't trigger actions that would just fail offline.
+  final bool offlineDisabled;
+
   const AppButton({
     super.key,
     required this.label,
@@ -23,10 +30,15 @@ class AppButton extends StatelessWidget {
     this.fullWidth = true,
     this.icon,
     this.height = AppSizing.buttonHeight,
+    this.offlineDisabled = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Only subscribe to connectivity when this button opts in (&& short-circuits).
+    final offline =
+        offlineDisabled && context.watch<ConnectivityCubit>().isOffline;
+    final effectiveOnPressed = (loading || offline) ? null : onPressed;
     final child = loading
         ? const SizedBox(
             width: AppSizing.spinnerSize,
@@ -50,7 +62,7 @@ class AppButton extends StatelessWidget {
     switch (variant) {
       case AppButtonVariant.primary:
         button = ElevatedButton(
-          onPressed: loading ? null : onPressed,
+          onPressed: effectiveOnPressed,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: AppColors.white,
@@ -67,7 +79,7 @@ class AppButton extends StatelessWidget {
 
       case AppButtonVariant.secondary:
         button = ElevatedButton(
-          onPressed: loading ? null : onPressed,
+          onPressed: effectiveOnPressed,
           style: ElevatedButton.styleFrom(
             backgroundColor: context.surfaceColor,
             foregroundColor: context.textPrimColor,
@@ -83,7 +95,7 @@ class AppButton extends StatelessWidget {
 
       case AppButtonVariant.outlined:
         button = OutlinedButton(
-          onPressed: loading ? null : onPressed,
+          onPressed: effectiveOnPressed,
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.primary,
             side: const BorderSide(color: AppColors.primary),
@@ -98,7 +110,7 @@ class AppButton extends StatelessWidget {
 
       case AppButtonVariant.text:
         button = TextButton(
-          onPressed: loading ? null : onPressed,
+          onPressed: effectiveOnPressed,
           style: TextButton.styleFrom(
             foregroundColor: AppColors.primary,
             minimumSize: Size(0, height),

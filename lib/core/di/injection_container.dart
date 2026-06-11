@@ -158,7 +158,10 @@ import '../../features/wallet/presentation/bloc/payment_requests/payment_request
 import '../../features/wallet/presentation/bloc/payments/payments_bloc.dart';
 import '../../features/wallet/presentation/bloc/transactions/transactions_bloc.dart';
 import '../../features/wallet/presentation/bloc/wallet/wallet_bloc.dart';
+import '../cache/cache_service.dart';
 import '../network/api_client.dart';
+import '../network/connectivity_cubit.dart';
+import '../network/connectivity_service.dart';
 import '../services/analytics_properties_manager.dart';
 import '../services/analytics_service.dart';
 import '../services/device_token_service.dart';
@@ -181,6 +184,11 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => ImageUploadService(apiClient: sl()));
   sl.registerLazySingleton(() => AnalyticsService());
   sl.registerLazySingleton(() => AnalyticsPropertiesManager());
+
+  // Offline support: network status + read-through cache
+  sl.registerLazySingleton<CacheService>(() => SharedPrefsCacheService());
+  sl.registerLazySingleton(() => ConnectivityService(client: sl()));
+  sl.registerLazySingleton(() => ConnectivityCubit(sl<ConnectivityService>()));
 
   // ── Auth ──────────────────────────────────────────────
   sl.registerLazySingleton(
@@ -218,6 +226,7 @@ Future<void> configureDependencies() async {
       tokenService: sl(),
       analytics: sl(),
       propertiesManager: sl(),
+      cache: sl(),
     ),
   );
   sl.registerLazySingleton(
@@ -230,7 +239,8 @@ Future<void> configureDependencies() async {
   );
 
   // ── Flat ──────────────────────────────────────────────
-  sl.registerLazySingleton(() => FlatRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton(
+      () => FlatRemoteDataSource(apiClient: sl(), cache: sl()));
   sl.registerLazySingleton<FlatRepository>(
     () => FlatRepositoryImpl(dataSource: sl()),
   );
@@ -289,7 +299,8 @@ Future<void> configureDependencies() async {
   );
 
   // ── Wallet ────────────────────────────────────────────
-  sl.registerLazySingleton(() => WalletRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton(
+      () => WalletRemoteDataSource(apiClient: sl(), cache: sl()));
   sl.registerLazySingleton<WalletRepository>(
     () => WalletRepositoryImpl(dataSource: sl()),
   );
@@ -370,7 +381,8 @@ Future<void> configureDependencies() async {
   );
 
   // ── Member ────────────────────────────────────────────
-  sl.registerLazySingleton(() => MemberRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton(
+      () => MemberRemoteDataSource(apiClient: sl(), cache: sl()));
   sl.registerLazySingleton<MemberRepository>(
     () => MemberRepositoryImpl(dataSource: sl()),
   );
@@ -397,7 +409,8 @@ Future<void> configureDependencies() async {
   );
 
   // ── Meal ──────────────────────────────────────────────
-  sl.registerLazySingleton(() => MealRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton(
+      () => MealRemoteDataSource(apiClient: sl(), cache: sl()));
   sl.registerLazySingleton<MealRepository>(
     () => MealRepositoryImpl(dataSource: sl()),
   );
@@ -429,7 +442,8 @@ Future<void> configureDependencies() async {
   );
 
   // ── Summary ───────────────────────────────────────────
-  sl.registerLazySingleton(() => SummaryRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton(
+      () => SummaryRemoteDataSource(apiClient: sl(), cache: sl()));
   sl.registerLazySingleton<SummaryRepository>(
     () => SummaryRepositoryImpl(dataSource: sl()),
   );

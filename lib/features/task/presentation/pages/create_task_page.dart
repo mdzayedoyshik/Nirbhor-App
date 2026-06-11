@@ -161,6 +161,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                     onPressed: _submit,
                     fullWidth: true,
                     variant: AppButtonVariant.primary,
+                    offlineDisabled: true,
                   ),
                 ),
               ],

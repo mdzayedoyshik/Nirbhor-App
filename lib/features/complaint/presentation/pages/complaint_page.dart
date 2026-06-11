@@ -633,6 +633,7 @@ class _RaiseComplaintSheetState extends State<_RaiseComplaintSheet> {
                   label: 'Submit Complaint',
                   loading: state is ComplaintActionLoading,
                   onPressed: _submit,
+                  offlineDisabled: true,
                 ),
               ),
             ],

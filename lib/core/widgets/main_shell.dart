@@ -6,6 +6,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_sizing.dart';
 import '../constants/app_typography.dart';
 import '../router/app_router.dart';
+import 'review_prompt.dart';
 import '../../features/notification/presentation/bloc/notification_bloc.dart';
 import '../../features/notification/presentation/bloc/notification_state.dart';
 
@@ -159,7 +160,7 @@ class MainShell extends StatelessWidget {
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.translucent,
-        child: child,
+        child: ReviewPromptGate(child: child),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

@@ -327,6 +327,7 @@ class _RecordExpensePageState extends State<RecordExpensePage> {
                       : 'Submit for Approval',
                   loading: isLoading,
                   onPressed: isLoading ? null : _submit,
+                  offlineDisabled: true,
                 ),
               ],
             ),

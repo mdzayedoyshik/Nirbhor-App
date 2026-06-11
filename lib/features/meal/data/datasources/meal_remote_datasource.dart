@@ -1,3 +1,5 @@
+import '../../../../core/cache/cache_service.dart';
+import '../../../../core/cache/cacheable.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../domain/entities/daily_meal_logs_entity.dart';
@@ -13,17 +15,22 @@ import '../models/meal_pool_model.dart';
 import '../models/meal_toggle_model.dart';
 
 class MealRemoteDataSource {
-  MealRemoteDataSource({required ApiClient apiClient})
-      : _api = apiClient;
+  MealRemoteDataSource({required ApiClient apiClient, required CacheService cache})
+      : _api = apiClient,
+        _cache = cache;
 
   final ApiClient _api;
+  final CacheService _cache;
 
   // ── Config ──────────────────────────────────────────────────────────────────
 
-  Future<MealConfigModel> getMealConfig(String flatId) async {
-    final r = await _api.get(ApiEndpoints.mealConfig(flatId), auth: true);
-    return MealConfigModel.fromJson(r['data']['config'] as Map<String, dynamic>);
-  }
+  Future<MealConfigModel> getMealConfig(String flatId) => cacheable(
+        cache: _cache,
+        key: 'meal_config:$flatId',
+        fetchRaw: () => _api.get(ApiEndpoints.mealConfig(flatId), auth: true),
+        parse: (json) => MealConfigModel.fromJson(
+            json['data']['config'] as Map<String, dynamic>),
+      );
 
   Future<MealConfigModel> updateMealConfig(
       String flatId, Map<String, dynamic> data) async {
@@ -71,13 +78,15 @@ class MealRemoteDataSource {
 
   // ── Daily logs ──────────────────────────────────────────────────────────────
 
-  Future<DailyMealLogsEntity> getDailyMealLogs(
-      String flatId, String date) async {
-    final r = await _api.get(
-        '${ApiEndpoints.mealLogs(flatId)}?date=$date',
-        auth: true);
-    return DailyMealLogsModel.fromJson(r['data'] as Map<String, dynamic>);
-  }
+  Future<DailyMealLogsEntity> getDailyMealLogs(String flatId, String date) =>
+      cacheable(
+        cache: _cache,
+        key: 'meal_logs:$flatId:$date',
+        fetchRaw: () =>
+            _api.get('${ApiEndpoints.mealLogs(flatId)}?date=$date', auth: true),
+        parse: (json) =>
+            DailyMealLogsModel.fromJson(json['data'] as Map<String, dynamic>),
+      );
 
   Future<MealLogEntity> updateOwnMealLog(
       String flatId, Map<String, dynamic> body) async {
@@ -96,13 +105,16 @@ class MealRemoteDataSource {
 
   // ── Pool ────────────────────────────────────────────────────────────────────
 
-  Future<MealPoolEntity> getMealPool(
-      String flatId, int month, int year) async {
-    final r = await _api.get(
-        '${ApiEndpoints.mealPool(flatId)}?month=$month&year=$year',
-        auth: true);
-    return MealPoolModel.fromJson(r['data'] as Map<String, dynamic>);
-  }
+  Future<MealPoolEntity> getMealPool(String flatId, int month, int year) =>
+      cacheable(
+        cache: _cache,
+        key: 'meal_pool:$flatId:$month:$year',
+        fetchRaw: () => _api.get(
+            '${ApiEndpoints.mealPool(flatId)}?month=$month&year=$year',
+            auth: true),
+        parse: (json) =>
+            MealPoolModel.fromJson(json['data'] as Map<String, dynamic>),
+      );
 
   Future<Map<String, dynamic>> getMemberMonthlyLogs(
       String flatId, String memberId, int month, int year) async {

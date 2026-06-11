@@ -11,6 +11,8 @@ class AppStrings {
   static const String somethingWentWrong =
       'Something went wrong. Please try again.';
   static const String networkError = 'Network error. Check your connection.';
+  static const String offlineBanner = 'No internet · showing saved data';
+  static const String offlineAction = "You're offline — reconnect to do that";
 
   // Email screen
   static const String welcomeTitle = 'Welcome';

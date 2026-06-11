@@ -1,14 +1,22 @@
+import '../../../../core/cache/cache_service.dart';
+import '../../../../core/cache/cacheable.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 
 class MemberRemoteDataSource {
   final ApiClient _apiClient;
+  final CacheService _cache;
 
-  MemberRemoteDataSource({required ApiClient apiClient})
-      : _apiClient = apiClient;
+  MemberRemoteDataSource({required ApiClient apiClient, required CacheService cache})
+      : _apiClient = apiClient,
+        _cache = cache;
 
-  Future<Map<String, dynamic>> getMembers(String flatId) =>
-      _apiClient.get(ApiEndpoints.flatMembers(flatId), auth: true);
+  Future<Map<String, dynamic>> getMembers(String flatId) => cacheable(
+        cache: _cache,
+        key: 'members:$flatId',
+        fetchRaw: () => _apiClient.get(ApiEndpoints.flatMembers(flatId), auth: true),
+        parse: (json) => json,
+      );
 
   Future<Map<String, dynamic>> changeRole({
     required String flatId,

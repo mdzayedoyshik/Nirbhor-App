@@ -1,13 +1,22 @@
+import '../../../../core/cache/cache_service.dart';
+import '../../../../core/cache/cacheable.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 
 class FlatRemoteDataSource {
   final ApiClient _apiClient;
+  final CacheService _cache;
 
-  FlatRemoteDataSource({required ApiClient apiClient}) : _apiClient = apiClient;
+  FlatRemoteDataSource({required ApiClient apiClient, required CacheService cache})
+      : _apiClient = apiClient,
+        _cache = cache;
 
-  Future<Map<String, dynamic>> getMyFlat() =>
-      _apiClient.get(ApiEndpoints.flatsMine, auth: true);
+  Future<Map<String, dynamic>> getMyFlat() => cacheable(
+        cache: _cache,
+        key: 'my_flat',
+        fetchRaw: () => _apiClient.get(ApiEndpoints.flatsMine, auth: true),
+        parse: (json) => json,
+      );
 
   Future<Map<String, dynamic>> createFlat({
     required String name,
