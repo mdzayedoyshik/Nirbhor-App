@@ -145,6 +145,9 @@ class AppStrings {
   static const String approveRequestTitle = 'Approve Request';
   static const String approveRequestMessage =
       "The flat's fixed contribution will be split equally among all members.";
+  static const String memberContributionsTitle = 'Member Contributions';
+  static const String memberContributionsNote =
+      "Each member's monthly fixed share of the total.";
   static const String setContributionLabel = 'Fixed contribution (BDT)';
   static const String setContributionHint = '0 if paying nothing this month';
   static const String requestApprovedMsg = 'Member added successfully!';

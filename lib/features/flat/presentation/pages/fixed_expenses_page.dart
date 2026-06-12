@@ -598,6 +598,10 @@ class _FixedExpensesPageState extends State<FixedExpensesPage> {
                       ),
                     ),
 
+                  // ── Member contributions (visible to all members) ──
+                  const SizedBox(height: AppSizing.lg),
+                  const _MemberContributionsCard(),
+
                   // ── Payment Hints section (manager only) ──
                   if (widget.canManage) ...[
                     const SizedBox(height: AppSizing.lg),
@@ -782,6 +786,104 @@ class _HintRow extends StatelessWidget {
           style: AppTypography.titleMedium.copyWith(color: AppColors.brand),
         ),
       ],
+    );
+  }
+}
+
+// ── Member contributions card ─────────────────────────────────────────────────
+
+class _MemberContributionsCard extends StatelessWidget {
+  const _MemberContributionsCard();
+
+  String _roleLabel(String role) => role == 'manager'
+      ? 'Manager'
+      : role == 'co-manager'
+          ? 'Co-manager'
+          : 'Member';
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<FlatBloc, FlatState>(
+      builder: (context, state) {
+        if (state is! FlatLoaded) return const SizedBox.shrink();
+        final members = state.flat.activeMembers;
+        if (members.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          padding: const EdgeInsets.all(AppSizing.md),
+          decoration: BoxDecoration(
+            color: context.cardColor,
+            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+            border: Border.all(color: context.borderColor),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: AppColors.info.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    ),
+                    child: const Icon(
+                      Icons.groups_outlined,
+                      size: 18,
+                      color: AppColors.info,
+                    ),
+                  ),
+                  const SizedBox(width: AppSizing.sm),
+                  Expanded(
+                    child: Text(
+                      AppStrings.memberContributionsTitle,
+                      style: AppTypography.titleMedium,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizing.xs),
+              Text(
+                AppStrings.memberContributionsNote,
+                style: AppTypography.bodySmall.copyWith(
+                  color: context.textSecColor,
+                ),
+              ),
+              const SizedBox(height: AppSizing.md),
+              ...members.map(
+                (m) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSizing.sm),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(m.name, style: AppTypography.titleMedium),
+                            Text(
+                              _roleLabel(m.role),
+                              style: AppTypography.labelSmall.copyWith(
+                                color: context.textSecColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '৳${m.fixedContribution.toStringAsFixed(0)}',
+                        style: AppTypography.titleMedium.copyWith(
+                          color: AppColors.brand,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

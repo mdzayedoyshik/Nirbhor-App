@@ -847,6 +847,7 @@ class _StatsRow extends StatelessWidget {
         return Column(
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
                   child: GestureDetector(
@@ -859,6 +860,9 @@ class _StatsRow extends StatelessWidget {
                       subtitle: summary?.isNegative == true
                           ? 'owed'
                           : 'available',
+                      footnote: summary != null
+                          ? 'Fixed ৳${summary.fixedContribution.toStringAsFixed(0)}/mo'
+                          : null,
                     ),
                   ),
                 ),
@@ -925,6 +929,7 @@ class _StatCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.subtitle,
+    this.footnote,
   });
 
   final IconData icon;
@@ -932,6 +937,7 @@ class _StatCard extends StatelessWidget {
   final String label;
   final String value;
   final String subtitle;
+  final String? footnote;
 
   @override
   Widget build(BuildContext context) {
@@ -963,6 +969,16 @@ class _StatCard extends StatelessWidget {
             '$label · $subtitle',
             style: AppTypography.labelS.copyWith(color: context.textTerColor),
           ),
+          if (footnote != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              footnote!,
+              style: AppTypography.labelS.copyWith(
+                color: AppColors.brand,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ],
       ),
     );
