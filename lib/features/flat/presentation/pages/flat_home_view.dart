@@ -874,7 +874,7 @@ class _StatsRow extends StatelessWidget {
                       child: _StatCard(
                         icon: Icons.account_balance_rounded,
                         iconColor: AppColors.success,
-                        label: 'Pool',
+                        label: 'Flat Balance',
                         value: poolText,
                         subtitle: flatWallet?.isNegative == true
                             ? 'deficit'

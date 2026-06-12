@@ -341,7 +341,7 @@ class _BalanceSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'Flat Pool',
+                    'Flat Balance',
                     style: AppTypography.labelS
                         .copyWith(color: context.textSecColor),
                   ),
