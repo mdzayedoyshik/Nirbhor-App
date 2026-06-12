@@ -111,12 +111,10 @@ class FlatRepositoryImpl implements FlatRepository {
   Future<void> approveJoinRequest({
     required String flatId,
     required String requestId,
-    required double fixedContribution,
   }) async {
     await _dataSource.approveJoinRequest(
       flatId: flatId,
       requestId: requestId,
-      fixedContribution: fixedContribution,
     );
   }
 

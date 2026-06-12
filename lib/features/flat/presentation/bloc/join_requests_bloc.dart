@@ -56,7 +56,6 @@ class JoinRequestsBloc extends Bloc<JoinRequestsEvent, JoinRequestsState> {
       await _approve(
         flatId: event.flatId,
         requestId: event.requestId,
-        fixedContribution: event.fixedContribution,
       );
       final updated = await _getJoinRequests(event.flatId);
       emit(JoinRequestsLoaded(updated));

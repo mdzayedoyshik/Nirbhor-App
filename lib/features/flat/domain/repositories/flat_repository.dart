@@ -36,7 +36,6 @@ abstract class FlatRepository {
   Future<void> approveJoinRequest({
     required String flatId,
     required String requestId,
-    required double fixedContribution,
   });
 
   Future<void> declineJoinRequest({

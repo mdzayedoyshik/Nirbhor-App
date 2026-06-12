@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,7 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_typography.dart';
-import '../../../../core/widgets/app_input_dialog.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../bloc/flat_bloc.dart';
 import '../bloc/join_requests_bloc.dart';
@@ -30,34 +29,22 @@ class _JoinRequestsPageState extends State<JoinRequestsPage> {
   }
 
   Future<void> _approve(BuildContext context, String requestId) async {
-    final result = await AppInputDialog.show(
+    // No contribution input — the backend auto-splits the flat's fixed
+    // contribution equally across all members on approval.
+    final confirmed = await AppDialog.confirm(
       context: context,
       title: AppStrings.approveRequestTitle,
-      label: AppStrings.setContributionLabel,
-      hint: AppStrings.setContributionHint,
-      initialValue: '0',
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-      ],
+      message: AppStrings.approveRequestMessage,
       confirmLabel: AppStrings.approveLabel,
-      validator: (v) {
-        if (v == null || v.isEmpty) return 'Enter an amount';
-        final val = double.tryParse(v);
-        if (val == null || val < 0) return 'Enter a valid amount';
-        return null;
-      },
     );
 
-    if (result == null || !mounted) return;
-    final contribution = double.tryParse(result) ?? 0;
+    if (confirmed != true || !mounted) return;
 
     // ignore: use_build_context_synchronously
     context.read<JoinRequestsBloc>().add(
       JoinRequestApproveRequested(
         flatId: widget.flatId,
         requestId: requestId,
-        fixedContribution: contribution,
       ),
     );
   }

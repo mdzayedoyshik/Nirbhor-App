@@ -143,6 +143,8 @@ class AppStrings {
   static const String declineLabel = 'Decline';
   static const String noJoinRequests = 'No pending join requests.';
   static const String approveRequestTitle = 'Approve Request';
+  static const String approveRequestMessage =
+      "The flat's fixed contribution will be split equally among all members.";
   static const String setContributionLabel = 'Fixed contribution (BDT)';
   static const String setContributionHint = '0 if paying nothing this month';
   static const String requestApprovedMsg = 'Member added successfully!';

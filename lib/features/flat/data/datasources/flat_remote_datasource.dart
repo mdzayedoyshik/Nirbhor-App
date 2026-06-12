@@ -63,13 +63,13 @@ class FlatRemoteDataSource {
   Future<Map<String, dynamic>> getJoinRequests(String flatId) =>
       _apiClient.get(ApiEndpoints.flatJoinRequests(flatId), auth: true);
 
+  // Contribution is auto-split equally on the backend — no body needed.
   Future<Map<String, dynamic>> approveJoinRequest({
     required String flatId,
     required String requestId,
-    required double fixedContribution,
   }) => _apiClient.post(
     ApiEndpoints.flatJoinRequestApprove(flatId, requestId),
-    {'fixed_contribution': fixedContribution},
+    const <String, dynamic>{},
     auth: true,
   );
 

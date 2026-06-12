@@ -7,10 +7,8 @@ class ApproveJoinRequestUseCase {
   Future<void> call({
     required String flatId,
     required String requestId,
-    required double fixedContribution,
   }) => _repository.approveJoinRequest(
     flatId: flatId,
     requestId: requestId,
-    fixedContribution: fixedContribution,
   );
 }

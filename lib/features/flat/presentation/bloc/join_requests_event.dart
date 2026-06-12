@@ -18,16 +18,14 @@ class JoinRequestsLoadRequested extends JoinRequestsEvent {
 class JoinRequestApproveRequested extends JoinRequestsEvent {
   final String flatId;
   final String requestId;
-  final double fixedContribution;
 
   const JoinRequestApproveRequested({
     required this.flatId,
     required this.requestId,
-    required this.fixedContribution,
   });
 
   @override
-  List<Object?> get props => [flatId, requestId, fixedContribution];
+  List<Object?> get props => [flatId, requestId];
 }
 
 class JoinRequestDeclineRequested extends JoinRequestsEvent {
