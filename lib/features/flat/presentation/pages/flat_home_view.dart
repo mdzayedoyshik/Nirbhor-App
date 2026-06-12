@@ -846,42 +846,44 @@ class _StatsRow extends StatelessWidget {
 
         return Column(
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => onTabSelect(2),
-                    child: _StatCard(
-                      icon: Icons.account_balance_wallet_rounded,
-                      iconColor: AppColors.brand,
-                      label: 'Balance',
-                      value: balanceText,
-                      subtitle: summary?.isNegative == true
-                          ? 'owed'
-                          : 'available',
-                      footnote: summary != null
-                          ? 'Fixed ৳${summary.fixedContribution.toStringAsFixed(0)}/mo'
-                          : null,
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => onTabSelect(2),
+                      child: _StatCard(
+                        icon: Icons.account_balance_wallet_rounded,
+                        iconColor: AppColors.brand,
+                        label: 'Balance',
+                        value: balanceText,
+                        subtitle: summary?.isNegative == true
+                            ? 'owed'
+                            : 'available',
+                        footnote: summary != null
+                            ? 'Fixed ৳${summary.fixedContribution.toStringAsFixed(0)}/mo'
+                            : null,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: AppSizing.sp12),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => onTabSelect(2),
-                    child: _StatCard(
-                      icon: Icons.account_balance_rounded,
-                      iconColor: AppColors.success,
-                      label: 'Pool',
-                      value: poolText,
-                      subtitle: flatWallet?.isNegative == true
-                          ? 'deficit'
-                          : 'available',
+                  const SizedBox(width: AppSizing.sp12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => onTabSelect(2),
+                      child: _StatCard(
+                        icon: Icons.account_balance_rounded,
+                        iconColor: AppColors.success,
+                        label: 'Pool',
+                        value: poolText,
+                        subtitle: flatWallet?.isNegative == true
+                            ? 'deficit'
+                            : 'available',
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: AppSizing.sp12),
             Row(
