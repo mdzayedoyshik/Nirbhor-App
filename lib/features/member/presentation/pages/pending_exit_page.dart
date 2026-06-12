@@ -205,8 +205,8 @@ class _FinalAmountCard extends StatelessWidget {
         ? Icons.arrow_downward_rounded
         : Icons.arrow_upward_rounded;
     final direction = flatOwes
-        ? 'Flat owes ${settlement.memberName}'
-        : '${settlement.memberName} owes flat';
+        ? 'Refund to ${settlement.memberName}'
+        : 'Collect from ${settlement.memberName}';
 
     return Container(
       padding: const EdgeInsets.all(AppSizing.lg),
